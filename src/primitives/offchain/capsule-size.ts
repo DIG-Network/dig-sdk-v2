@@ -16,6 +16,13 @@ export enum PaddedCapsuleSize {
     MB_1000 = 1048576000
 }
 
+export class InvalidCapsuleSizeError extends Error {
+  constructor(capsuleSize: number) {
+    super(`Invalid capsule size (${capsuleSize})`);
+    this.name = 'InvalidCapsuleSize';
+  }
+}
+
 export function getPaddedCapsuleSize(size: CapsuleSize): PaddedCapsuleSize {
     switch (size) {
         case CapsuleSize.KB_256:
@@ -29,6 +36,6 @@ export function getPaddedCapsuleSize(size: CapsuleSize): PaddedCapsuleSize {
         case CapsuleSize.MB_1000:
             return PaddedCapsuleSize.MB_1000;
         default:
-            throw new Error(`Unknown capsule size: ${size}`);
+            throw new InvalidCapsuleSizeError(size);
     }
 }

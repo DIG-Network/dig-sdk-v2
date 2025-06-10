@@ -9,6 +9,13 @@ export interface ICapsule {
 
 export const paddingMarker = Buffer.from([0xff, 0xff, 0xff, 0xff]);
 
+export class CapsuleDataTooLargeError extends Error {
+  constructor(dataLength: number, capsuleSize: number) {
+    super(`Data length (${dataLength}) exceeds capsule size (${capsuleSize})`);
+    this.name = 'CapsuleDataTooLargeError';
+  }
+}
+
 export class Capsule implements ICapsule {
   size: CapsuleSize;
   hash: string;
@@ -21,7 +28,7 @@ export class Capsule implements ICapsule {
     const paddedSize = getPaddedCapsuleSize(size);
 
     if (data.length > size) {
-      throw new Error(`Data length (${data.length}) exceeds capsule size (${size})`);
+      throw new CapsuleDataTooLargeError(data.length, size);
     }
 
     const footer = Buffer.alloc(4);
