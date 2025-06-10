@@ -59,8 +59,9 @@ export class CapsuleSet implements ICapsuleSet {
             } else {
                 chunk = buffer.slice(offset, offset + chosenSize);
             }
-            capsules.push(new Capsule(chosenSize as CapsuleSize, chunk));
-            capsuleBuffers.push(chunk);
+            const capsule = new Capsule(chosenSize as CapsuleSize, chunk);
+            capsules.push(capsule);
+            capsuleBuffers.push(capsule.data);
             offset += chunk.length;
         }
         return { capsuleBuffers, capsules };
