@@ -1,12 +1,15 @@
 name: Build, lint, test
 
 on:
-  pull_request_target:
-    branches:
-      - main
+  push:
 
 jobs:
   build:
+    permissions:
+      checks: write
+      pull-requests: write
+      contents: write
+
     runs-on: ubuntu-latest
 
     steps:
@@ -25,4 +28,10 @@ jobs:
         run: npm run lint
 
       - name: Run tests with coverage
+        uses: jwalton/gh-find-current-pr@v1
+        id: findPr
+
+      - name: Run tests with coverage
         uses: ArtiomTr/jest-coverage-report-action@v2
+        with:
+          prnumber: ${{ steps.findPr.outputs.number }}
