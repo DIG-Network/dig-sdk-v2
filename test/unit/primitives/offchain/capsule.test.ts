@@ -3,14 +3,29 @@ import { CapsuleSize, getPaddedCapsuleSize, InvalidCapsuleSizeError } from '../.
 import crypto from 'crypto';
 
 describe('Capsule', () => {
-  it('should create a Capsule with correct hash and padded data', () => {
-    const data = crypto.randomBytes(CapsuleSize.KB_256 - 16);
+  it('should create a Capsule with correct hash and padded data for KB_256', () => {
+    const data = crypto.randomBytes(CapsuleSize.KB_256 - 456);
     const capsule = new Capsule(CapsuleSize.KB_256, data);
 
     expect(capsule.size).toBe(CapsuleSize.KB_256);
     expect(capsule.hash).toBe(crypto.createHash('sha256').update(data).digest('hex'));
 
     expect(capsule.data.length).toBe(getPaddedCapsuleSize(CapsuleSize.KB_256));
+
+    expect(capsule.data.includes(paddingMarker)).toBe(true);
+
+    const footer = capsule.data.subarray(capsule.data.length - 4);
+    expect(footer.readUInt32LE(0)).toBe(data.length);
+  });
+
+    it('should create a Capsule with correct hash and padded data for MB_1', () => {
+    const data = crypto.randomBytes(CapsuleSize.MB_1 - 456);
+    const capsule = new Capsule(CapsuleSize.MB_1, data);
+
+    expect(capsule.size).toBe(CapsuleSize.MB_1);
+    expect(capsule.hash).toBe(crypto.createHash('sha256').update(data).digest('hex'));
+
+    expect(capsule.data.length).toBe(getPaddedCapsuleSize(CapsuleSize.MB_1));
 
     expect(capsule.data.includes(paddingMarker)).toBe(true);
 
