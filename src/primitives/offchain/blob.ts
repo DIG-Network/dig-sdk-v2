@@ -24,8 +24,4 @@ export class Blob implements IBlob {
     this.data = parsed.data;
     this.metadata = parsed.metadata;
   }
-
-  public addNumbers(a: number, b: number): number {
-    return a + b;
-  }
 }
