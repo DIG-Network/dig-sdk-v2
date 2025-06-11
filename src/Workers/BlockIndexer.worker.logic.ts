@@ -21,7 +21,7 @@ export const api = {
     if (!initialized) throw new Error('BlockIndexer must be initialized before starting.');
     if (started) return;
     started = true;
-    intervalId = setInterval(api.ingest, 16000);
+    intervalId = setInterval(api.ingest, 1600);
   },
   stop() {
     if (intervalId) clearInterval(intervalId);

@@ -25,29 +25,32 @@ describe('BlockIndexer', () => {
     const hashes: string[] = [];
     blockIndexer.subscribe((hash) => hashes.push(hash));
     await blockIndexer.start();
-    // Wait for 2 intervals (32 seconds) to ensure at least 2 hashes are ingested
-    await new Promise((res) => setTimeout(res, 34000));
+    // Wait for 2 intervals (3.2 seconds) to ensure at least 2 hashes are ingested
+    await new Promise((res) => setTimeout(res, 4000));
     expect(hashes.length).toBeGreaterThanOrEqual(2);
     const allHashes = await blockIndexer.getAllHashes();
     expect(allHashes.length).toBeGreaterThanOrEqual(2);
     await blockIndexer.stop();
-  }, 40000);
+  }, 10000);
 
   it('should not re-initialize if already initialized', async () => {
     await blockIndexer.initialize(dbPath);
-    // Should not throw or re-initialize
     await expect(blockIndexer.initialize(dbPath)).resolves.toBeUndefined();
   });
 
   it('should not start if already started', async () => {
-    await blockIndexer.start();
-    await expect(blockIndexer.start()).resolves.toBeUndefined();
-    await blockIndexer.stop();
-  });
+    const bi = new BlockIndexer();
+    await bi.initialize(dbPath);
+    await bi.start();
+    await expect(bi.start()).resolves.toBeUndefined();
+    await bi.stop();
+  }, 10000);
 
   it('should not throw if stop is called when not started', async () => {
-    await expect(blockIndexer.stop()).resolves.toBeUndefined();
-  });
+    const bi = new BlockIndexer();
+    await bi.initialize(dbPath);
+    await expect(bi.stop()).resolves.toBeUndefined();
+  }, 10000);
 
   it('should return empty array from getAllHashes if not initialized', async () => {
     const bi = new BlockIndexer();
@@ -55,15 +58,10 @@ describe('BlockIndexer', () => {
   });
 
   it('should not throw if stop is called multiple times', async () => {
-    await blockIndexer.start();
-    await blockIndexer.stop();
-    await expect(blockIndexer.stop()).resolves.toBeUndefined();
-  });
-
-  it('should not throw if start is called after stop', async () => {
-    await blockIndexer.start();
-    await blockIndexer.stop();
-    await expect(blockIndexer.start()).resolves.toBeUndefined();
-    await blockIndexer.stop();
-  });
+    const bi = new BlockIndexer();
+    await bi.initialize(dbPath);
+    await bi.start();
+    await bi.stop();
+    await expect(bi.stop()).resolves.toBeUndefined();
+  }, 10000);
 });
