@@ -1,4 +1,4 @@
-import { api } from '../../src/Workers/BlockIndexer.worker.logic';
+import { api } from '../../../src/Workers/BlockIndexer/BlockIndexer.worker.logic';
 import fs from 'fs';
 
 describe('BlockIndexerWorker', () => {

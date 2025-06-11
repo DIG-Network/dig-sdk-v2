@@ -1,4 +1,4 @@
-import { BlockIndexer, BlockIndexerNotInitialized } from '../../src/Workers/BlockIndexer';
+import { BlockIndexer, BlockIndexerNotInitialized } from '../../../src/Workers/BlockIndexer/BlockIndexer';
 import fs from 'fs';
 import path from 'path';
 
