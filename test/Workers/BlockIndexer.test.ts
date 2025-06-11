@@ -32,4 +32,38 @@ describe('BlockIndexer', () => {
     expect(allHashes.length).toBeGreaterThanOrEqual(2);
     await blockIndexer.stop();
   }, 40000);
+
+  it('should not re-initialize if already initialized', async () => {
+    await blockIndexer.initialize(dbPath);
+    // Should not throw or re-initialize
+    await expect(blockIndexer.initialize(dbPath)).resolves.toBeUndefined();
+  });
+
+  it('should not start if already started', async () => {
+    await blockIndexer.start();
+    await expect(blockIndexer.start()).resolves.toBeUndefined();
+    await blockIndexer.stop();
+  });
+
+  it('should not throw if stop is called when not started', async () => {
+    await expect(blockIndexer.stop()).resolves.toBeUndefined();
+  });
+
+  it('should return empty array from getAllHashes if not initialized', async () => {
+    const bi = new BlockIndexer();
+    await expect(bi.getAllHashes()).resolves.toEqual([]);
+  });
+
+  it('should not throw if stop is called multiple times', async () => {
+    await blockIndexer.start();
+    await blockIndexer.stop();
+    await expect(blockIndexer.stop()).resolves.toBeUndefined();
+  });
+
+  it('should not throw if start is called after stop', async () => {
+    await blockIndexer.start();
+    await blockIndexer.stop();
+    await expect(blockIndexer.start()).resolves.toBeUndefined();
+    await blockIndexer.stop();
+  });
 });
