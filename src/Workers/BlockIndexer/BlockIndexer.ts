@@ -41,7 +41,7 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
     // Use dist worker for tests, src worker for dev/runtime
     let workerPath: string;
     if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
-      workerPath = '../../../dist/Workers/BlockIndexer.worker.js';
+      workerPath = '../../../dist/Workers/BlockIndexer/BlockIndexer.worker.js';
     } else {
       workerPath = './BlockIndexer.worker.ts';
     }
