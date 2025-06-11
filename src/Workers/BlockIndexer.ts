@@ -37,7 +37,14 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
 
   async initialize(dbPath: string = './block_indexer.sqlite'): Promise<void> {
     if (this.initialized) return;
-    this.worker = (await spawn(new Worker('./BlockIndexer.worker'))) as import('threads').ModuleThread<BlockIndexerWorkerApi>;
+    // Use dist worker for tests, src worker for dev/runtime
+    let workerPath: string;
+    if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
+      workerPath = '../../dist/Workers/BlockIndexer.worker.js';
+    } else {
+      workerPath = './BlockIndexer.worker.ts';
+    }
+    this.worker = (await spawn(new Worker(workerPath))) as import('threads').ModuleThread<BlockIndexerWorkerApi>;
     await this.worker.initialize(dbPath);
     this.initialized = true;
   }
