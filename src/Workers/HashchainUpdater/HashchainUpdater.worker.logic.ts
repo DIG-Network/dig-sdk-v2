@@ -7,6 +7,7 @@ let hashChain: HashChain | null = null;
 export const api = {
   initialize(publicKeyParam: string) {
     publicKey = publicKeyParam;
+    hashChain = null; // Reset hashChain on re-init for testability
   },
   recalculate(newRow: Block) {
     if (!publicKey) throw new Error('Public key is not initialized.');
@@ -16,4 +17,8 @@ export const api = {
       hashChain.addBlock(Buffer.from(newRow.hash, 'hex'));
     }
   },
+  // For testing: expose internals
+  _getInternals() {
+    return { publicKey, hashChain };
+  }
 };
