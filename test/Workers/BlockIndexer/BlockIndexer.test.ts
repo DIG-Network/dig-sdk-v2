@@ -1,4 +1,5 @@
 import { BlockIndexer, BlockIndexerNotInitialized } from '../../../src/Workers/BlockIndexer/BlockIndexer';
+import { Block } from '../../../src/Workers/BlockIndexer/BlockIndexer.worker';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,14 +23,14 @@ describe('BlockIndexer', () => {
   });
 
   it('should emit event and store hashes when a new block is ingested', async () => {
-    const hashes: string[] = [];
-    blockIndexer.subscribe((hash) => hashes.push(hash));
+    const blocks: Block[] = [];
+    blockIndexer.subscribe((block) => blocks.push(block));
     await blockIndexer.start();
-    // Wait for 2 intervals (3.2 seconds) to ensure at least 2 hashes are ingested
+    // Wait for 2 intervals (3.2 seconds) to ensure at least 2 blocks are ingested
     await new Promise((res) => setTimeout(res, 4000));
-    expect(hashes.length).toBeGreaterThanOrEqual(2);
-    const allHashes = await blockIndexer.getAllHashes();
-    expect(allHashes.length).toBeGreaterThanOrEqual(2);
+    expect(blocks.length).toBeGreaterThanOrEqual(2);
+    const allBlocks = await blockIndexer.getAllHashes();
+    expect(allBlocks.length).toBeGreaterThanOrEqual(2);
     await blockIndexer.stop();
   }, 10000);
 

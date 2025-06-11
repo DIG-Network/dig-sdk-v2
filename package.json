@@ -27,6 +27,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@dignetwork/proof-of-storage-continuity": "^0.1.0",
     "better-sqlite3": "^11.10.0",
     "observable-fns": "^0.6.1",
     "threads": "^1.7.0",

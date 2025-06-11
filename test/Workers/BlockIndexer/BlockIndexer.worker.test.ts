@@ -1,3 +1,4 @@
+import { Block } from '../../../src/Workers/BlockIndexer/BlockIndexer.worker';
 import { api } from '../../../src/Workers/BlockIndexer/BlockIndexer.worker.logic';
 import fs from 'fs';
 
@@ -41,8 +42,10 @@ describe('BlockIndexerWorker', () => {
   it('should notify observer when a hash is generated', done => {
     api.initialize(dbPath);
     const observable = api.onHashGenerated();
-    const sub = observable.subscribe((hash: string) => {
-      expect(typeof hash).toBe('string');
+    const sub = observable.subscribe((block: Block) => {
+      expect(typeof block).toBe('object');
+      expect(typeof block.hash).toBe('string');
+      expect(typeof block.blockHeight).toBe('number');
       sub.unsubscribe();
       done();
     });
@@ -52,7 +55,6 @@ describe('BlockIndexerWorker', () => {
   it('should not re-initialize if already initialized', () => {
     api.initialize(dbPath);
     expect(() => api.initialize(dbPath)).not.toThrow();
-    // Should not create a new db or throw
   });
 
   it('should not start if already started', () => {

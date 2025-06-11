@@ -1,20 +1,21 @@
 import { EventEmitter } from 'events';
 import { spawn, Worker, Thread } from 'threads';
+import { Block } from './BlockIndexer.worker';
 
 const enum BlockIndexerEventNames {
     HashGenerated = 'hashGenerated',
 }
 
 export interface BlockIndexerEvents {
-  on(event: BlockIndexerEventNames.HashGenerated, listener: (hash: string) => void): this;
-  emit(event: BlockIndexerEventNames.HashGenerated, hash: string): boolean;
+  on(event: BlockIndexerEventNames.HashGenerated, listener: (block: Block) => void): this;
+  emit(event: BlockIndexerEventNames.HashGenerated, block: Block): boolean;
 }
 
 export interface IBlockIndexer {
   initialize(dbPath?: string): Promise<void>;
   start(): Promise<void>;
   stop(): Promise<void>;
-  subscribe(listener: (hash: string) => void): void;
+  subscribe(listener: (block: Block) => void): void;
   getAllHashes(): Promise<string[]>;
 }
 
@@ -54,8 +55,8 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
     if (this.started) return;
     this.started = true;
     
-    this.worker!.onHashGenerated().subscribe((hash: string) => {
-      this.emit(BlockIndexerEventNames.HashGenerated, hash);
+    this.worker!.onHashGenerated().subscribe((block: Block) => {
+      this.emit(BlockIndexerEventNames.HashGenerated, block);
     });
     
     await this.worker!.start();
@@ -67,12 +68,17 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
     if (this.worker) await Thread.terminate(this.worker);
   }
 
-  subscribe(listener: (hash: string) => void) {
+  subscribe(listener: (block: Block) => void) {
     this.on(BlockIndexerEventNames.HashGenerated, listener);
   }
 
   async getAllHashes(): Promise<string[]> {
     if (!this.worker) return [];
     return (await this.worker.getAllHashes()) as string[];
+  }
+
+  async getLatestHash(): Promise<Block[]> {
+    if (!this.worker) return [];
+    return (await this.worker.getLatestHash()) as Block[];
   }
 }
