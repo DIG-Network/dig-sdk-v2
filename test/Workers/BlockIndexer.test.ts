@@ -1,4 +1,4 @@
-import { BlockIndexer } from '../../dist/Workers/BlockIndexer';
+import { BlockIndexer, BlockIndexerNotInitialized } from '../../dist/Workers/BlockIndexer';
 import fs from 'fs';
 import path from 'path';
 
@@ -8,33 +8,28 @@ describe('BlockIndexer', () => {
 
   beforeAll(async () => {
     blockIndexer = new BlockIndexer();
-    blockIndexer.initialize(dbPath);
+    await blockIndexer.initialize(dbPath);
   });
 
-  afterAll(() => {
-    blockIndexer.stop();
-    if (blockIndexer['db']) {
-      blockIndexer['db'].close();
-    }
+  afterAll(async () => {
+    await blockIndexer.stop();
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
   });
 
-  it('should not start before initialize', () => {
+  it('should not start before initialize', async () => {
     const bi = new BlockIndexer();
-    expect(() => bi.start()).toThrow('BlockIndexer must be initialized before starting.');
+    await expect(bi.start()).rejects.toThrow(BlockIndexerNotInitialized);
   });
 
-  it('should generate and store hashes every 16 seconds and emit event', async () => {
-    jest.useFakeTimers();
+  it('should emit event and store hashes when a new block is ingested', async () => {
     const hashes: string[] = [];
     blockIndexer.subscribe((hash) => hashes.push(hash));
-    blockIndexer.start();
-    jest.advanceTimersByTime(16000);
-    jest.advanceTimersByTime(16000);
+    await blockIndexer.start();
+    // Wait for 2 intervals (32 seconds) to ensure at least 2 hashes are ingested
+    await new Promise((res) => setTimeout(res, 34000));
     expect(hashes.length).toBeGreaterThanOrEqual(2);
-    const allHashes = blockIndexer.getAllHashes();
+    const allHashes = await blockIndexer.getAllHashes();
     expect(allHashes.length).toBeGreaterThanOrEqual(2);
-    jest.useRealTimers();
-    blockIndexer.stop();
-  });
+    await blockIndexer.stop();
+  }, 40000);
 });
