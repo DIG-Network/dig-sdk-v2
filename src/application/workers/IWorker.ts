@@ -1,10 +1,6 @@
-import { BlockChainType } from "../types/BlockChain";
+import { BlockChainType } from '../types/BlockChain';
 
 export interface IWorker {
-  initialize(
-    blockchainType: BlockChainType,
-    dbPath?: string
-  ): Promise<void>;
-  start(): Promise<void>;
+  start(blockchainType: BlockChainType, dbPath?: string): Promise<void>;
   stop(): Promise<void>;
 }

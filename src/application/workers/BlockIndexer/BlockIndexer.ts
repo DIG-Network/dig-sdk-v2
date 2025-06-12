@@ -2,38 +2,33 @@ import { EventEmitter } from 'events';
 import { spawn, Worker, Thread } from 'threads';
 import { Block } from '../../types/Block';
 import { IWorker } from '../IWorker';
+import { BlockIndexerEventNames, BlockIndexerEvents } from './BlockIndexerEvents';
+import Database from 'better-sqlite3';
 
-const enum BlockIndexerEventNames {
-    HashGenerated = 'hashGenerated',
-}
-
-export interface BlockIndexerEvents {
-  on(event: BlockIndexerEventNames.HashGenerated, listener: (block: Block) => void): this;
-  emit(event: BlockIndexerEventNames.HashGenerated, block: Block): boolean;
-}
-
-export class BlockIndexerNotInitialized extends Error {
-  constructor() {
-    super('BlockIndexer must be initialized before starting.');
-    this.name = 'BlockIndexerNotInitialized';
-  }
-}
-
-export interface BlockIndexerWorkerApi {
+interface BlockIndexerWorkerApi {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: (...args: any[]) => any;
 }
 
-export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }) implements IWorker {
+interface IBlockIndexer extends IWorker {
+  onBlockIngested(listener: (block: Block) => void): void
+  getLatestBlock(): Promise<Block>
+  getBlockByHeight(height: number): Promise<Block>
+}
+
+export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }) implements IBlockIndexer {
   private worker: import('threads').ModuleThread<BlockIndexerWorkerApi> | null = null;
   private initialized = false;
   private started = false;
+  private db: Database.Database | null = null;
 
-  async initialize(
+  async start(
     blockchainType: string,
     dbPath: string = './block_indexer.sqlite'
   ): Promise<void> {
     if (this.initialized) return;
+
+    this.db = new Database(dbPath);
 
     // Use src worker for tests/dev, dist worker for production
     let workerPath: string;
@@ -44,20 +39,14 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
     }
     
     this.worker = (await spawn(new Worker(workerPath))) as import('threads').ModuleThread<BlockIndexerWorkerApi>;
-    await this.worker.initialize(blockchainType, dbPath);
-    this.initialized = true;
-  }
-
-  async start(): Promise<void> {
-    if (!this.initialized) throw new BlockIndexerNotInitialized();
-    if (this.started) return;
-    this.started = true;
     
-    this.worker!.onHashGenerated().subscribe((block: Block) => {
-      this.emit(BlockIndexerEventNames.HashGenerated, block);
+    this.worker.onBlockIngested().subscribe((block: Block) => {
+      this.emit(BlockIndexerEventNames.BlockIngested, block);
     });
     
-    await this.worker!.start();
+    await this.worker.start(blockchainType, dbPath);
+
+    this.initialized = true;
   }
 
   async stop(): Promise<void> {
@@ -66,17 +55,23 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
     if (this.worker) await Thread.terminate(this.worker);
   }
 
-  subscribe(listener: (block: Block) => void) {
-    this.on(BlockIndexerEventNames.HashGenerated, listener);
+  onBlockIngested(listener: (block: Block) => void) {
+    this.on(BlockIndexerEventNames.BlockIngested, listener);
   }
 
-  async getAllHashes(): Promise<string[]> {
-    if (!this.worker) return [];
-    return (await this.worker.getAllHashes()) as string[];
+  async getLatestBlock(): Promise<Block> {
+    if (!this.db) throw new Error('Database not initialized');
+    const stmt = this.db.prepare('SELECT * FROM blocks ORDER BY blockHeight DESC LIMIT 1');
+    const block = stmt.get() as Block | undefined;
+    if (!block) throw new Error('No blocks found');
+    return block;
   }
 
-  async getLatestHash(): Promise<Block[]> {
-    if (!this.worker) return [];
-    return (await this.worker.getLatestHash()) as Block[];
-  }
+  async getBlockByHeight(height: number): Promise<Block> {
+    if (!this.db) throw new Error('Database not initialized');
+    const stmt = this.db.prepare('SELECT * FROM blocks WHERE blockHeight = ?');
+    const block = stmt.get(height) as Block | undefined;
+    if (!block) throw new Error(`Block with height ${height} not found`);
+    return block;
+  } 
 }
