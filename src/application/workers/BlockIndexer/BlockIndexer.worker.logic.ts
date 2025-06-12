@@ -56,7 +56,7 @@ export const api = {
     if (started) return;
     db = new Database(dbPath);
     db.exec(
-      `CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+      `CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
     );
 
     switch (blockchainType) {

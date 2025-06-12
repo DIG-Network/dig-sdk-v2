@@ -16,7 +16,7 @@ describe('BlockIndexer integration', () => {
 
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
 
-    servicedb.exec(`CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, hash BLOB, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+    servicedb.exec(`CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
   });
 
   beforeEach(async () => {
@@ -48,5 +48,17 @@ describe('BlockIndexer integration', () => {
     await new Promise(res => setTimeout(res, 1000));
 
     expect(blockIngestedCalledCount).toBe(2);
+  });
+
+  it('should not allow duplicate blockHeight (primary key) in blocks', async () => {
+    const db = new Database(dbPath);
+    await blockIndexer.start(BlockChainType.Test, dbPath);
+
+    db.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(Buffer.from('deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef', 'hex'), 10);
+    expect(() => {
+      db.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(Buffer.from('cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe', 'hex'), 10);
+    }).toThrow();
+
+    db.close();
   });
 });

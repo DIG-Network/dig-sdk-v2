@@ -7,7 +7,7 @@ export class TestBlockchainService implements IBlockchainService {
 
   constructor() {
     this.db = new Database('testservice.sqlite');
-    this.db.exec(`CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, hash BLOB, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+    this.db.exec(`CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
   }
 
   async getCurrentBlockchainHeight(): Promise<number> {
