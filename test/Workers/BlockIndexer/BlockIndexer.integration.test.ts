@@ -33,10 +33,40 @@ describe('BlockIndexer integration', () => {
     db.close();
   });
 
-  it('should populate the database after worker starts', async () => {
-    servicedb.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(Buffer.from('blockhash1', 'hex'), 1);
-    servicedb.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(Buffer.from('blockhash2', 'hex'), 2);
+  function insertBlocks(db: Database.Database, blocks: Array<{ hash: string, blockHeight: number }>) {
+    for (const { hash, blockHeight } of blocks) {
+      db.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(Buffer.from(hash, 'hex'), blockHeight);
+    }
+  }
 
+  function assertBlockIngested(blockIndexer: BlockIndexer, expectedCount: number) {
+    let blockIngestedCalledCount = 0;
+    blockIndexer.onBlockIngested((block: Block) => {
+      blockIngestedCalledCount++;
+      expect(block).toBeDefined();
+      expect(typeof block.hash).toBe('string');
+    });
+    return async () => {
+      await new Promise(res => setTimeout(res, 1000));
+      expect(blockIngestedCalledCount).toBe(expectedCount);
+    };
+  }
+
+  it('should populate the database after worker starts', async () => {
+    insertBlocks(servicedb, [
+      { hash: 'blockhash1', blockHeight: 1 },
+      { hash: 'blockhash2', blockHeight: 2 },
+    ]);
+    const check = assertBlockIngested(blockIndexer, 2);
+    await blockIndexer.start(BlockChainType.Test, dbPath);
+    await check();
+  });
+
+  it('should ingest in the database after initial population when worker starts', async () => {
+    insertBlocks(servicedb, [
+      { hash: 'blockhash1', blockHeight: 1 },
+      { hash: 'blockhash2', blockHeight: 2 },
+    ]);
     let blockIngestedCalledCount = 0;
     blockIndexer.onBlockIngested((block: Block) => {
       blockIngestedCalledCount++;
@@ -44,9 +74,14 @@ describe('BlockIndexer integration', () => {
       expect(typeof block.hash).toBe('string');
     });
     await blockIndexer.start(BlockChainType.Test, dbPath);
-    
     await new Promise(res => setTimeout(res, 1000));
-
+    expect(blockIngestedCalledCount).toBe(2);
+    blockIngestedCalledCount = 0;
+    insertBlocks(servicedb, [
+      { hash: 'blockhash1', blockHeight: 3 },
+      { hash: 'blockhash2', blockHeight: 4 },
+    ]);
+    await new Promise(res => setTimeout(res, 2100));
     expect(blockIngestedCalledCount).toBe(2);
   });
 
@@ -60,5 +95,49 @@ describe('BlockIndexer integration', () => {
     }).toThrow();
 
     db.close();
+  });
+
+  it('getLatestBlock returns the latest block, throws if none', async () => {
+    // No blocks yet
+    await blockIndexer.start(BlockChainType.Test, dbPath);
+    await expect(blockIndexer.getLatestBlock()).rejects.toThrow('No blocks found');
+
+    // Insert blocks and test
+    insertBlocks(new Database(dbPath), [
+      { hash: 'a1'.padEnd(64, 'a'), blockHeight: 1 },
+      { hash: 'b2'.padEnd(64, 'b'), blockHeight: 2 },
+      { hash: 'c3'.padEnd(64, 'c'), blockHeight: 3 },
+    ]);
+    const latest = await blockIndexer.getLatestBlock();
+    expect(latest.blockHeight).toBe(3);
+    expect(typeof latest.hash).toBe('string');
+  });
+
+  it('getBlockByHeight returns correct block, throws if not found', async () => {
+    await blockIndexer.start(BlockChainType.Test, dbPath);
+    // No blocks yet
+    await expect(blockIndexer.getBlockByHeight(1)).rejects.toThrow('Block with height 1 not found');
+
+    // Insert blocks
+    insertBlocks(new Database(dbPath), [
+      { hash: 'd4'.padEnd(64, 'd'), blockHeight: 4 },
+      { hash: 'e5'.padEnd(64, 'e'), blockHeight: 5 },
+    ]);
+    const block4 = await blockIndexer.getBlockByHeight(4);
+    expect(block4.blockHeight).toBe(4);
+    expect(typeof block4.hash).toBe('string');
+    const block5 = await blockIndexer.getBlockByHeight(5);
+    expect(block5.blockHeight).toBe(5);
+    expect(typeof block5.hash).toBe('string');
+    // Non-existent
+    await expect(blockIndexer.getBlockByHeight(999)).rejects.toThrow('Block with height 999 not found');
+  });
+
+  it('getLatestBlock throws if db is not initialized', async () => {
+    await expect(blockIndexer.getLatestBlock()).rejects.toThrow('Database not initialized');
+  });
+
+  it('getBlockByHeight throws if db is not initialized', async () => {
+    await expect(blockIndexer.getBlockByHeight(1)).rejects.toThrow('Database not initialized');
   });
 });
