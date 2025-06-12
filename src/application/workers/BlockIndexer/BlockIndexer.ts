@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { spawn, Worker, Thread } from 'threads';
-import { BlockChainType } from '../../BlockChainType';
-import { Block } from './BlockIndexer.worker';
+import { Block } from '../../types/Block';
+import { IWorker } from '../IWorker';
 
 const enum BlockIndexerEventNames {
     HashGenerated = 'hashGenerated',
@@ -10,17 +10,6 @@ const enum BlockIndexerEventNames {
 export interface BlockIndexerEvents {
   on(event: BlockIndexerEventNames.HashGenerated, listener: (block: Block) => void): this;
   emit(event: BlockIndexerEventNames.HashGenerated, block: Block): boolean;
-}
-
-export interface IBlockIndexer {
-  initialize(
-    blockchainType: BlockChainType,
-    dbPath?: string
-  ): Promise<void>;
-  start(): Promise<void>;
-  stop(): Promise<void>;
-  subscribe(listener: (block: Block) => void): void;
-  getAllHashes(): Promise<string[]>;
 }
 
 export class BlockIndexerNotInitialized extends Error {
@@ -35,7 +24,7 @@ export interface BlockIndexerWorkerApi {
   [key: string]: (...args: any[]) => any;
 }
 
-export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }) implements IBlockIndexer {
+export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }) implements IWorker {
   private worker: import('threads').ModuleThread<BlockIndexerWorkerApi> | null = null;
   private initialized = false;
   private started = false;
@@ -45,6 +34,7 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
     dbPath: string = './block_indexer.sqlite'
   ): Promise<void> {
     if (this.initialized) return;
+
     // Use src worker for tests/dev, dist worker for production
     let workerPath: string;
     if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
@@ -52,6 +42,7 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
     } else {
       workerPath = './BlockIndexer.worker.ts';
     }
+    
     this.worker = (await spawn(new Worker(workerPath))) as import('threads').ModuleThread<BlockIndexerWorkerApi>;
     await this.worker.initialize(blockchainType, dbPath);
     this.initialized = true;

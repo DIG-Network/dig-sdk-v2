@@ -1,5 +1,5 @@
 import { IBlockchainService } from "../../application/IBlockChainService";
-import { Block } from "../../application/workers/BlockIndexer/BlockIndexer.worker";
+import { Block } from "../../application/types/Block";
 
 export class ChiaBlockchainService implements IBlockchainService {
   async getCurrentBlockchainHeight(): Promise<number> {

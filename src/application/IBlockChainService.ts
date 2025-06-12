@@ -1,4 +1,4 @@
-import { Block } from "./workers/BlockIndexer/BlockIndexer.worker";
+import { Block } from "./types/Block";
 
 export interface IBlockchainService {
   getCurrentBlockchainHeight(): Promise<number>;

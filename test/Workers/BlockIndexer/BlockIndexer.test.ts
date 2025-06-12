@@ -1,6 +1,6 @@
-import { BlockChainType } from '../../../src/application/BlockChainType';
+import { Block } from '../../../src/application/types/Block';
+import { BlockChainType } from '../../../src/application/types/BlockChain';
 import { BlockIndexer, BlockIndexerNotInitialized } from '../../../src/application/workers/BlockIndexer/BlockIndexer';
-import { Block } from '../../../src/application/workers/BlockIndexer/BlockIndexer.worker';
 import fs from 'fs';
 import path from 'path';
 

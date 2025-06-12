@@ -1,7 +1,7 @@
-import { Block } from '../../../src/application/workers/BlockIndexer/BlockIndexer.worker';
 import { api } from '../../../src/application/workers/BlockIndexer/BlockIndexer.worker.logic';
-import { BlockChainType } from '../../../src/application/BlockChainType';
+import { BlockChainType } from '../../../src/application/types/BlockChain';
 import fs from 'fs';
+import { Block } from '../../../src/application/types/Block';
 
 const dummyGetCurrentBlockchainHeight = async () => 0;
 const dummyGetBlockchainBlockByHeight = async (h: number) => ({ hash: 'dummy', blockHeight: h });

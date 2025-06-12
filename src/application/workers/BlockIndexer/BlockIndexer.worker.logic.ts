@@ -1,10 +1,10 @@
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
 import { Observable } from 'observable-fns';
-import { Block } from './BlockIndexer.worker';
 import { IBlockchainService } from '../../IBlockChainService';
-import { BlockChainType } from '../../BlockChainType';
+import { BlockChainType } from '../../types/BlockChain';
 import { ChiaBlockchainService } from '../../../infrastructure/BlockchainServices/ChiaBlockchainService';
+import { Block } from '../../types/Block';
 
 let db: Database.Database | null = null;
 let intervalId: NodeJS.Timeout | null = null;
