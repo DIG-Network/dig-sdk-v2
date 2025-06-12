@@ -16,9 +16,7 @@ describe('BlockIndexer integration', () => {
 
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
 
-    servicedb.exec(`CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-    servicedb.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run('blockhash1', 1);
-    servicedb.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run('blockhash2', 2);
+    servicedb.exec(`CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, hash BLOB, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
   });
 
   beforeEach(async () => {
@@ -36,10 +34,14 @@ describe('BlockIndexer integration', () => {
   });
 
   it('should populate the database after worker starts', async () => {
+    servicedb.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(Buffer.from('blockhash1', 'hex'), 1);
+    servicedb.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(Buffer.from('blockhash2', 'hex'), 2);
+
     let blockIngestedCalledCount = 0;
     blockIndexer.onBlockIngested((block: Block) => {
       blockIngestedCalledCount++;
       expect(block).toBeDefined();
+      expect(typeof block.hash).toBe('string');
     });
     await blockIndexer.start(BlockChainType.Test, dbPath);
     

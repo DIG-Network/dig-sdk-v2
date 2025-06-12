@@ -30,10 +30,16 @@ async function syncToBlockchainHeight() {
       const block = await blockchainService.getBlockchainBlockByHeight(h);
       if (block && db) {
         db.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(
-          block.hash,
+          Buffer.from(block.hash, 'hex'),
           block.blockHeight,
         );
-        if (blockObserver) blockObserver(block);
+        if (blockObserver) {
+          const blockToEmit = {
+            ...block,
+            hash: Buffer.isBuffer(block.hash) ? block.hash.toString('hex') : block.hash,
+          };
+          blockObserver(blockToEmit);
+        }
       }
       blockHeight = h;
     }
@@ -50,7 +56,7 @@ export const api = {
     if (started) return;
     db = new Database(dbPath);
     db.exec(
-      `CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+      `CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
     );
 
     switch (blockchainType) {
@@ -75,7 +81,12 @@ export const api = {
   onBlockIngested() {
     if (!blockObservable) {
       blockObservable = new Observable<Block>((observer) => {
-        blockObserver = (block: Block) => observer.next(block);
+        blockObserver = (block: Block) => {
+          observer.next({
+            ...block,
+            hash: Buffer.isBuffer(block.hash) ? block.hash.toString('hex') : block.hash,
+          });
+        };
         return () => {
           blockObserver = null;
         };

@@ -62,16 +62,22 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
   async getLatestBlock(): Promise<Block> {
     if (!this.db) throw new Error('Database not initialized');
     const stmt = this.db.prepare('SELECT * FROM blocks ORDER BY blockHeight DESC LIMIT 1');
-    const block = stmt.get() as Block | undefined;
+    const block = stmt.get() as { hash: Buffer, blockHeight: number } | undefined;
     if (!block) throw new Error('No blocks found');
-    return block;
+    return {
+      hash: block.hash.toString('hex'),
+      blockHeight: block.blockHeight,
+    };
   }
 
   async getBlockByHeight(height: number): Promise<Block> {
     if (!this.db) throw new Error('Database not initialized');
     const stmt = this.db.prepare('SELECT * FROM blocks WHERE blockHeight = ?');
-    const block = stmt.get(height) as Block | undefined;
+    const block = stmt.get(height) as { hash: Buffer, blockHeight: number } | undefined;
     if (!block) throw new Error(`Block with height ${height} not found`);
-    return block;
+    return {
+      hash: block.hash.toString('hex'),
+      blockHeight: block.blockHeight,
+    };
   } 
 }

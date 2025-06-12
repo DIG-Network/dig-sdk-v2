@@ -7,7 +7,7 @@ export class TestBlockchainService implements IBlockchainService {
 
   constructor() {
     this.db = new Database('testservice.sqlite');
-    this.db.exec(`CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+    this.db.exec(`CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, hash BLOB, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
   }
 
   async getCurrentBlockchainHeight(): Promise<number> {
@@ -16,8 +16,11 @@ export class TestBlockchainService implements IBlockchainService {
   }
 
   async getBlockchainBlockByHeight(height: number): Promise<Block> {
-    const row = this.db.prepare('SELECT hash, blockHeight FROM blocks WHERE blockHeight = ?').get(height) as Block | undefined;
+    const row = this.db.prepare('SELECT hash, blockHeight FROM blocks WHERE blockHeight = ?').get(height) as { hash: Buffer | string, blockHeight: number } | undefined;
     if (!row) throw new Error(`Block at height ${height} not found in test DB`);
-    return row;
+    return {
+      hash: Buffer.isBuffer(row.hash) ? row.hash.toString('hex') : row.hash,
+      blockHeight: row.blockHeight,
+    };
   }
 }
