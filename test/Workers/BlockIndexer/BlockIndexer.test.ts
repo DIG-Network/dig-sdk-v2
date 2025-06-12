@@ -1,5 +1,6 @@
-import { BlockIndexer, BlockIndexerNotInitialized } from '../../../src/Workers/BlockIndexer/BlockIndexer';
-import { Block } from '../../../src/Workers/BlockIndexer/BlockIndexer.worker';
+import { BlockChainType } from '../../../src/application/BlockChainType';
+import { BlockIndexer, BlockIndexerNotInitialized } from '../../../src/application/workers/BlockIndexer/BlockIndexer';
+import { Block } from '../../../src/application/workers/BlockIndexer/BlockIndexer.worker';
 import fs from 'fs';
 import path from 'path';
 
@@ -9,7 +10,7 @@ describe('BlockIndexer', () => {
 
   beforeAll(async () => {
     blockIndexer = new BlockIndexer();
-    await blockIndexer.initialize(dbPath);
+    await blockIndexer.initialize(BlockChainType.Chia, dbPath);
   });
 
   afterAll(async () => {
@@ -35,13 +36,13 @@ describe('BlockIndexer', () => {
   }, 10000);
 
   it('should not re-initialize if already initialized', async () => {
-    await blockIndexer.initialize(dbPath);
-    await expect(blockIndexer.initialize(dbPath)).resolves.toBeUndefined();
+    await blockIndexer.initialize(BlockChainType.Chia, dbPath);
+    await expect(blockIndexer.initialize(BlockChainType.Chia, dbPath)).resolves.toBeUndefined();
   });
 
   it('should not start if already started', async () => {
     const bi = new BlockIndexer();
-    await bi.initialize(dbPath);
+    await bi.initialize(BlockChainType.Chia, dbPath);
     await bi.start();
     await expect(bi.start()).resolves.toBeUndefined();
     await bi.stop();
@@ -49,7 +50,7 @@ describe('BlockIndexer', () => {
 
   it('should not throw if stop is called when not started', async () => {
     const bi = new BlockIndexer();
-    await bi.initialize(dbPath);
+    await bi.initialize(BlockChainType.Chia, dbPath);
     await expect(bi.stop()).resolves.toBeUndefined();
   }, 10000);
 
@@ -60,7 +61,7 @@ describe('BlockIndexer', () => {
 
   it('should not throw if stop is called multiple times', async () => {
     const bi = new BlockIndexer();
-    await bi.initialize(dbPath);
+    await bi.initialize(BlockChainType.Chia, dbPath);
     await bi.start();
     await bi.stop();
     await expect(bi.stop()).resolves.toBeUndefined();

@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { spawn, Worker, Thread } from 'threads';
+import { BlockChainType } from '../../BlockChainType';
 import { Block } from './BlockIndexer.worker';
 
 const enum BlockIndexerEventNames {
@@ -12,7 +13,10 @@ export interface BlockIndexerEvents {
 }
 
 export interface IBlockIndexer {
-  initialize(dbPath?: string): Promise<void>;
+  initialize(
+    blockchainType: BlockChainType,
+    dbPath?: string
+  ): Promise<void>;
   start(): Promise<void>;
   stop(): Promise<void>;
   subscribe(listener: (block: Block) => void): void;
@@ -36,17 +40,20 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
   private initialized = false;
   private started = false;
 
-  async initialize(dbPath: string = './block_indexer.sqlite'): Promise<void> {
+  async initialize(
+    blockchainType: string,
+    dbPath: string = './block_indexer.sqlite'
+  ): Promise<void> {
     if (this.initialized) return;
-    // Use dist worker for tests, src worker for dev/runtime
+    // Use src worker for tests/dev, dist worker for production
     let workerPath: string;
     if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
-      workerPath = '../../../dist/Workers/BlockIndexer/BlockIndexer.worker.js';
+      workerPath = '../../../../dist/application/workers/BlockIndexer/BlockIndexer.worker.js';
     } else {
       workerPath = './BlockIndexer.worker.ts';
     }
     this.worker = (await spawn(new Worker(workerPath))) as import('threads').ModuleThread<BlockIndexerWorkerApi>;
-    await this.worker.initialize(dbPath);
+    await this.worker.initialize(blockchainType, dbPath);
     this.initialized = true;
   }
 
