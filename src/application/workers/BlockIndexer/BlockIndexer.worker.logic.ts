@@ -4,6 +4,7 @@ import { IBlockchainService } from '../../IBlockChainService';
 import { BlockChainType } from '../../types/BlockChain';
 import { ChiaBlockchainService } from '../../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { Block } from '../../types/Block';
+import { TestBlockchainService } from '../../../infrastructure/BlockchainServices/TestBlockchainService';
 
 let db: Database.Database | null = null;
 let intervalId: NodeJS.Timeout | null = null;
@@ -17,15 +18,21 @@ let blockHeight = 0;
 let blockchainService: IBlockchainService;
 
 async function syncToBlockchainHeight() {
-  const row = db!.prepare('SELECT MAX(blockHeight) as maxHeight FROM blocks').get() as { maxHeight?: number };
-  blockHeight = row && typeof row.maxHeight === 'number' && !isNaN(row.maxHeight) ? row.maxHeight : 0;
+  const row = db!.prepare('SELECT MAX(blockHeight) as maxHeight FROM blocks').get() as {
+    maxHeight?: number;
+  };
+  blockHeight =
+    row && typeof row.maxHeight === 'number' && !isNaN(row.maxHeight) ? row.maxHeight : 0;
 
   const blockchainHeight = await blockchainService.getCurrentBlockchainHeight();
   if (blockchainHeight > blockHeight) {
     for (let h = blockHeight + 1; h <= blockchainHeight; h++) {
       const block = await blockchainService.getBlockchainBlockByHeight(h);
       if (block && db) {
-        db.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(block.hash, block.blockHeight);
+        db.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(
+          block.hash,
+          block.blockHeight,
+        );
         if (blockObserver) blockObserver(block);
       }
       blockHeight = h;
@@ -42,9 +49,14 @@ export const api = {
   async start(blockchainType: string, dbPath: string = './block_indexer.sqlite') {
     if (started) return;
     db = new Database(dbPath);
-    db.exec(`CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+    db.exec(
+      `CREATE TABLE IF NOT EXISTS blocks (id INTEGER PRIMARY KEY AUTOINCREMENT, hash TEXT, blockHeight INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+    );
 
     switch (blockchainType) {
+      case BlockChainType.Test:
+        blockchainService = new TestBlockchainService();
+        break;
       case BlockChainType.Chia:
       default:
         blockchainService = new ChiaBlockchainService();
@@ -62,9 +74,11 @@ export const api = {
   },
   onBlockIngested() {
     if (!blockObservable) {
-      blockObservable = new Observable<Block>(observer => {
+      blockObservable = new Observable<Block>((observer) => {
         blockObserver = (block: Block) => observer.next(block);
-        return () => { blockObserver = null; };
+        return () => {
+          blockObserver = null;
+        };
       });
     }
     return blockObservable;
@@ -78,5 +92,5 @@ export const api = {
     started = false;
     blockObservable = null;
     blockObserver = null;
-  }
+  },
 };

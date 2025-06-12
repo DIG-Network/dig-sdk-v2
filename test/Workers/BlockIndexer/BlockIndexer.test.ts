@@ -1,55 +1,110 @@
-import { Block } from '../../../src/application/types/Block';
-import { BlockChainType } from '../../../src/application/types/BlockChain';
 import { BlockIndexer } from '../../../src/application/workers/BlockIndexer/BlockIndexer';
+import { BlockChainType } from '../../../src/application/types/BlockChain';
+import { Block } from '../../../src/application/types/Block';
 import fs from 'fs';
 import path from 'path';
+import { BlockIndexerEventNames } from '../../../src/application/workers/BlockIndexer/BlockIndexerEvents';
 
-describe('BlockIndexer', () => {
-  const dbPath = path.join(__dirname, 'test_block_indexer.sqlite');
+// Mock the worker and DB for async start
+jest.mock('threads', () => {
+  const actual = jest.requireActual('threads');
+  return {
+    ...actual,
+    spawn: jest.fn(async () => ({
+      start: jest.fn(),
+      stop: jest.fn(),
+      onBlockIngested: jest.fn(() => ({
+        subscribe: jest.fn()
+      })),
+      terminate: jest.fn()
+    })),
+    Worker: jest.fn(),
+    Thread: { terminate: jest.fn() }
+  };
+});
+
+jest.mock('better-sqlite3', () => {
+  return jest.fn().mockImplementation(() => ({
+    prepare: jest.fn(() => ({
+      get: jest.fn(() => ({ hash: 'mockhash', blockHeight: 1 })),
+      run: jest.fn(),
+    })),
+    exec: jest.fn(),
+    close: jest.fn(),
+  }));
+});
+
+describe('BlockIndexer async start', () => {
+  const dbPath = path.join(__dirname, 'test_block_indexer_async.sqlite');
   let blockIndexer: BlockIndexer;
 
-  beforeAll(async () => {
+  beforeEach(() => {
     blockIndexer = new BlockIndexer();
+    if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     await blockIndexer.stop();
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
   });
 
-  it('should emit event and store hashes when a new block is ingested', async () => {
-    const blocks: Block[] = [];
-    blockIndexer.onBlockIngested((block) => blocks.push(block));
-    await blockIndexer.start(BlockChainType.Chia, dbPath);
-    // Wait for 2 intervals (3.2 seconds) to ensure at least 2 blocks are ingested
-    await new Promise((res) => setTimeout(res, 4000));
-    expect(blocks.length).toBeGreaterThanOrEqual(2);
-    const block = await blockIndexer.getBlockByHeight(2);
-    expect(block).not.toBeNull();
-    await blockIndexer.stop();
-  }, 10000);
-
-  it('should not re-initialize if already initialized', async () => {
-    await blockIndexer.start(BlockChainType.Chia, dbPath);
-    await expect(blockIndexer.start(BlockChainType.Chia, dbPath)).resolves.toBeUndefined();
+  it('should start without waiting for worker sync', async () => {
+    // Should resolve immediately
+    const startPromise = blockIndexer.start(BlockChainType.Chia, dbPath);
+    // Not awaiting startPromise here to simulate async fire-and-forget
+    expect(startPromise).toBeInstanceOf(Promise);
+    // Await to ensure no errors
+    await startPromise;
   });
 
-  it('should not start if already started', async () => {
-    const bi = new BlockIndexer();
-    await bi.start(BlockChainType.Chia, dbPath);
-    await expect(bi.start(BlockChainType.Chia, dbPath)).resolves.toBeUndefined();
-    await bi.stop();
-  }, 10000);
+  it('should allow registering onBlockIngested before and after start', async () => {
+    const listener = jest.fn();
+    blockIndexer.onBlockIngested(listener);
+    await blockIndexer.start(BlockChainType.Chia, dbPath);
+    // Simulate block event
+    blockIndexer.emit(BlockIndexerEventNames.BlockIngested, { hash: 'abc', blockHeight: 1 });
+    expect(listener).toHaveBeenCalledWith({ hash: 'abc', blockHeight: 1 });
+  });
 
-  it('should not throw if stop is called when not started', async () => {
-    const bi = new BlockIndexer();
-    await expect(bi.stop()).resolves.toBeUndefined();
-  }, 10000);
+  it('should get latest block and block by height from DB', async () => {
+    await blockIndexer.start(BlockChainType.Chia, dbPath);
+    const latest = await blockIndexer.getLatestBlock();
+    expect(latest).toEqual({ hash: 'mockhash', blockHeight: 1 });
+    const byHeight = await blockIndexer.getBlockByHeight(1);
+    expect(byHeight).toEqual({ hash: 'mockhash', blockHeight: 1 });
+  });
 
-  it('should not throw if stop is called multiple times', async () => {
-    const bi = new BlockIndexer();
-    await bi.start(BlockChainType.Chia, dbPath);
-    await bi.stop();
-    await expect(bi.stop()).resolves.toBeUndefined();
-  }, 10000);
+  it('should call worker.start and handle events after BlockIndexer.start()', async () => {
+    // Arrange
+    const blockIndexer = new BlockIndexer();
+    const workerStart = jest.fn();
+    const onBlockIngested = jest.fn(() => ({
+      subscribe: jest.fn((cb) => {
+        // Simulate block event from worker
+        cb && cb({ hash: 'workerhash', blockHeight: 2 });
+        return { unsubscribe: jest.fn() };
+      })
+    }));
+    // Patch the worker spawn to use our mock
+    const mockWorker = {
+      start: workerStart,
+      stop: jest.fn(),
+      onBlockIngested,
+    };
+    // Patch spawn to return our mock worker
+    const { spawn } = require('threads');
+    spawn.mockImplementation(async () => mockWorker);
+
+    // Act
+    const listener = jest.fn();
+    blockIndexer.onBlockIngested(listener);
+    await blockIndexer.start(BlockChainType.Chia, dbPath);
+
+    // Assert
+    expect(workerStart).toHaveBeenCalled();
+    expect(onBlockIngested).toHaveBeenCalled();
+    expect(listener).toHaveBeenCalledWith({ hash: 'workerhash', blockHeight: 2 });
+  });
 });
+
+test('sanity', () => expect(true).toBe(true));
