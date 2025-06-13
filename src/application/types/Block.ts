@@ -1,0 +1,1 @@
+export type Block = { hash: Buffer, blockHeight: number };
