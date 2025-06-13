@@ -1,6 +1,5 @@
 import { BlockIndexer } from '../../../src/application/workers/BlockIndexer/BlockIndexer';
 import { BlockChainType } from '../../../src/application/types/BlockChain';
-import { Block } from '../../../src/application/types/Block';
 import fs from 'fs';
 import path from 'path';
 import { BlockIndexerEventNames } from '../../../src/application/workers/BlockIndexer/BlockIndexerEvents';
@@ -64,14 +63,6 @@ describe('BlockIndexer async start', () => {
     // Simulate block event
     blockIndexer.emit(BlockIndexerEventNames.BlockIngested, { hash: 'abc', blockHeight: 1 });
     expect(listener).toHaveBeenCalledWith({ hash: 'abc', blockHeight: 1 });
-  });
-
-  it('should get latest block and block by height from DB', async () => {
-    await blockIndexer.start(BlockChainType.Chia, dbPath);
-    const latest = await blockIndexer.getLatestBlock();
-    expect(latest).toEqual({ hash: 'mockhash', blockHeight: 1 });
-    const byHeight = await blockIndexer.getBlockByHeight(1);
-    expect(byHeight).toEqual({ hash: 'mockhash', blockHeight: 1 });
   });
 
   it('should call worker.start and handle events after BlockIndexer.start()', async () => {

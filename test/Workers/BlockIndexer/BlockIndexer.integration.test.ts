@@ -96,48 +96,4 @@ describe('BlockIndexer integration', () => {
 
     db.close();
   });
-
-  it('getLatestBlock returns the latest block, throws if none', async () => {
-    // No blocks yet
-    await blockIndexer.start(BlockChainType.Test, dbPath);
-    await expect(blockIndexer.getLatestBlock()).rejects.toThrow('No blocks found');
-
-    // Insert blocks and test
-    insertBlocks(new Database(dbPath), [
-      { hash: 'a1'.padEnd(64, 'a'), blockHeight: 1 },
-      { hash: 'b2'.padEnd(64, 'b'), blockHeight: 2 },
-      { hash: 'c3'.padEnd(64, 'c'), blockHeight: 3 },
-    ]);
-    const latest = await blockIndexer.getLatestBlock();
-    expect(latest.blockHeight).toBe(3);
-    expect(typeof latest.hash).toBe('string');
-  });
-
-  it('getBlockByHeight returns correct block, throws if not found', async () => {
-    await blockIndexer.start(BlockChainType.Test, dbPath);
-    // No blocks yet
-    await expect(blockIndexer.getBlockByHeight(1)).rejects.toThrow('Block with height 1 not found');
-
-    // Insert blocks
-    insertBlocks(new Database(dbPath), [
-      { hash: 'd4'.padEnd(64, 'd'), blockHeight: 4 },
-      { hash: 'e5'.padEnd(64, 'e'), blockHeight: 5 },
-    ]);
-    const block4 = await blockIndexer.getBlockByHeight(4);
-    expect(block4.blockHeight).toBe(4);
-    expect(typeof block4.hash).toBe('string');
-    const block5 = await blockIndexer.getBlockByHeight(5);
-    expect(block5.blockHeight).toBe(5);
-    expect(typeof block5.hash).toBe('string');
-    // Non-existent
-    await expect(blockIndexer.getBlockByHeight(999)).rejects.toThrow('Block with height 999 not found');
-  });
-
-  it('getLatestBlock throws if db is not initialized', async () => {
-    await expect(blockIndexer.getLatestBlock()).rejects.toThrow('Database not initialized');
-  });
-
-  it('getBlockByHeight throws if db is not initialized', async () => {
-    await expect(blockIndexer.getBlockByHeight(1)).rejects.toThrow('Database not initialized');
-  });
 });

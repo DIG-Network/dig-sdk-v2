@@ -1,0 +1,31 @@
+import Database from 'better-sqlite3';
+import { Block } from '../types/Block';
+import { IBlockRepository } from './IBlockRepository';
+
+export class BlockRepository implements IBlockRepository {
+  private db: Database.Database;
+
+  constructor(db: Database.Database) {
+    this.db = db;
+  }
+
+  async getLatestBlock(): Promise<Block> {
+    const stmt = this.db.prepare('SELECT * FROM blocks ORDER BY blockHeight DESC LIMIT 1');
+    const block = stmt.get() as { hash: Buffer, blockHeight: number } | undefined;
+    if (!block) throw new Error('No blocks found');
+    return {
+      hash: block.hash.toString('hex'),
+      blockHeight: block.blockHeight,
+    };
+  }
+
+  async getBlockByHeight(height: number): Promise<Block> {
+    const stmt = this.db.prepare('SELECT * FROM blocks WHERE blockHeight = ?');
+    const block = stmt.get(height) as { hash: Buffer, blockHeight: number } | undefined;
+    if (!block) throw new Error(`Block with height ${height} not found`);
+    return {
+      hash: block.hash.toString('hex'),
+      blockHeight: block.blockHeight,
+    };
+  }
+}

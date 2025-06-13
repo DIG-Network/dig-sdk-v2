@@ -11,9 +11,7 @@ interface BlockIndexerWorkerApi {
 }
 
 interface IBlockIndexer extends IWorker {
-  onBlockIngested(listener: (block: Block) => void): void
-  getLatestBlock(): Promise<Block>
-  getBlockByHeight(height: number): Promise<Block>
+  onBlockIngested(listener: (block: Block) => void): void;
 }
 
 export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }) implements IBlockIndexer {
@@ -58,26 +56,4 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
   onBlockIngested(listener: (block: Block) => void) {
     this.on(BlockIndexerEventNames.BlockIngested, listener);
   }
-
-  async getLatestBlock(): Promise<Block> {
-    if (!this.db) throw new Error('Database not initialized');
-    const stmt = this.db.prepare('SELECT * FROM blocks ORDER BY blockHeight DESC LIMIT 1');
-    const block = stmt.get() as { hash: Buffer, blockHeight: number } | undefined;
-    if (!block) throw new Error('No blocks found');
-    return {
-      hash: block.hash.toString('hex'),
-      blockHeight: block.blockHeight,
-    };
-  }
-
-  async getBlockByHeight(height: number): Promise<Block> {
-    if (!this.db) throw new Error('Database not initialized');
-    const stmt = this.db.prepare('SELECT * FROM blocks WHERE blockHeight = ?');
-    const block = stmt.get(height) as { hash: Buffer, blockHeight: number } | undefined;
-    if (!block) throw new Error(`Block with height ${height} not found`);
-    return {
-      hash: block.hash.toString('hex'),
-      blockHeight: block.blockHeight,
-    };
-  } 
 }
