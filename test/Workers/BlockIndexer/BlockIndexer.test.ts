@@ -96,6 +96,69 @@ describe('BlockIndexer async start', () => {
     expect(onBlockIngested).toHaveBeenCalled();
     expect(listener).toHaveBeenCalledWith({ hash: 'workerhash', blockHeight: 2 });
   });
+
+  it('should call restartWorker, worker.stop, and Thread.terminate at the correct interval', async () => {
+    jest.useFakeTimers();
+    const blockIndexer = new BlockIndexer();
+    const workerStart = jest.fn();
+    const workerStop = jest.fn();
+    const workerTerminate = jest.fn();
+    const onBlockIngested = jest.fn(() => ({ subscribe: jest.fn() }));
+    const mockWorker = {
+      start: workerStart,
+      stop: workerStop,
+      onBlockIngested,
+    };
+    const { spawn, Thread } = require('threads');
+    spawn.mockImplementation(async () => mockWorker);
+    Thread.terminate = workerTerminate;
+    // Spy on restartWorker
+    const restartSpy = jest.spyOn(blockIndexer, 'restartWorker' as any);
+
+    await blockIndexer.start(BlockChainType.Chia, dbPath, 1/1800); // 2 seconds for test
+    expect(workerStart).toHaveBeenCalledTimes(1);
+    // Simulate 2 intervals (2s each)
+    for (let i = 0; i < 2; i++) {
+      jest.advanceTimersByTime(2000);
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+    expect(restartSpy).toHaveBeenCalledTimes(2);
+    expect(workerStop).toHaveBeenCalledTimes(2);
+    expect(workerTerminate).toHaveBeenCalledTimes(2);
+    await blockIndexer.stop();
+    jest.useRealTimers();
+  });
+
+  it('should not set a timer or call restartWorker if no restartIntervalHours is specified', async () => {
+    jest.useFakeTimers();
+    const blockIndexer = new BlockIndexer();
+    const workerStart = jest.fn();
+    const workerStop = jest.fn();
+    const workerTerminate = jest.fn();
+    const onBlockIngested = jest.fn(() => ({ subscribe: jest.fn() }));
+    const mockWorker = {
+      start: workerStart,
+      stop: workerStop,
+      onBlockIngested,
+    };
+    const { spawn, Thread } = require('threads');
+    spawn.mockImplementation(async () => mockWorker);
+    Thread.terminate = workerTerminate;
+    // Spy on restartWorker
+    const restartSpy = jest.spyOn(blockIndexer, 'restartWorker' as any);
+
+    await blockIndexer.start(BlockChainType.Chia, dbPath); // no interval
+    expect(workerStart).toHaveBeenCalledTimes(1);
+    // Simulate time passing
+    jest.advanceTimersByTime(10000);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(restartSpy).not.toHaveBeenCalled();
+    expect(workerStop).not.toHaveBeenCalled();
+    expect(workerTerminate).not.toHaveBeenCalled();
+    await blockIndexer.stop();
+    jest.useRealTimers();
+  });
 });
 
-test('sanity', () => expect(true).toBe(true));
