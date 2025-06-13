@@ -3,7 +3,6 @@ import { spawn, Worker, Thread } from 'threads';
 import { Block } from '../../types/Block';
 import { IWorker } from '../IWorker';
 import { BlockIndexerEventNames, BlockIndexerEvents } from './BlockIndexerEvents';
-import Database from 'better-sqlite3';
 
 interface BlockIndexerWorkerApi {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,15 +17,12 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
   private worker: import('threads').ModuleThread<BlockIndexerWorkerApi> | null = null;
   private initialized = false;
   private started = false;
-  private db: Database.Database | null = null;
 
   async start(
     blockchainType: string,
     dbPath: string = './block_indexer.sqlite'
   ): Promise<void> {
     if (this.initialized) return;
-
-    this.db = new Database(dbPath);
 
     // Use src worker for tests/dev, dist worker for production
     let workerPath: string;

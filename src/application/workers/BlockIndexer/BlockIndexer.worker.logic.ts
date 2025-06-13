@@ -5,6 +5,8 @@ import { BlockChainType } from '../../types/BlockChain';
 import { ChiaBlockchainService } from '../../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { Block } from '../../types/Block';
 import { TestBlockchainService } from '../../../infrastructure/BlockchainServices/TestBlockchainService';
+import { CREATE_BLOCKS_TABLE_SQL } from '../../repositories/BlockRepository';
+
 
 let db: Database.Database | null = null;
 let intervalId: NodeJS.Timeout | null = null;
@@ -55,9 +57,7 @@ export const api = {
   async start(blockchainType: string, dbPath: string = './block_indexer.sqlite') {
     if (started) return;
     db = new Database(dbPath);
-    db.exec(
-      `CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-    );
+    db.exec(CREATE_BLOCKS_TABLE_SQL);
 
     switch (blockchainType) {
       case BlockChainType.Test:

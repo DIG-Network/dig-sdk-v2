@@ -2,11 +2,14 @@ import Database from 'better-sqlite3';
 import { Block } from '../types/Block';
 import { IBlockRepository } from './IBlockRepository';
 
+export const CREATE_BLOCKS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`;
+
 export class BlockRepository implements IBlockRepository {
   private db: Database.Database;
 
   constructor(db: Database.Database) {
     this.db = db;
+    this.db.exec(CREATE_BLOCKS_TABLE_SQL);
   }
 
   async getLatestBlock(): Promise<Block> {
