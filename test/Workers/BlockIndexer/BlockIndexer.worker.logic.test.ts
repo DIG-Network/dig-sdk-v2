@@ -1,6 +1,7 @@
 import { api } from '../../../src/application/workers/BlockIndexer/BlockIndexer.worker.logic';
 import Database from 'better-sqlite3';
 import { BlockChainType } from '../../../src/application/types/BlockChain';
+import fs from 'fs';
 
 // Mock BlockchainService for unit tests
 class MockBlockchainService {
@@ -18,8 +19,26 @@ class MockBlockchainService {
 
 describe('BlockIndexer.worker.logic api', () => {
   const dbPath = 'test_blockindexer_worker_logic.sqlite';
+  
+  beforeAll(() => {
+    if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
+  });
+  
   afterEach(() => {
     try { new Database(dbPath).close(); } catch {}
+  });
+
+  it('should create the database file after start', async () => {
+    api.__reset();
+    if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
+    await api.start(BlockChainType.Test, dbPath);
+    expect(fs.existsSync(dbPath)).toBe(true);
+    // Check table exists
+    const db = new Database(dbPath);
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='blocks'").get();
+    expect(tables).toBeDefined();
+    db.close();
+    api.stop();
   });
 
   it('should start and ingest blocks', async () => {

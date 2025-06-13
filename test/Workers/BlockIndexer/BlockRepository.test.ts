@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { BlockRepository } from '../../../src/application/repositories/BlockRepository';
 import { IBlockRepository } from '../../../src/application/repositories/IBlockRepository';
 import { Block } from '../../../src/application/types/Block';
+import fs from 'fs';
 
 describe('BlockRepository', () => {
   let db: Database.Database;
@@ -49,5 +50,23 @@ describe('BlockRepository', () => {
     expect(block5.blockHeight).toBe(5);
     expect(typeof block5.hash).toBe('string');
     await expect(repo.getBlockByHeight(999)).rejects.toThrow('Block with height 999 not found');
+  });
+
+  it('should create the database file on disk after constructor', () => {
+    const dbPath = 'test_blockrepository_createdb.sqlite';
+    if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
+    const Database = require('better-sqlite3');
+    const { BlockRepository } = require('../../../src/application/repositories/BlockRepository');
+    const db = new Database(dbPath);
+    new BlockRepository(db);
+    // Check file exists
+    db.close();
+    expect(fs.existsSync(dbPath)).toBe(true);
+    // Check table exists
+    const db2 = new Database(dbPath);
+    const tables = db2.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='blocks'").get();
+    expect(tables).toBeDefined();
+    db2.close();
+    fs.unlinkSync(dbPath);
   });
 });
