@@ -52,7 +52,12 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
       this.emit(BlockIndexerEventNames.BlockIngested, block);
     });
 
-    await this.worker.start(blockchainType, dbPath);
+    try {
+      await this.worker.start(blockchainType, dbPath);
+    } catch {
+      await this.restartWorker(blockchainType, dbPath);
+    }
+
     this.started = true;
   }
 
@@ -60,9 +65,10 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
     if (this.worker) {
       await this.worker.stop();
       await Thread.terminate(this.worker);
+      this.worker = null;
     }
 
-    this.startWorker(blockchainType, dbPath);
+    await this.startWorker(blockchainType, dbPath);
   }
 
   async stop(): Promise<void> {
