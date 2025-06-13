@@ -20,6 +20,7 @@ let blockHeight = 0;
 let blockchainService: IBlockchainService;
 
 async function syncToBlockchainHeight() {
+  console.log('[BlockIndexer] Syncing to blockchain height...');
   const row = db!.prepare('SELECT MAX(blockHeight) as maxHeight FROM blocks').get() as {
     maxHeight?: number;
   };
@@ -27,6 +28,9 @@ async function syncToBlockchainHeight() {
     row && typeof row.maxHeight === 'number' && !isNaN(row.maxHeight) ? row.maxHeight : 0;
 
   const blockchainHeight = await blockchainService.getCurrentBlockchainHeight();
+  console.log(
+    `[BlockIndexer] Current blockchain height: ${blockchainHeight}, DB block height: ${blockHeight}`,
+  );
   if (blockchainHeight > blockHeight) {
     for (let h = blockHeight + 1; h <= blockchainHeight; h++) {
       const block = await blockchainService.getBlockchainBlockByHeight(h);

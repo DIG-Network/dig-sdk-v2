@@ -3,6 +3,7 @@ import { spawn, Worker, Thread } from 'threads';
 import { Block } from '../../types/Block';
 import { IWorker } from '../IWorker';
 import { BlockIndexerEventNames, BlockIndexerEvents } from './BlockIndexerEvents';
+import path from 'path';
 
 interface BlockIndexerWorkerApi {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,6 +30,7 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
     if (restartIntervalHours && restartIntervalHours > 0) {
       this.restartIntervalMs = restartIntervalHours * 60 * 60 * 1000;
       this.restartIntervalId = setInterval(async () => {
+        console.log(`[BlockIndexer] Restarting worker for blockchain type: ${blockchainType}`);
         await this.restartWorker(blockchainType, dbPath);
       }, this.restartIntervalMs);
     }
@@ -40,9 +42,11 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
       // Use src worker for tests/dev, dist worker for production
       let workerPath: string;
       if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
+        workerPath = '../../../../dist/application/workers/BlockIndexer/BlockIndexer.worker.js'; // for tests, use JS in dist
+      } else if (__dirname.includes('dist')) {
         workerPath = '../../../../dist/application/workers/BlockIndexer/BlockIndexer.worker.js';
       } else {
-        workerPath = './BlockIndexer.worker.ts';
+        workerPath = path.resolve(__dirname, 'BlockIndexer.worker.ts');
       }
       this.worker = (await spawn(new Worker(workerPath))) as import('threads').ModuleThread<BlockIndexerWorkerApi>;
     }
