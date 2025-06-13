@@ -32,15 +32,11 @@ async function syncToBlockchainHeight() {
       const block = await blockchainService.getBlockchainBlockByHeight(h);
       if (block && db) {
         db.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(
-          Buffer.from(block.hash, 'hex'),
+          block.hash,
           block.blockHeight,
         );
         if (blockObserver) {
-          const blockToEmit = {
-            ...block,
-            hash: Buffer.isBuffer(block.hash) ? block.hash.toString('hex') : block.hash,
-          };
-          blockObserver(blockToEmit);
+          blockObserver(block);
         }
       }
       blockHeight = h;
@@ -82,10 +78,7 @@ export const api = {
     if (!blockObservable) {
       blockObservable = new Observable<Block>((observer) => {
         blockObserver = (block: Block) => {
-          observer.next({
-            ...block,
-            hash: Buffer.isBuffer(block.hash) ? block.hash.toString('hex') : block.hash,
-          });
+          observer.next(block);
         };
         return () => {
           blockObserver = null;

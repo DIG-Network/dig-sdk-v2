@@ -44,7 +44,7 @@ describe('BlockIndexer integration', () => {
     blockIndexer.onBlockIngested((block: Block) => {
       blockIngestedCalledCount++;
       expect(block).toBeDefined();
-      expect(typeof block.hash).toBe('string');
+      expect(typeof block.hash).toBe('object');
     });
     return async () => {
       await new Promise(res => setTimeout(res, 1000));
@@ -71,7 +71,7 @@ describe('BlockIndexer integration', () => {
     blockIndexer.onBlockIngested((block: Block) => {
       blockIngestedCalledCount++;
       expect(block).toBeDefined();
-      expect(typeof block.hash).toBe('string');
+      expect(typeof block.hash).toBe('object');
     });
     await blockIndexer.start(BlockChainType.Test, dbPath);
     await new Promise(res => setTimeout(res, 1000));

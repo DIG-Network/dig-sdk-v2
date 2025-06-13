@@ -16,19 +16,13 @@ export class BlockRepository implements IBlockRepository {
     const stmt = this.db.prepare('SELECT * FROM blocks ORDER BY blockHeight DESC LIMIT 1');
     const block = stmt.get() as { hash: Buffer, blockHeight: number } | undefined;
     if (!block) throw new Error('No blocks found');
-    return {
-      hash: block.hash.toString('hex'),
-      blockHeight: block.blockHeight,
-    };
+    return block;
   }
 
   async getBlockByHeight(height: number): Promise<Block> {
     const stmt = this.db.prepare('SELECT * FROM blocks WHERE blockHeight = ?');
     const block = stmt.get(height) as { hash: Buffer, blockHeight: number } | undefined;
     if (!block) throw new Error(`Block with height ${height} not found`);
-    return {
-      hash: block.hash.toString('hex'),
-      blockHeight: block.blockHeight,
-    };
+    return block;
   }
 }

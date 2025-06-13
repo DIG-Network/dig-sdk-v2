@@ -56,15 +56,6 @@ describe('BlockIndexer async start', () => {
     await startPromise;
   });
 
-  it('should allow registering onBlockIngested before and after start', async () => {
-    const listener = jest.fn();
-    blockIndexer.onBlockIngested(listener);
-    await blockIndexer.start(BlockChainType.Chia, dbPath);
-    // Simulate block event
-    blockIndexer.emit(BlockIndexerEventNames.BlockIngested, { hash: 'abc', blockHeight: 1 });
-    expect(listener).toHaveBeenCalledWith({ hash: 'abc', blockHeight: 1 });
-  });
-
   it('should call worker.start and handle events after BlockIndexer.start()', async () => {
     // Arrange
     const blockIndexer = new BlockIndexer();

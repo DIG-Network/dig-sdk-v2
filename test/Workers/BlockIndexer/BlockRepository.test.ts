@@ -30,7 +30,8 @@ describe('BlockRepository', () => {
     );
     const latest = await repo.getLatestBlock();
     expect(latest.blockHeight).toBe(2);
-    expect(typeof latest.hash).toBe('string');
+    expect(typeof latest.hash).toBe('object');
+    expect(latest.hash.toString('hex')).toBe('b2'.padEnd(64, 'b'));
   });
 
   it('getBlockByHeight returns correct block, throws if not found', async () => {
@@ -45,10 +46,12 @@ describe('BlockRepository', () => {
     );
     const block4 = await repo.getBlockByHeight(4);
     expect(block4.blockHeight).toBe(4);
-    expect(typeof block4.hash).toBe('string');
+    expect(typeof block4.hash).toBe('object');
+    expect(block4.hash.toString('hex')).toBe('d4'.padEnd(64, 'd'));
     const block5 = await repo.getBlockByHeight(5);
     expect(block5.blockHeight).toBe(5);
-    expect(typeof block5.hash).toBe('string');
+    expect(typeof block5.hash).toBe('object');
+    expect(block5.hash.toString('hex')).toBe('e5'.padEnd(64, 'e'));
     await expect(repo.getBlockByHeight(999)).rejects.toThrow('Block with height 999 not found');
   });
 

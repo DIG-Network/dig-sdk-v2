@@ -16,10 +16,10 @@ export class TestBlockchainService implements IBlockchainService {
   }
 
   async getBlockchainBlockByHeight(height: number): Promise<Block> {
-    const row = this.db.prepare('SELECT hash, blockHeight FROM blocks WHERE blockHeight = ?').get(height) as { hash: Buffer | string, blockHeight: number } | undefined;
+    const row = this.db.prepare('SELECT hash, blockHeight FROM blocks WHERE blockHeight = ?').get(height) as { hash: Buffer, blockHeight: number } | undefined;
     if (!row) throw new Error(`Block at height ${height} not found in test DB`);
     return {
-      hash: Buffer.isBuffer(row.hash) ? row.hash.toString('hex') : row.hash,
+      hash: row.hash,
       blockHeight: row.blockHeight,
     };
   }

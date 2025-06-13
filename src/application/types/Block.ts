@@ -1,1 +1,1 @@
-export type Block = { hash: string, blockHeight: number };
+export type Block = { hash: Buffer, blockHeight: number };

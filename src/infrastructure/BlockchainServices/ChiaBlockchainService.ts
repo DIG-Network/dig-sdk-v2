@@ -6,6 +6,6 @@ export class ChiaBlockchainService implements IBlockchainService {
     return 0;
   }
   async getBlockchainBlockByHeight(height: number): Promise<Block> {
-    return { hash: 'dummy', blockHeight: height };
+    return { hash: Buffer.from('abc', 'hex'), blockHeight: height };
   }
 }
