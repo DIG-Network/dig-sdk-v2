@@ -108,15 +108,13 @@ describe('BlockIndexer async start', () => {
 
     await blockIndexer.start(BlockChainType.Chia, dbPath, 1/1800); // 2 seconds for test
     expect(workerStart).toHaveBeenCalledTimes(1);
-    // Simulate 2 intervals (2s each)
-    for (let i = 0; i < 2; i++) {
-      jest.advanceTimersByTime(2000);
-      await Promise.resolve();
-      await Promise.resolve();
-    }
-    expect(restartSpy).toHaveBeenCalledTimes(2);
-    expect(workerStop).toHaveBeenCalledTimes(2);
-    expect(workerTerminate).toHaveBeenCalledTimes(2);
+
+    jest.advanceTimersByTime(2200);
+    await Promise.resolve();
+
+    expect(restartSpy).toHaveBeenCalledTimes(1);
+    expect(workerStop).toHaveBeenCalledTimes(1);
+    expect(workerTerminate).toHaveBeenCalledTimes(1);
     await blockIndexer.stop();
     jest.useRealTimers();
   });

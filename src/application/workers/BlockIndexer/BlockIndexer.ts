@@ -36,7 +36,6 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
 
   private async startWorker(blockchainType: string, dbPath: string) {
     if (this.started) return;
-
     if (!this.worker) {
       // Use src worker for tests/dev, dist worker for production
       let workerPath: string;
@@ -64,6 +63,7 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
   private async restartWorker(blockchainType: string, dbPath: string) {
     if (this.worker) {
       await this.worker.stop();
+      this.started = false;
       await Thread.terminate(this.worker);
       this.worker = null;
     }
