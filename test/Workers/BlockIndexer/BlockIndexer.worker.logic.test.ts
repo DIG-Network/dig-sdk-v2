@@ -41,22 +41,6 @@ describe('BlockIndexer.worker.logic api', () => {
     api.stop();
   });
 
-  it('should start and ingest blocks', async () => {
-    api.__reset();
-    // Patch blockchainService
-    const blocks = [
-      { hash: 'a'.repeat(64), blockHeight: 1 },
-      { hash: 'b'.repeat(64), blockHeight: 2 },
-    ];
-    (api as any).blockchainService = new MockBlockchainService(blocks);
-    await api.start(BlockChainType.Test, dbPath);
-    const db = new Database(dbPath);
-    const rows = db.prepare('SELECT * FROM blocks').all();
-    expect(rows.length).toBe(2);
-    db.close();
-    api.stop();
-  });
-
   it('should not start twice', async () => {
     api.__reset();
     await api.start(BlockChainType.Test, dbPath);

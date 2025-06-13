@@ -15,38 +15,64 @@ interface IBlockIndexer extends IWorker {
 
 export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }) implements IBlockIndexer {
   private worker: import('threads').ModuleThread<BlockIndexerWorkerApi> | null = null;
-  private initialized = false;
   private started = false;
+  private restartIntervalId: NodeJS.Timeout | null = null;
+  private restartIntervalMs: number | null = null;
 
   async start(
     blockchainType: string,
-    dbPath: string = './block_indexer.sqlite'
+    dbPath: string = './block_indexer.sqlite',
+    restartIntervalHours?: number
   ): Promise<void> {
-    if (this.initialized) return;
+    await this.startWorker(blockchainType, dbPath);
 
-    // Use src worker for tests/dev, dist worker for production
-    let workerPath: string;
-    if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
-      workerPath = '../../../../dist/application/workers/BlockIndexer/BlockIndexer.worker.js';
-    } else {
-      workerPath = './BlockIndexer.worker.ts';
+    if (restartIntervalHours && restartIntervalHours > 0) {
+      this.restartIntervalMs = restartIntervalHours * 60 * 60 * 1000;
+      this.restartIntervalId = setInterval(async () => {
+        await this.restartWorker(blockchainType, dbPath);
+      }, this.restartIntervalMs);
     }
-    
-    this.worker = (await spawn(new Worker(workerPath))) as import('threads').ModuleThread<BlockIndexerWorkerApi>;
-    
+  }
+
+  private async startWorker(blockchainType: string, dbPath: string) {
+    if (this.started) return;
+
+    if (!this.worker) {
+      // Use src worker for tests/dev, dist worker for production
+      let workerPath: string;
+      if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
+        workerPath = '../../../../dist/application/workers/BlockIndexer/BlockIndexer.worker.js';
+      } else {
+        workerPath = './BlockIndexer.worker.ts';
+      }
+      this.worker = (await spawn(new Worker(workerPath))) as import('threads').ModuleThread<BlockIndexerWorkerApi>;
+    }
+
     this.worker.onBlockIngested().subscribe((block: Block) => {
       this.emit(BlockIndexerEventNames.BlockIngested, block);
     });
-    
-    await this.worker.start(blockchainType, dbPath);
 
-    this.initialized = true;
+    await this.worker.start(blockchainType, dbPath);
+    this.started = true;
+  }
+
+  private async restartWorker(blockchainType: string, dbPath: string) {
+    if (this.worker) {
+      await this.worker.stop();
+      await Thread.terminate(this.worker);
+    }
+
+    this.startWorker(blockchainType, dbPath);
   }
 
   async stop(): Promise<void> {
     if (this.started && this.worker) await this.worker.stop();
     this.started = false;
     if (this.worker) await Thread.terminate(this.worker);
+    if (this.restartIntervalId) {
+      clearInterval(this.restartIntervalId);
+      this.restartIntervalId = null;
+    }
   }
 
   onBlockIngested(listener: (block: Block) => void) {
