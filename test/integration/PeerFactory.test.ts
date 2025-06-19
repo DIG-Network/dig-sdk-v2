@@ -1,4 +1,4 @@
-import { CoinSpend, Peer, PeerType, signCoinSpends, simulatorNewBlspair, simulatorNewProgram, simulatorNewPuzzle, Tls } from '@dignetwork/datalayer-driver';
+import { CoinSpend, getCoinId, Peer, PeerType, signCoinSpends, simulatorNewBlspair, simulatorNewProgram, simulatorNewPuzzle, Tls } from '@dignetwork/datalayer-driver';
 
 describe('Spending wallet coin', () => {
   it('should be able to spend a coin', async () => {
@@ -18,6 +18,10 @@ describe('Spending wallet coin', () => {
     const sig = signCoinSpends(coinSpends, [pair.sk], true);
 
     console.log('Signature:', sig);
+
+    const coinState = await peer.simulatorCoinState(getCoinId(coin));
+
+    console.log('CoinState:', coinState);
 
     let result = await peer.broadcastSpend(coinSpends, [sig]);
 
