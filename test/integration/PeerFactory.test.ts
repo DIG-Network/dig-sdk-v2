@@ -1,4 +1,7 @@
-import { CoinSpend, getCoinId, Peer, PeerType, signCoinSpends, simulatorNewBlspair, simulatorNewProgram, simulatorNewPuzzle, Tls } from '@dignetwork/datalayer-driver';
+import { CoinSpend, getCoinId, masterPublicKeyToWalletSyntheticKey, masterSecretKeyToWalletSyntheticSecretKey, Peer, PeerType, secretKeyToPublicKey, signCoinSpends, simulatorNewBlspair, simulatorNewProgram, simulatorNewPuzzle, Tls } from '@dignetwork/datalayer-driver';
+import * as bip39 from 'bip39';
+import { mnemonicToSeedSync } from 'bip39';
+import { PrivateKey } from "chia-bls";
 
 describe('Spending wallet coin', () => {
   it('should be able to spend a coin', async () => {
@@ -8,14 +11,22 @@ describe('Spending wallet coin', () => {
     console.log('Peer created:', peer);
     console.log('Peer peak:', await peer.getPeak());
 
-    let pair = simulatorNewBlspair(0n);
-    let puzzle = await simulatorNewPuzzle(1n);
-    let coin = await peer.simulatorNewCoin(pair.puzzleHash, 1n);
+    // let pair = simulatorNewBlspair(0n);
+    const mnemonic = bip39.generateMnemonic(256);
 
-    let solution = simulatorNewProgram(pair.pk);
+    const seed = mnemonicToSeedSync(mnemonic);
+    var masterSecretKey = Buffer.from(PrivateKey.fromSeed(seed).toHex(), "hex");
+    var masterSyntheticSecretKey = masterSecretKeyToWalletSyntheticSecretKey(masterSecretKey);
+    const masterPublicKey = secretKeyToPublicKey(masterSecretKey);
+    var masterSyntheticPublicKey = masterPublicKeyToWalletSyntheticKey(masterPublicKey);
+
+    let puzzle = await simulatorNewPuzzle(1n);
+    let coin = await peer.simulatorNewCoin(puzzle.puzzleHash, 1n);
+
+    let solution = simulatorNewProgram(masterSyntheticPublicKey);
     let coinSpends = [{ coin, puzzleReveal: puzzle.puzzleReveal, solution } as CoinSpend];
 
-    const sig = signCoinSpends(coinSpends, [pair.sk], true);
+    const sig = signCoinSpends(coinSpends, [masterSyntheticSecretKey], true);
 
     console.log('Signature:', sig);
 
@@ -29,3 +40,4 @@ describe('Spending wallet coin', () => {
     console.log('Peer peak:', await peer.getPeak());
   });
 });
+
