@@ -5,7 +5,7 @@ import path from 'path';
 import os from 'os';
 import { IConfigurationService } from '../../application/interfaces/IConfigurationService';
 
-const CONF_FOLDER_PATH = path.join(os.homedir(), '.dig');
+export const CONF_FOLDER_PATH = path.join(os.homedir(), '.dig');
 const fileMutex = new Mutex();
 
 export class NconfService implements IConfigurationService {
@@ -28,16 +28,22 @@ export class NconfService implements IConfigurationService {
     await new Promise((resolve, reject) =>
       nconf.save((err: unknown) => (err ? reject(err) : resolve(undefined))),
     );
-    console.log(`${key} saved to config file.`);
   }
 
-  public async deleteConfigValue(key: string): Promise<void> {
+  public async deleteConfigValue(key: string): Promise<boolean> {
     await this.initializeConfig();
+    const value = nconf.get(key);
+    
+    if (value === undefined) {
+      return false;
+    }
+
     nconf.clear(key);
     await new Promise((resolve, reject) =>
       nconf.save((err: unknown) => (err ? reject(err) : resolve(undefined))),
     );
-    console.log(`${key} deleted from config file.`);
+
+    return true;
   }
 
   public async configExists(): Promise<boolean> {
@@ -56,12 +62,10 @@ export class NconfService implements IConfigurationService {
     try {
       if (!(await fs.pathExists(directory))) {
         await fs.mkdirp(directory);
-        console.log('Directory created:', directory);
       }
 
       if (!(await fs.pathExists(this.configFilePath))) {
         await fs.writeFile(this.configFilePath, '{}');
-        console.log('Configuration file created:', this.configFilePath);
       }
     } finally {
       release();

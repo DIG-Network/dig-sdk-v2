@@ -13,11 +13,15 @@ import {
 import { mnemonicToSeedSync } from 'bip39';
 import { PrivateKey } from 'chia-bls';
 import { FileCacheService } from '../services/FileCacheService';
-import { CACHE_DURATION, USER_DIR_PATH } from '../services/WalletService';
+import { CACHE_DURATION } from '../services/WalletService';
+import path from 'path';
+import os from 'os';
 
 export const MIN_HEIGHT = 5777842;
 export const MIN_HEIGHT_HEADER_HASH =
   "b29a4daac2434fd17a36e15ba1aac5d65012d4a66f99bed0bf2b5342e92e562c";
+  
+export const USER_DIR_PATH = path.join(os.homedir(), '.dig');
 
 export class Wallet {
   private mnemonic: string;
@@ -135,7 +139,6 @@ export class Wallet {
 
         if (cachedReservedCoins.length > 0) {
           // Wait 10 seconds and try again
-          console.log("No unspent coins available. Waiting 10 seconds...");
           await new Promise((resolve) => setTimeout(resolve, 10000));
         } else {
           // No unspent coins and no reserved coins

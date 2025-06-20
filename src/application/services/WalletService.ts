@@ -5,12 +5,9 @@ import { EncryptionService } from './EncryptionService';
 import { EncryptedData } from '../types/EncryptedData';
 import { MIN_HEIGHT, MIN_HEIGHT_HEADER_HASH, Wallet } from '../types/Wallet';
 import { Peer, verifySignedMessage } from '@dignetwork/datalayer-driver';
-import path from 'path';
-import os from 'os';
 
-const KEYRING_FILE = 'keyring.json';
+export const KEYRING_FILE = 'keyring.json';
 export const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-export const USER_DIR_PATH = path.join(os.homedir(), '.dig');
 
 export class WalletService {
   public static async loadWallet(walletName: string = 'default'): Promise<Wallet> {
@@ -29,8 +26,7 @@ export class WalletService {
   public static async deleteWallet(walletName: string): Promise<boolean> {
     const nconfService = new NconfService(KEYRING_FILE);
     if (await nconfService.configExists()) {
-      await nconfService.deleteConfigValue(walletName);
-      return true;
+      return await nconfService.deleteConfigValue(walletName);
     }
     return false;
   }
@@ -41,7 +37,7 @@ export class WalletService {
       return [];
     }
 
-    const config = nconfService.getFullConfig();
+    const config = await nconfService.getFullConfig();
     return Object.keys(config);
   }
 
