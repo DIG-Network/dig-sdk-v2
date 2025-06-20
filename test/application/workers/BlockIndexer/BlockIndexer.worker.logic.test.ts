@@ -1,6 +1,6 @@
-import { api } from '../../../src/application/workers/BlockIndexer/BlockIndexer.worker.logic';
+import { api } from '../../../../src/application/workers/BlockIndexer/BlockIndexer.worker.logic';
 import Database from 'better-sqlite3';
-import { BlockChainType } from '../../../src/application/types/BlockChain';
+import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import fs from 'fs';
 
 // Mock BlockchainService for unit tests
