@@ -1,33 +1,10 @@
 import { WalletService } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
-import path from 'path';
-import os from 'os';
-import fs from 'fs-extra';
 
-const TEST_KEYRING_FILE = 'keyring.json';
 const WALLET_NAMES = ['wallet1', 'wallet2', 'wallet3'];
 
-async function cleanupKeyring() {
-    const keyringPath = path.join(path.join(os.homedir(), '.dig'), TEST_KEYRING_FILE);
-  if (
-    await fs.promises.stat(keyringPath).then(
-      () => true,
-      () => false,
-    )
-  ) {
-    await fs.promises.unlink(keyringPath);
-  }
-}
-
 describe('WalletService Integration', () => {
-  beforeEach(async () => {
-    await cleanupKeyring();
-  });
-
   it('should create, load, and delete a wallet, and verify Wallet functionality', async () => {
-    // Patch the keyring file and user dir for isolation
-    (WalletService as any).KEYRING_FILE = TEST_KEYRING_FILE;
-
     // Create a new wallet
     const wallet = await WalletService.createNewWallet(WALLET_NAMES[0]);
     expect(wallet).toBeInstanceOf(Wallet);
@@ -74,16 +51,11 @@ describe('WalletService Integration', () => {
   });
 
   it('should return empty array if no wallets exist', async () => {
-    (WalletService as any).KEYRING_FILE = TEST_KEYRING_FILE;
-
     const wallets = await WalletService.listWallets();
     expect(wallets).toEqual([]);
   });
 
   it('should list wallets after multiple creates and deletes', async () => {
-    (WalletService as any).KEYRING_FILE = TEST_KEYRING_FILE;
-
-    // Create wallets
     for (const name of WALLET_NAMES) {
       await WalletService.createNewWallet(name);
     }
@@ -101,9 +73,6 @@ describe('WalletService Integration', () => {
   });
 
   it('should not be able to delete or load a non-existing wallet', async () => {
-    (WalletService as any).KEYRING_FILE = TEST_KEYRING_FILE;
-
-    // Try to delete a non-existent wallet
     const deleted = await WalletService.deleteWallet('nonexistent');
     expect(deleted).toBe(false);
     // Try to load a non-existent wallet
