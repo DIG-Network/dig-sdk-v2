@@ -2,17 +2,16 @@ import nconf from 'nconf';
 import fs from 'fs-extra';
 import { Mutex } from 'async-mutex';
 import path from 'path';
-import os from 'os';
 import { IConfigurationService } from '../../application/interfaces/IConfigurationService';
+import config from '../../config';
 
-export const CONF_FOLDER_PATH = path.join(os.homedir(), '.dig');
 const fileMutex = new Mutex();
 
 export class NconfService implements IConfigurationService {
   private configFilePath: string;
 
   constructor(relativePath: string) {
-    this.configFilePath = path.join(CONF_FOLDER_PATH, relativePath);
+    this.configFilePath = path.join(config.DIG_FOLDER_PATH, relativePath);
     this.initializeConfig();
   }
 

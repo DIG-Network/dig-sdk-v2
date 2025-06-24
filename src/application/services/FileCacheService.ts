@@ -1,13 +1,12 @@
 import fs from "fs";
 import path from "path";
-
-export const DIG_FOLDER_PATH = path.join(process.cwd(), ".dig");
+import config from "../../config";
 
 export class FileCacheService<T> {
   private cacheDir: string;
 
-  constructor(relativeFilePath: string, baseDir: string = DIG_FOLDER_PATH) {
-    this.cacheDir = path.join(baseDir, relativeFilePath);
+  constructor(relativeFilePath: string) {
+    this.cacheDir = path.join(config.DIG_FOLDER_PATH, relativeFilePath);
     this.ensureDirectoryExists();
   }
 

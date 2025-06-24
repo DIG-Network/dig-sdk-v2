@@ -3,11 +3,10 @@ import * as bip39 from 'bip39';
 import { NconfService } from '../../infrastructure/ConfigurationServices/NconfService';
 import { EncryptionService } from './EncryptionService';
 import { EncryptedData } from '../types/EncryptedData';
-import { MIN_HEIGHT, MIN_HEIGHT_HEADER_HASH, Wallet } from '../types/Wallet';
 import { Peer, verifySignedMessage } from '@dignetwork/datalayer-driver';
+import { Wallet } from '../types/Wallet';
 
-export const KEYRING_FILE = 'keyring.json';
-export const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const KEYRING_FILE = 'keyring.json';
 
 export class WalletService {
   public static async loadWallet(walletName: string = 'default'): Promise<Wallet> {
@@ -37,8 +36,8 @@ export class WalletService {
       return [];
     }
 
-    const config = await nconfService.getFullConfig();
-    return Object.keys(config);
+    const configData = await nconfService.getFullConfig();
+    return Object.keys(configData);
   }
 
   public static async verifyKeyOwnershipSignature(
@@ -58,9 +57,9 @@ export class WalletService {
     return BigInt(1000000);
   }
 
-  public static async isCoinSpendable(peer: Peer, coinId: Buffer): Promise<boolean> {
+  public static async isCoinSpendable(peer: Peer, coinId: Buffer, lastHeight: number, lastHeaderHash: string): Promise<boolean> {
     try {
-      return await peer.isCoinSpent(coinId, MIN_HEIGHT, Buffer.from(MIN_HEIGHT_HEADER_HASH, 'hex'));
+      return await peer.isCoinSpent(coinId, lastHeight, Buffer.from(lastHeaderHash, 'hex'));
     } catch {
       return false;
     }
