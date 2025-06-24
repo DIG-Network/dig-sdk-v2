@@ -274,3 +274,7 @@ dist
 # Local databases
 
 **/*.sqlite
+
+# Local dig files
+
+.dig

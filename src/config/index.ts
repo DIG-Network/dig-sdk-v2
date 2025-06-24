@@ -3,7 +3,7 @@ interface DigConfig {
 }
 
 const config: DigConfig = {
-  DIG_FOLDER_PATH: process.env.DIG_FOLDER_PATH!,
+  DIG_FOLDER_PATH: '.dig',
 };
 
 export default config;
