@@ -108,4 +108,20 @@ describe('WalletService Integration', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('calculateFeeForCoinSpends', () => {
+    // At the time of writing the code there is no good way to fetch the "market rate" of transactions.
+    // Creating this test to ensure the method is revisited and updated after 1 year.
+    // If after 1 year there isn't a better way to calculate the fee, the suggestion is to update
+    // the fee to what is more approrpiate at the time and increase the date on the test.
+    it('should return the default fee, but fail if not changed after 1 year', async () => {
+      const now = new Date();
+      const cutoff = new Date('2026-06-24T00:00:00Z'); // 1 year from today
+      if (now >= cutoff) {
+        throw new Error('calculateFeeForCoinSpends must be reviewed and updated after 1 year!');
+      }
+      const fee = await WalletService.calculateFeeForCoinSpends();
+      expect(fee).toBe(BigInt(1000000));
+    });
+  });
 });
