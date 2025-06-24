@@ -16,7 +16,25 @@ import { FileCacheService } from '../services/FileCacheService';
 
 const COIN_CACHE_DURATION = 600000;
 
-export class Wallet {
+export interface IWallet {
+  getMnemonic(): string;
+  getMasterSecretKey(): Promise<Buffer>;
+  getPublicSyntheticKey(): Promise<Buffer>;
+  getPrivateSyntheticKey(): Promise<Buffer>;
+  getOwnerPuzzleHash(): Promise<Buffer>;
+  getOwnerPublicKey(): Promise<string>;
+  createKeyOwnershipSignature(nonce: string): Promise<string>;
+  selectUnspentCoins(
+    peer: Peer,
+    coinAmount: bigint,
+    feeBigInt: bigint,
+    omitCoins?: Coin[],
+    lastHeight?: number,
+    lastHeaderHash?: string,
+  ): Promise<Coin[]>;
+}
+
+export class Wallet implements IWallet {
   private mnemonic: string;
 
   public constructor(mnemonic: string) {
