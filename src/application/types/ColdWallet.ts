@@ -38,7 +38,7 @@ export class ColdWallet implements IColdWallet {
   async isCoinSpendable(
     peer: Peer,
     coinId: Buffer,
-    lastHeight: number | undefined | null,
+    lastHeight: number,
     headerHash: Buffer
   ): Promise<boolean> {
     return !(await peer.isCoinSpent(coinId, lastHeight, headerHash));
