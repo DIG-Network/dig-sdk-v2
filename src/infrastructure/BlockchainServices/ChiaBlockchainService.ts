@@ -1,4 +1,5 @@
-import { IBlockchainService } from "../../application/IBlockChainService";
+
+import { IBlockchainService } from "../../application/interfaces/IBlockChainService";
 import { Block } from "../../application/types/Block";
 
 export class ChiaBlockchainService implements IBlockchainService {

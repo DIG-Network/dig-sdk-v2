@@ -1,11 +1,11 @@
 import Database from 'better-sqlite3';
 import { Observable } from 'observable-fns';
-import { IBlockchainService } from '../../IBlockChainService';
 import { BlockChainType } from '../../types/BlockChain';
 import { ChiaBlockchainService } from '../../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { Block } from '../../types/Block';
 import { TestBlockchainService } from '../../../infrastructure/BlockchainServices/TestBlockchainService';
 import { CREATE_BLOCKS_TABLE_SQL } from '../../repositories/BlockRepository';
+import { IBlockchainService } from '../../interfaces/IBlockChainService';
 
 
 let db: Database.Database | null = null;

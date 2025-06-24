@@ -1,8 +1,8 @@
-import { BlockIndexer } from '../../../src/application/workers/BlockIndexer/BlockIndexer';
-import { BlockChainType } from '../../../src/application/types/BlockChain';
+import { BlockIndexer } from '../../../../src/application/workers/BlockIndexer/BlockIndexer';
+import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import Database from 'better-sqlite3';
 import fs from 'fs';
-import { Block } from '../../../src/application/types/Block';
+import { Block } from '../../../../src/application/types/Block';
 
 
 describe('BlockIndexer integration', () => {

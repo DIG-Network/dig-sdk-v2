@@ -1,8 +1,7 @@
-import { BlockIndexer } from '../../../src/application/workers/BlockIndexer/BlockIndexer';
-import { BlockChainType } from '../../../src/application/types/BlockChain';
+import { BlockIndexer } from '../../../../src/application/workers/BlockIndexer/BlockIndexer';
+import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import fs from 'fs';
 import path from 'path';
-import { BlockIndexerEventNames } from '../../../src/application/workers/BlockIndexer/BlockIndexerEvents';
 
 // Mock the worker and DB for async start
 jest.mock('threads', () => {
