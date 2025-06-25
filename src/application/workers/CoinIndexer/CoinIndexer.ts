@@ -3,6 +3,7 @@ import { spawn, Worker, Thread } from 'threads';
 import { IWorker } from '../IWorker';
 import {
   CoinIndexerEventNames,
+  CoinIndexerEvents,
   CoinStateUpdatedEvent,
 } from './CoinIndexerEvents';
 
@@ -16,7 +17,7 @@ interface ICoinIndexer extends IWorker {
 }
 
 export class CoinIndexer
-  extends EventEmitter
+  extends (EventEmitter as { new (): CoinIndexerEvents })
   implements ICoinIndexer
 {
   private worker: import('threads').ModuleThread<CoinIndexerWorkerApi> | null = null;
@@ -54,8 +55,10 @@ export class CoinIndexer
       )) as import('threads').ModuleThread<CoinIndexerWorkerApi>;
     }
 
-    this.worker.onCoinStateUpdated().subscribe((coinState: CoinStateUpdatedEvent) => {
-      this.emit(CoinIndexerEventNames.CoinStateUpdated, coinState);
+    this.worker.onCoinStateUpdated().subscribe({
+      next: (coinState: CoinStateUpdatedEvent) => {
+        this.emit(CoinIndexerEventNames.CoinStateUpdated, coinState);
+      },
     });
 
     try {

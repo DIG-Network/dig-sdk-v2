@@ -1,7 +1,5 @@
-import { EventEmitter } from 'events';
-
 export enum CoinIndexerEventNames {
-  CoinStateUpdated = 'CoinStateUpdated',
+  CoinStateUpdated = 'coinStateUpdated',
 }
 
 export interface CoinStateUpdatedEvent {
@@ -11,11 +9,7 @@ export interface CoinStateUpdatedEvent {
   synced_height: number;
 }
 
-export class CoinIndexerEvents extends EventEmitter {
-  emitCoinStateUpdated(event: CoinStateUpdatedEvent) {
-    this.emit(CoinIndexerEventNames.CoinStateUpdated, event);
-  }
-  onCoinStateUpdated(listener: (event: CoinStateUpdatedEvent) => void) {
-    this.on(CoinIndexerEventNames.CoinStateUpdated, listener);
-  }
+export interface CoinIndexerEvents {
+  on(event: CoinIndexerEventNames.CoinStateUpdated, listener: (event: CoinStateUpdatedEvent) => void): this;
+  emit(event: CoinIndexerEventNames.CoinStateUpdated, eventData: CoinStateUpdatedEvent): boolean;
 }

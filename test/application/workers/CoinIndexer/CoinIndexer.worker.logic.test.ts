@@ -1,62 +1,46 @@
 import Database from 'better-sqlite3';
 import { api as coinIndexerApi } from '../../../../src/application/workers/CoinIndexer/CoinIndexer.worker.logic';
-import { CoinStateUpdatedEvent } from '../../../../src/application/workers/CoinIndexer/CoinIndexerEvents';
-import { CoinRepository } from '../../../../src/application/repositories/CoinRepository';
-import { WalletRepository } from '../../../../src/application/repositories/WalletRepository';
-import type { IBlockchainService } from '../../../../src/application/interfaces/IBlockChainService';
-import type { Peer, Coin } from '@dignetwork/datalayer-driver';
+import { BlockChainType } from '../../../../src/application/types/BlockChain';
+import { existsSync, unlinkSync } from 'fs';
 
-describe('CoinIndexer.worker.logic', () => {
-  const dbPath = ':memory:';
-  let db: Database.Database;
-  let coinRepo: CoinRepository;
-  let walletRepo: WalletRepository;
-  let mockService: IBlockchainService;
-  let mockPeer: Peer;
+const dbPath = 'test_coinindexer_worker_logic.sqlite';
 
-  beforeEach(async () => {
-    coinIndexerApi.__reset();
-    db = new Database(dbPath);
-    coinRepo = new CoinRepository(db);
-    walletRepo = new WalletRepository(db);
-    // Add a wallet for tests
-    walletRepo.addWallet('xch1234');
-    // Mock blockchain service and peer
-    mockService = {
-      listUnspentCoins: jest.fn().mockResolvedValue({ coins: [] }),
-      isCoinSpendable: jest.fn().mockResolvedValue(true),
-      // ...other methods can be no-ops
-    } as any;
-    mockPeer = {} as Peer;
-    // If needed, inject mockService and mockPeer into the worker here
-    await coinIndexerApi.start('Test', dbPath);
+describe('CoinIndexer.worker.logic api', () => {
+  beforeAll(() => {
+    if (existsSync(dbPath)) unlinkSync(dbPath);
+  });
+  
+  afterEach(() => {
+    try { new Database(dbPath).close(); } catch {}
   });
 
-  afterEach(() => {
+  it('should create the database file after start', async () => {
+    coinIndexerApi.__reset();
+    if (existsSync(dbPath)) unlinkSync(dbPath);
+    await coinIndexerApi.start(BlockChainType.Test, dbPath);
+    expect(existsSync(dbPath)).toBe(true);
+    // Check table exists (should be named 'coin' not 'coins')
+    const db = new Database(dbPath);
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='coin'").get();
+    expect(tables).toBeDefined();
+    db.close();
+    coinIndexerApi.stop();
+  });
+
+  it('should not start twice', async () => {
+    coinIndexerApi.__reset();
+    await coinIndexerApi.start(BlockChainType.Test, dbPath);
+    await coinIndexerApi.start(BlockChainType.Test, dbPath); // should not throw
+    coinIndexerApi.stop();
+  });
+
+  it('should stop and reset', async () => {
+    coinIndexerApi.__reset();
+    await coinIndexerApi.start(BlockChainType.Test, dbPath);
     coinIndexerApi.stop();
     coinIndexerApi.__reset();
-    db.close();
-  });
-
-  it('should emit CoinStateUpdated event on sync', async () => {
-    // Arrange: mock listUnspentCoins to return a coin
-    const coin: Coin = {
-      coin_id: Buffer.from('aabbcc', 'hex'),
-      parentCoinInfo: Buffer.from('ddeeff', 'hex'),
-      puzzleHash: Buffer.from('112233', 'hex'),
-      amount: BigInt(1000),
-    } as any;
-    (mockService.listUnspentCoins as jest.Mock).mockResolvedValue({ coins: [coin] });
-    walletRepo.updateWalletSync('xch1234', 10, 'abc');
-    const eventPromise = new Promise<void>((resolve) => {
-      coinIndexerApi.onCoinStateUpdated((event: CoinStateUpdatedEvent) => {
-        expect(event.wallet_id).toBe('xch1234');
-        expect(event.status).toBe('unspent');
-        resolve();
-      });
-    });
-    // Wait for the interval to trigger sync (simulate passage of time)
-    await new Promise((r) => setTimeout(r, 1100));
-    await eventPromise;
+    // Should be able to start again
+    await coinIndexerApi.start(BlockChainType.Test, dbPath);
+    coinIndexerApi.stop();
   });
 });

@@ -3,20 +3,6 @@ import Database from 'better-sqlite3';
 import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import fs from 'fs';
 
-// Mock BlockchainService for unit tests
-class MockBlockchainService {
-  private blocks: any[] = [];
-  constructor(blocks: any[] = []) {
-    this.blocks = blocks;
-  }
-  async getCurrentBlockchainHeight() {
-    return this.blocks.length;
-  }
-  async getBlockchainBlockByHeight(h: number) {
-    return this.blocks[h - 1] || null;
-  }
-}
-
 describe('BlockIndexer.worker.logic api', () => {
   const dbPath = 'test_blockindexer_worker_logic.sqlite';
   

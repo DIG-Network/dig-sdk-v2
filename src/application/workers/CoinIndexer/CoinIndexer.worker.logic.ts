@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
-import { CoinIndexerEvents, CoinStateUpdatedEvent } from './CoinIndexerEvents';
+import { Observable } from 'observable-fns';
+import { CoinStateUpdatedEvent } from './CoinIndexerEvents';
 import { CoinRepository, CoinRow } from '../../repositories/CoinRepository';
 import { WalletRepository, WalletRow } from '../../repositories/WalletRepository';
 import { IBlockchainService } from '../../interfaces/IBlockChainService';
@@ -11,10 +12,12 @@ import { ChiaBlockchainService } from '../../../infrastructure/BlockchainService
 let db: Database.Database | null = null;
 let coinRepo: CoinRepository | null = null;
 let walletRepo: WalletRepository | null = null;
-let events: CoinIndexerEvents | null = null;
 let started = false;
 let intervalId: NodeJS.Timeout | null = null;
 let blockchainService: IBlockchainService | null = null;
+
+let coinStateObservable: Observable<CoinStateUpdatedEvent> | null = null;
+let coinStateObserver: ((event: CoinStateUpdatedEvent) => void) | null = null;
 
 function mapUnspentCoinToDbFields(
   coin: Coin,
@@ -34,7 +37,7 @@ function mapUnspentCoinToDbFields(
 }
 
 async function sync() {
-  if (!coinRepo || !walletRepo || !events || !blockchainService) return;
+  if (!coinRepo || !walletRepo || !blockchainService) return;
   const wallets: WalletRow[] = walletRepo.getWallets();
 
   let peer: Peer | null = null; // TODO Update this by getting a value from PeerCluster from datalayer driver
@@ -54,12 +57,14 @@ async function sync() {
         wallet.synced_to_height || 0,
       );
       coinRepo.upsertCoin(wallet.address, mapped);
-      events.emitCoinStateUpdated({
-        wallet_id: wallet.address,
-        coinId: mapped.coinId,
-        status: 'unspent',
-        synced_height: wallet.synced_to_height || 0,
-      });
+      if (coinStateObserver) {
+        coinStateObserver({
+          wallet_id: wallet.address,
+          coinId: mapped.coinId,
+          status: 'unspent',
+          synced_height: wallet.synced_to_height || 0,
+        });
+      }
     }
   }
   // Check pending coins
@@ -73,23 +78,24 @@ async function sync() {
     );
     if (!spendable) {
       coinRepo.updateCoinStatus(coin.wallet_id, coin.coinId, 'spent', coin.synced_height);
-      events.emitCoinStateUpdated({
-        wallet_id: coin.wallet_id,
-        coinId: coin.coinId,
-        status: 'spent',
-        synced_height: coin.synced_height,
-      });
+      if (coinStateObserver) {
+        coinStateObserver({
+          wallet_id: coin.wallet_id,
+          coinId: coin.coinId,
+          status: 'spent',
+          synced_height: coin.synced_height,
+        });
+      }
     }
   }
 }
 
 export const api = {
-  async start(_blockchainType: string, dbPath: string = './coin_indexer.sqlite') {
+  async start(_blockchainType: BlockChainType, dbPath: string = './coin_indexer.sqlite') {
     if (started) return;
     db = new Database(dbPath);
     coinRepo = new CoinRepository(db);
     walletRepo = new WalletRepository(db);
-    events = new CoinIndexerEvents();
 
     switch (_blockchainType) {
       case BlockChainType.Test:
@@ -101,7 +107,6 @@ export const api = {
         break;
     }
 
-    // peer = ... (should be set externally or passed in)
     started = true;
     intervalId = setInterval(sync, 1000);
   },
@@ -111,20 +116,31 @@ export const api = {
     db = null;
     coinRepo = null;
     walletRepo = null;
-    events = null;
     blockchainService = null;
+    coinStateObservable = null;
+    coinStateObserver = null;
   },
-  onCoinStateUpdated(listener: (event: CoinStateUpdatedEvent) => void) {
-    if (!events) throw new Error('CoinIndexerEvents not initialized');
-    events.onCoinStateUpdated(listener);
+  onCoinStateUpdated() {
+    if (!coinStateObservable) {
+      coinStateObservable = new Observable<CoinStateUpdatedEvent>((observer) => {
+        coinStateObserver = (event: CoinStateUpdatedEvent) => {
+          observer.next(event);
+        };
+        return () => {
+          coinStateObserver = null;
+        };
+      });
+    }
+    return coinStateObservable;
   },
   __reset() {
     if (intervalId) clearInterval(intervalId);
     db = null;
     coinRepo = null;
     walletRepo = null;
-    events = null;
     blockchainService = null;
     started = false;
+    coinStateObservable = null;
+    coinStateObserver = null;
   },
 };
