@@ -1,5 +1,5 @@
 import {
-    Coin,
+  Coin,
   getCoinId,
   masterPublicKeyToFirstPuzzleHash,
   masterPublicKeyToWalletSyntheticKey,
@@ -13,15 +13,8 @@ import {
 import { mnemonicToSeedSync } from 'bip39';
 import { PrivateKey } from 'chia-bls';
 import { FileCacheService } from '../services/FileCacheService';
-import { CACHE_DURATION } from '../services/WalletService';
-import path from 'path';
-import os from 'os';
 
-export const MIN_HEIGHT = 5777842;
-export const MIN_HEIGHT_HEADER_HASH =
-  "b29a4daac2434fd17a36e15ba1aac5d65012d4a66f99bed0bf2b5342e92e562c";
-  
-export const USER_DIR_PATH = path.join(os.homedir(), '.dig');
+const COIN_CACHE_DURATION = 600000;
 
 export class Wallet {
   private mnemonic: string;
@@ -75,21 +68,18 @@ export class Wallet {
     peer: Peer,
     coinAmount: bigint,
     feeBigInt: bigint,
-    omitCoins: Coin[] = []
+    omitCoins: Coin[] = [],
+    lastHeight: number,
+    lastHeaderHash: string,
   ): Promise<Coin[]> {
-    const cache = new FileCacheService<{ coinId: string; expiry: number }>(
-      "reserved_coins",
-      USER_DIR_PATH
-    );
+    const cache = new FileCacheService<{ coinId: string; expiry: number }>('reserved_coins');
 
     const ownerPuzzleHash = await this.getOwnerPuzzleHash();
 
     // Define a function to attempt selecting unspent coins
     const trySelectCoins = async (): Promise<Coin[]> => {
       const now = Date.now();
-      const omitCoinIds = omitCoins.map((coin) =>
-        getCoinId(coin).toString("hex")
-      );
+      const omitCoinIds = omitCoins.map((coin) => getCoinId(coin).toString('hex'));
 
       // Update omitCoinIds with currently valid reserved coins
       const cachedReservedCoins = cache.getCachedKeys();
@@ -107,12 +97,12 @@ export class Wallet {
 
       const coinsResp = await peer.getAllUnspentCoins(
         ownerPuzzleHash,
-        MIN_HEIGHT,
-        Buffer.from(MIN_HEIGHT_HEADER_HASH, "hex")
+        lastHeight,
+        Buffer.from(lastHeaderHash, 'hex'),
       );
 
       const unspentCoins = coinsResp.coins.filter(
-        (coin) => !omitCoinIds.includes(getCoinId(coin).toString("hex"))
+        (coin) => !omitCoinIds.includes(getCoinId(coin).toString('hex')),
       );
 
       const selectedCoins = selectCoins(unspentCoins, feeBigInt + coinAmount);
@@ -142,15 +132,15 @@ export class Wallet {
           await new Promise((resolve) => setTimeout(resolve, 10000));
         } else {
           // No unspent coins and no reserved coins
-          throw new Error("No unspent coins available.");
+          throw new Error('No unspent coins available.');
         }
       }
     }
 
     // Reserve the selected coins
     selectedCoins.forEach((coin) => {
-      const coinId = getCoinId(coin).toString("hex");
-      cache.set(coinId, { coinId, expiry: Date.now() + CACHE_DURATION });
+      const coinId = getCoinId(coin).toString('hex');
+      cache.set(coinId, { coinId, expiry: Date.now() + COIN_CACHE_DURATION });
     });
 
     return selectedCoins;

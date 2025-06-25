@@ -91,20 +91,20 @@ describe('WalletService Integration', () => {
 
     it('should return true if peer.isCoinSpent resolves true', async () => {
       peer.isCoinSpent.mockResolvedValue(true);
-      const result = await WalletService.isCoinSpendable(peer, coinId);
+      const result = await WalletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
       expect(result).toBe(true);
       expect(peer.isCoinSpent).toHaveBeenCalledWith(coinId, expect.any(Number), expect.any(Buffer));
     });
 
     it('should return false if peer.isCoinSpent resolves false', async () => {
       peer.isCoinSpent.mockResolvedValue(false);
-      const result = await WalletService.isCoinSpendable(peer, coinId);
+      const result = await WalletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
       expect(result).toBe(false);
     });
 
     it('should return false if peer.isCoinSpent throws', async () => {
       peer.isCoinSpent.mockRejectedValue(new Error('fail'));
-      const result = await WalletService.isCoinSpendable(peer, coinId);
+      const result = await WalletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
       expect(result).toBe(false);
     });
   });

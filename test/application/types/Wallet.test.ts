@@ -93,7 +93,7 @@ describe('Wallet', () => {
 
     it('should select and reserve coins, respecting omitCoins and cache', async () => {
       const omitCoins = [{ id: '01', amount: 100n }];
-      const result = await wallet.selectUnspentCoins(mockPeer, 50n, 10n, omitCoins);
+      const result = await wallet.selectUnspentCoins(mockPeer, 50n, 10n, omitCoins, 0, '00'.repeat(32));
       expect(mockPeer.getAllUnspentCoins).toHaveBeenCalledWith(mockOwnerPuzzleHash, expect.any(Number), expect.any(Buffer));
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
@@ -106,7 +106,7 @@ describe('Wallet', () => {
     it('should throw if no coins and no reserved', async () => {
       mockPeer.getAllUnspentCoins.mockResolvedValue({ coins: [] });
       mockCache.getCachedKeys.mockReturnValue([]);
-      await expect(wallet.selectUnspentCoins(mockPeer, 50n, 10n)).rejects.toThrow('No unspent coins available.');
+      await expect(wallet.selectUnspentCoins(mockPeer, 50n, 10n, [], 0, '00'.repeat(32))).rejects.toThrow('No unspent coins available.');
     });
 
     it('should retry if reserved coins exist', async () => {
@@ -114,7 +114,7 @@ describe('Wallet', () => {
       mockPeer.getAllUnspentCoins.mockResolvedValue({ coins: [] });
       mockCache.getCachedKeys.mockReturnValue(['deadbeef']);
       mockCache.get.mockReturnValue({ coinId: 'deadbeef', expiry: Date.now() + 10000 });
-      const promise = wallet.selectUnspentCoins(mockPeer, 50n, 10n);
+      const promise = wallet.selectUnspentCoins(mockPeer, 50n, 10n, [], 0, '00'.repeat(32));
       // Fast-fail the wait
       jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => { fn(); return 0 as any; });
       setTimeout(() => promise.catch(() => {}), 20); // avoid unhandled rejection

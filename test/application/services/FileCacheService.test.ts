@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { FileCacheService, DIG_FOLDER_PATH } from '../../../src/application/services/FileCacheService';
+import config from '../../../src/config';
+import { FileCacheService } from '../../../src/application/services/FileCacheService';
 
 describe('FileCacheService', () => {
-  const testDir = path.join(DIG_FOLDER_PATH, 'jest-test-cache');
+  const testDir = path.join(config.DIG_FOLDER_PATH, 'jest-test-cache');
   const key = 'testKey';
   const value = { foo: 'bar', num: 42 };
 
