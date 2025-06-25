@@ -72,7 +72,7 @@ export class Wallet implements IWallet {
 
   public async getOwnerPublicKey(): Promise<string> {
     const ownerPuzzleHash = await this.getOwnerPuzzleHash();
-    return puzzleHashToAddress(ownerPuzzleHash, 'xch');
+    return puzzleHashToAddress(ownerPuzzleHash, 'xch'); // might need to also add txch for testnet
   }
 
   public async createKeyOwnershipSignature(nonce: string): Promise<string> {

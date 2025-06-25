@@ -1,4 +1,4 @@
-import { Peer, UnspentCoinsResponse, addressToPuzzleHash, verifySignedMessage } from '@dignetwork/datalayer-driver';
+import { Peer, UnspentCoinsResponse, addressToPuzzleHash, verifySignedMessage, masterPublicKeyToWalletSyntheticKey as mpkToWalletSyntheticKey, masterPublicKeyToFirstPuzzleHash as mpkToFirstPuzzleHash, masterPublicKeyToWalletSyntheticKey, masterPublicKeyToFirstPuzzleHash } from '@dignetwork/datalayer-driver';
 
 export interface IColdWallet {
   getPuzzleHash(address: string): Buffer;
@@ -15,6 +15,8 @@ export interface IColdWallet {
     lastHeight: number | undefined | null,
     headerHash: Buffer
   ): Promise<boolean>;
+  masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer;
+  masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer;
 }
 
 export class ColdWallet implements IColdWallet {
@@ -42,5 +44,13 @@ export class ColdWallet implements IColdWallet {
     headerHash: Buffer
   ): Promise<boolean> {
     return !(await peer.isCoinSpent(coinId, lastHeight, headerHash));
+  }
+
+  masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer {
+    return masterPublicKeyToWalletSyntheticKey(publicKey);
+  }
+
+  masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer {
+    return masterPublicKeyToFirstPuzzleHash(publicKey);
   }
 }
