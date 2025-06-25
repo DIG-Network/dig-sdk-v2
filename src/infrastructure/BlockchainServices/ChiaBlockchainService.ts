@@ -1,12 +1,87 @@
-
 import { IBlockchainService } from "../../application/interfaces/IBlockChainService";
 import { Block } from "../../application/types/Block";
+import {
+  masterSecretKeyToWalletSyntheticSecretKey,
+  masterPublicKeyToWalletSyntheticKey,
+  masterPublicKeyToFirstPuzzleHash,
+  secretKeyToPublicKey,
+  puzzleHashToAddress,
+  signMessage,
+  getCoinId,
+  selectCoins,
+  addressToPuzzleHash,
+  verifySignedMessage,
+} from '@dignetwork/datalayer-driver';
+import type { Coin, Peer, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
+import { PrivateKey } from 'chia-bls';
 
 export class ChiaBlockchainService implements IBlockchainService {
   async getCurrentBlockchainHeight(): Promise<number> {
     return 0;
   }
+
   async getBlockchainBlockByHeight(height: number): Promise<Block> {
     return { hash: Buffer.from('abc', 'hex'), blockHeight: height };
+  }
+
+  masterSecretKeyFromSeed(seed: Buffer): Buffer {
+    return Buffer.from(PrivateKey.fromSeed(seed).toHex(), 'hex');
+  }
+
+  secretKeyToPublicKey(secretKey: Buffer): Buffer {
+    return secretKeyToPublicKey(secretKey);
+  }
+
+  masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer {
+    return masterPublicKeyToWalletSyntheticKey(publicKey);
+  }
+
+  masterSecretKeyToWalletSyntheticSecretKey(secretKey: Buffer): Buffer {
+    return masterSecretKeyToWalletSyntheticSecretKey(secretKey);
+  }
+  
+  masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer {
+    return masterPublicKeyToFirstPuzzleHash(publicKey);
+  }
+
+  puzzleHashToAddress(puzzleHash: Buffer, prefix: string): string {
+    return puzzleHashToAddress(puzzleHash, prefix);
+  }
+
+  signMessage(message: Buffer, privateKey: Buffer): Buffer {
+    return signMessage(message, privateKey);
+  }
+
+  getCoinId(coin: Coin): Buffer {
+    return getCoinId(coin);
+  }
+
+  selectCoins(coins: Coin[], amount: bigint): Coin[] {
+    return selectCoins(coins, amount);
+  }
+
+  getPuzzleHash(address: string): Buffer {
+    return addressToPuzzleHash(address);
+  }
+  verifyKeySignature(signature: Buffer, publicKey: Buffer, message: Buffer): boolean {
+    return verifySignedMessage(signature, publicKey, message);
+  }
+
+  async listUnspentCoins(
+    peer: Peer,
+    puzzleHash: Buffer,
+    previousHeight: number,
+    previousHeaderHash: Buffer
+  ): Promise<UnspentCoinsResponse> {
+    return await peer.getAllUnspentCoins(puzzleHash, previousHeight, previousHeaderHash);
+  }
+  
+  async isCoinSpendable(
+    peer: Peer,
+    coinId: Buffer,
+    lastHeight: number,
+    headerHash: Buffer
+  ): Promise<boolean> {
+    return !(await peer.isCoinSpent(coinId, lastHeight, headerHash));
   }
 }
