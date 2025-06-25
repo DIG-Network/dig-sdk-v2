@@ -1,7 +1,8 @@
+import { EventEmitter } from 'events';
 import { spawn, Worker, Thread } from 'threads';
 import { Block } from '../../types/Block';
 import { IWorker } from '../IWorker';
-import { BlockIndexerEvents } from './BlockIndexerEvents';
+import { BlockIndexerEventNames, BlockIndexerEvents } from './BlockIndexerEvents';
 
 interface BlockIndexerWorkerApi {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,7 +13,7 @@ interface IBlockIndexer extends IWorker {
   onBlockIngested(listener: (block: Block) => void): void;
 }
 
-export class BlockIndexer extends BlockIndexerEvents implements IBlockIndexer {
+export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }) implements IBlockIndexer {
   private worker: import('threads').ModuleThread<BlockIndexerWorkerApi> | null = null;
   private started = false;
   private restartIntervalId: NodeJS.Timeout | null = null;
@@ -47,7 +48,7 @@ export class BlockIndexer extends BlockIndexerEvents implements IBlockIndexer {
     }
 
     this.worker.onBlockIngested().subscribe((block: Block) => {
-      this.emitBlockIngested(block);
+      this.emit(BlockIndexerEventNames.BlockIngested, block);
     });
 
     try {
@@ -80,7 +81,7 @@ export class BlockIndexer extends BlockIndexerEvents implements IBlockIndexer {
     }
   }
 
-  onBlockIngested(listener: (block: Block) => void): this {
-    return super.onBlockIngested(listener);
+  onBlockIngested(listener: (block: Block) => void) {
+    this.on(BlockIndexerEventNames.BlockIngested, listener);
   }
 }

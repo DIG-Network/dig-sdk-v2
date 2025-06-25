@@ -1,4 +1,4 @@
-import { Block } from '../types/Block';
+import { Block } from '../../types/Block';
 
 export interface IBlockRepository {
   getLatestBlock(): Promise<Block>;

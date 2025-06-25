@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
-import { BlockRepository } from '../../../../src/application/repositories/BlockRepository';
-import { IBlockRepository } from '../../../../src/application/repositories/IBlockRepository';
+import { BlockRepository } from '../../../src/application/repositories/BlockRepository';
 import fs from 'fs';
+import { IBlockRepository } from '../../../src/application/repositories/Interfaces/IBlockRepository';
 
 describe('BlockRepository', () => {
   let db: Database.Database;

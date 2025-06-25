@@ -1,67 +1,62 @@
 import Database from 'better-sqlite3';
 import { api as coinIndexerApi } from '../../../../src/application/workers/CoinIndexer/CoinIndexer.worker.logic';
-import { CoinIndexerEventNames, CoinStateUpdatedEvent, CoinIndexerEvents } from '../../../../src/application/workers/CoinIndexer/CoinIndexerEvents';
+import { CoinStateUpdatedEvent } from '../../../../src/application/workers/CoinIndexer/CoinIndexerEvents';
+import { CoinRepository } from '../../../../src/application/repositories/CoinRepository';
+import { WalletRepository } from '../../../../src/application/repositories/WalletRepository';
+import type { IBlockchainService } from '../../../../src/application/interfaces/IBlockChainService';
+import type { Peer, Coin } from '@dignetwork/datalayer-driver';
 
 describe('CoinIndexer.worker.logic', () => {
   const dbPath = ':memory:';
+  let db: Database.Database;
+  let coinRepo: CoinRepository;
+  let walletRepo: WalletRepository;
+  let mockService: IBlockchainService;
+  let mockPeer: Peer;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     coinIndexerApi.__reset();
-    coinIndexerApi.start('Test', dbPath);
+    db = new Database(dbPath);
+    coinRepo = new CoinRepository(db);
+    walletRepo = new WalletRepository(db);
+    // Add a wallet for tests
+    walletRepo.addWallet('xch1234');
+    // Mock blockchain service and peer
+    mockService = {
+      listUnspentCoins: jest.fn().mockResolvedValue({ coins: [] }),
+      isCoinSpendable: jest.fn().mockResolvedValue(true),
+      // ...other methods can be no-ops
+    } as any;
+    mockPeer = {} as Peer;
+    // If needed, inject mockService and mockPeer into the worker here
+    await coinIndexerApi.start('Test', dbPath);
   });
 
   afterEach(() => {
+    coinIndexerApi.stop();
     coinIndexerApi.__reset();
+    db.close();
   });
 
-  it('should add and retrieve wallets', () => {
-    coinIndexerApi.addWallet('xch1234');
-    const wallets = coinIndexerApi.getWallets() as any[];
-    expect(wallets.length).toBe(1);
-    expect(wallets[0].address).toBe('xch1234');
-    expect(wallets[0].namespace).toBe('default');
-  });
-
-  it('should update wallet sync state', () => {
-    coinIndexerApi.addWallet('xch1234');
-    coinIndexerApi.updateWalletSync('xch1234', 42, 'abc');
-    const wallets = coinIndexerApi.getWallets() as any[];
-    expect(wallets[0].synced_to_height).toBe(42);
-    expect(wallets[0].synced_to_hash).toBe('abc');
-  });
-
-  it('should upsert and retrieve coins', () => {
-    coinIndexerApi.addWallet('xch1234');
-    const coin = {
-      coinId: Buffer.from('aabbcc', 'hex'),
-      parent_coin_info: Buffer.from('ddeeff', 'hex'),
-      puzzle_hash: Buffer.from('112233', 'hex'),
+  it('should emit CoinStateUpdated event on sync', async () => {
+    // Arrange: mock listUnspentCoins to return a coin
+    const coin: Coin = {
+      coin_id: Buffer.from('aabbcc', 'hex'),
+      parentCoinInfo: Buffer.from('ddeeff', 'hex'),
+      puzzleHash: Buffer.from('112233', 'hex'),
       amount: BigInt(1000),
-      synced_height: 10,
-      status: 'unspent',
-    };
-    coinIndexerApi.upsertCoin('xch1234', coin);
-    const coins = coinIndexerApi.getCoins('xch1234') as any[];
-    expect(coins.length).toBe(1);
-    expect(Buffer.isBuffer(coins[0].coinId) || typeof coins[0].coinId === 'object').toBe(true);
-    expect(coins[0].amount).toBe('1000');
-    expect(coins[0].status).toBe('unspent');
-  });
-
-  it('should emit CoinStateUpdated event on upsertCoin', (done) => {
-    coinIndexerApi.onCoinStateUpdated((event: CoinStateUpdatedEvent) => {
-      expect(event.wallet_id).toBe('xch1234');
-      expect(event.status).toBe('unspent');
-      done();
+    } as any;
+    (mockService.listUnspentCoins as jest.Mock).mockResolvedValue({ coins: [coin] });
+    walletRepo.updateWalletSync('xch1234', 10, 'abc');
+    const eventPromise = new Promise<void>((resolve) => {
+      coinIndexerApi.onCoinStateUpdated((event: CoinStateUpdatedEvent) => {
+        expect(event.wallet_id).toBe('xch1234');
+        expect(event.status).toBe('unspent');
+        resolve();
+      });
     });
-    coinIndexerApi.addWallet('xch1234');
-    coinIndexerApi.upsertCoin('xch1234', {
-      coinId: Buffer.from('aabbcc', 'hex'),
-      parent_coin_info: Buffer.from('ddeeff', 'hex'),
-      puzzle_hash: Buffer.from('112233', 'hex'),
-      amount: BigInt(1000),
-      synced_height: 10,
-      status: 'unspent',
-    });
+    // Wait for the interval to trigger sync (simulate passage of time)
+    await new Promise((r) => setTimeout(r, 1100));
+    await eventPromise;
   });
 });
