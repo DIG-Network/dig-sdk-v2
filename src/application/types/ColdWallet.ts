@@ -1,4 +1,4 @@
-import { Peer, UnspentCoinsResponse, addressToPuzzleHash, verifySignedMessage, masterPublicKeyToWalletSyntheticKey as mpkToWalletSyntheticKey, masterPublicKeyToFirstPuzzleHash as mpkToFirstPuzzleHash, masterPublicKeyToWalletSyntheticKey, masterPublicKeyToFirstPuzzleHash } from '@dignetwork/datalayer-driver';
+import { Peer, UnspentCoinsResponse, addressToPuzzleHash, verifySignedMessage, masterPublicKeyToWalletSyntheticKey, masterPublicKeyToFirstPuzzleHash } from '@dignetwork/datalayer-driver';
 
 export interface IColdWallet {
   getPuzzleHash(address: string): Buffer;
