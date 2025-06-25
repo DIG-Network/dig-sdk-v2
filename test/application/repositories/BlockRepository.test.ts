@@ -58,7 +58,7 @@ describe('BlockRepository', () => {
     const dbPath = 'test_blockrepository_createdb.sqlite';
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
     const Database = require('better-sqlite3');
-    const { BlockRepository } = require('../../../../src/application/repositories/BlockRepository');
+    const { BlockRepository } = require('../../../src/application/repositories/BlockRepository');
     const db = new Database(dbPath);
     new BlockRepository(db);
     // Check file exists
