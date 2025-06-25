@@ -1,27 +1,33 @@
+import { EventEmitter } from 'events';
 import { spawn, Worker, Thread } from 'threads';
-import { Block } from '../../types/Block';
 import { IWorker } from '../IWorker';
-import { BlockIndexerEvents } from './BlockIndexerEvents';
+import {
+  CoinIndexerEventNames,
+  CoinStateUpdatedEvent,
+} from './CoinIndexerEvents';
 
-interface BlockIndexerWorkerApi {
+export interface CoinIndexerWorkerApi {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: (...args: any[]) => any;
 }
 
-interface IBlockIndexer extends IWorker {
-  onBlockIngested(listener: (block: Block) => void): void;
+interface ICoinIndexer extends IWorker {
+  onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void;
 }
 
-export class BlockIndexer extends BlockIndexerEvents implements IBlockIndexer {
-  private worker: import('threads').ModuleThread<BlockIndexerWorkerApi> | null = null;
+export class CoinIndexer
+  extends EventEmitter
+  implements ICoinIndexer
+{
+  private worker: import('threads').ModuleThread<CoinIndexerWorkerApi> | null = null;
   private started = false;
   private restartIntervalId: NodeJS.Timeout | null = null;
   private restartIntervalMs: number | null = null;
 
   async start(
     blockchainType: string,
-    dbPath: string = './block_indexer.sqlite',
-    restartIntervalHours?: number
+    dbPath: string = './coin_indexer.sqlite',
+    restartIntervalHours?: number,
   ): Promise<void> {
     await this.startWorker(blockchainType, dbPath);
 
@@ -39,15 +45,17 @@ export class BlockIndexer extends BlockIndexerEvents implements IBlockIndexer {
       // Use src worker for tests/dev, dist worker for production
       let workerPath: string;
       if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
-        workerPath = '../../../../dist/application/workers/BlockIndexer/BlockIndexer.worker.js';
+        workerPath = '../../../../dist/application/workers/CoinIndexer/CoinIndexer.worker.js';
       } else {
-        workerPath = './BlockIndexer.worker.ts';
+        workerPath = './CoinIndexer.worker.ts';
       }
-      this.worker = (await spawn(new Worker(workerPath))) as import('threads').ModuleThread<BlockIndexerWorkerApi>;
+      this.worker = (await spawn(
+        new Worker(workerPath),
+      )) as import('threads').ModuleThread<CoinIndexerWorkerApi>;
     }
 
-    this.worker.onBlockIngested().subscribe((block: Block) => {
-      this.emitBlockIngested(block);
+    this.worker.onCoinStateUpdated().subscribe((coinState: CoinStateUpdatedEvent) => {
+      this.emit(CoinIndexerEventNames.CoinStateUpdated, coinState);
     });
 
     try {
@@ -66,7 +74,6 @@ export class BlockIndexer extends BlockIndexerEvents implements IBlockIndexer {
       await Thread.terminate(this.worker);
       this.worker = null;
     }
-
     await this.startWorker(blockchainType, dbPath);
   }
 
@@ -80,7 +87,7 @@ export class BlockIndexer extends BlockIndexerEvents implements IBlockIndexer {
     }
   }
 
-  onBlockIngested(listener: (block: Block) => void): this {
-    return super.onBlockIngested(listener);
+  onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void {
+    this.on(CoinIndexerEventNames.CoinStateUpdated, listener);
   }
 }

@@ -1,22 +1,19 @@
 import Database from 'better-sqlite3';
-import { Observable } from 'observable-fns';
 import { BlockChainType } from '../../types/BlockChain';
 import { ChiaBlockchainService } from '../../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { Block } from '../../types/Block';
 import { TestBlockchainService } from '../../../infrastructure/BlockchainServices/TestBlockchainService';
 import { CREATE_BLOCKS_TABLE_SQL } from '../../repositories/BlockRepository';
 import { IBlockchainService } from '../../interfaces/IBlockChainService';
-
+import { BlockIndexerEvents, BlockIndexerEventNames } from './BlockIndexerEvents';
 
 let db: Database.Database | null = null;
 let intervalId: NodeJS.Timeout | null = null;
 let started = false;
 
-let blockObservable: Observable<Block> | null = null;
-let blockObserver: ((block: Block) => void) | null = null;
+const eventEmitter = new BlockIndexerEvents();
 
 let blockHeight = 0;
-
 let blockchainService: IBlockchainService;
 
 async function syncToBlockchainHeight() {
@@ -35,9 +32,7 @@ async function syncToBlockchainHeight() {
           block.hash,
           block.blockHeight,
         );
-        if (blockObserver) {
-          blockObserver(block);
-        }
+        eventEmitter.emitBlockIngested(block);
       }
       blockHeight = h;
     }
@@ -74,18 +69,9 @@ export const api = {
     if (intervalId) clearInterval(intervalId);
     started = false;
   },
-  onBlockIngested() {
-    if (!blockObservable) {
-      blockObservable = new Observable<Block>((observer) => {
-        blockObserver = (block: Block) => {
-          observer.next(block);
-        };
-        return () => {
-          blockObserver = null;
-        };
-      });
-    }
-    return blockObservable;
+  onBlockIngested(listener: (block: Block) => void) {
+    eventEmitter.onBlockIngested(listener);
+    return () => eventEmitter.off(BlockIndexerEventNames.BlockIngested, listener);
   },
   // For testing: reset all state
   __reset() {
@@ -94,7 +80,5 @@ export const api = {
     db = null;
     intervalId = null;
     started = false;
-    blockObservable = null;
-    blockObserver = null;
   },
 };
