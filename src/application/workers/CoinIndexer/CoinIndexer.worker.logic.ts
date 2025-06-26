@@ -20,11 +20,7 @@ let blockchainService: IBlockchainService | null = null;
 let coinStateObservable: Observable<CoinStateUpdatedEvent> | null = null;
 let coinStateObserver: ((event: CoinStateUpdatedEvent) => void) | null = null;
 
-function mapUnspentCoinToDbFields(
-  coin: Coin,
-  walletId: string,
-  syncedHeight: number,
-): CoinRow {
+function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: number): CoinRow {
   return {
     coinId: blockchainService!.getCoinId(coin),
     parentCoinInfo: coin.parentCoinInfo,
@@ -43,29 +39,37 @@ async function sync() {
 
   for (const wallet of wallets) {
     // Find all coins for this wallet that are pending
-    const pendingCoins = coinRepo.getCoins(wallet.address).filter(c => c.status === CoinStatus.PENDING);
+    const pendingCoins = coinRepo
+      .getCoins(wallet.address)
+      .filter((c) => c.status === CoinStatus.PENDING);
     // Determine the smallest syncedHeight among pending coins, or use wallet.synced_to_height
     let fetchFromHeight = wallet.synced_to_height || 0;
+    let fetchFromHash = Buffer.from(wallet.synced_to_hash) || Buffer.alloc(32);
 
     if (pendingCoins.length > 0) {
-      const minPendingHeight = Math.min(...pendingCoins.map(c => c.syncedHeight));
-      fetchFromHeight = wallet.synced_to_height === undefined ? minPendingHeight : Math.min(fetchFromHeight, minPendingHeight);
+      // Find the pending coin with the minimum syncedHeight
+      const minPendingCoin = pendingCoins.reduce(
+        (min, c) => (c.syncedHeight < min.syncedHeight ? c : min),
+        pendingCoins[0],
+      );
+      fetchFromHeight =
+        wallet.synced_to_height === undefined
+          ? minPendingCoin.syncedHeight
+          : Math.min(fetchFromHeight, minPendingCoin.syncedHeight);
+      // Use the hash from the min height pending coin
+      fetchFromHash = minPendingCoin.puzzleHash || fetchFromHash;
     }
     // Fetch unspent coins from blockchain service
     const unspent = await blockchainService.listUnspentCoins(
       peer!,
       Buffer.from(wallet.address, 'hex'),
       fetchFromHeight,
-      Buffer.alloc(32),
+      fetchFromHash,
     );
     // Upsert all returned coins as unspent
     const seenCoinIds = new Set<string>();
     for (const coin of unspent.coins) {
-      const mapped = mapUnspentCoinToDbFields(
-        coin,
-        wallet.address,
-        fetchFromHeight,
-      );
+      const mapped = mapUnspentCoinToDbFields(coin, wallet.address, fetchFromHeight);
       coinRepo.upsertCoin(wallet.address, mapped);
       seenCoinIds.add(mapped.coinId.toString('hex'));
       if (coinStateObserver) {
