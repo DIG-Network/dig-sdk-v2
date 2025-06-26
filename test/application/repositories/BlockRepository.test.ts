@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
-import { BlockRepository } from '../../../../src/application/repositories/BlockRepository';
-import { IBlockRepository } from '../../../../src/application/repositories/IBlockRepository';
+import { BlockRepository } from '../../../src/application/repositories/BlockRepository';
 import fs from 'fs';
+import { IBlockRepository } from '../../../src/application/repositories/Interfaces/IBlockRepository';
 
 describe('BlockRepository', () => {
   let db: Database.Database;
@@ -58,7 +58,7 @@ describe('BlockRepository', () => {
     const dbPath = 'test_blockrepository_createdb.sqlite';
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
     const Database = require('better-sqlite3');
-    const { BlockRepository } = require('../../../../src/application/repositories/BlockRepository');
+    const { BlockRepository } = require('../../../src/application/repositories/BlockRepository');
     const db = new Database(dbPath);
     new BlockRepository(db);
     // Check file exists

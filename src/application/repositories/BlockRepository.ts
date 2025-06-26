@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { Block } from '../types/Block';
-import { IBlockRepository } from './IBlockRepository';
+import { IBlockRepository } from './Interfaces/IBlockRepository';
 
 export const CREATE_BLOCKS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`;
 
