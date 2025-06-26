@@ -46,7 +46,7 @@ describe('CoinRepository', () => {
     coinRepo.upsertCoin('xch1234', coin);
     coinRepo.updateCoinStatus('xch1234', coin.coinId, CoinStatus.SPENT, 11);
     const coins = coinRepo.getCoins('xch1234');
-    expect(coins[0].status).toBe('spent');
+    expect(coins[0].status).toBe(CoinStatus.SPENT);
     expect(coins[0].syncedHeight).toBe(11);
   });
 
@@ -71,7 +71,7 @@ describe('CoinRepository', () => {
     coinRepo.upsertCoin('xch1234', coin2);
     const pending = coinRepo.getPendingCoins();
     expect(pending.length).toBe(1);
-    expect(pending[0].status).toBe('pending');
+    expect(pending[0].status).toBe(CoinStatus.PENDING);
     expect(pending[0].coinId.equals(coin1.coinId)).toBe(true);
   });
 });
