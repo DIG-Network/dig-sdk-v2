@@ -1,8 +1,9 @@
+import { CoinStatus } from '../../types/CoinStatus';
 import { CoinRow } from '../CoinRepository';
 
 export interface ICoinRepository {
-  upsertCoin(wallet_id: string, coin: { coinId: Buffer, parent_coin_info: Buffer, puzzle_hash: Buffer, amount: bigint, synced_height: number, status: string }): void;
-  getCoins(wallet_id: string): CoinRow[];
+  upsertCoin(walletId: string, coin: { coinId: Buffer, parentCoinInfo: Buffer, puzzleHash: Buffer, amount: bigint, syncedHeight: number, status: CoinStatus }): void;
+  getCoins(walletId: string): CoinRow[];
   getPendingCoins(): CoinRow[];
-  updateCoinStatus(wallet_id: string, coinId: Buffer, status: string, synced_height: number): void;
+  updateCoinStatus(walletId: string, coinId: Buffer, status: CoinStatus, syncedHeight: number): void;
 }

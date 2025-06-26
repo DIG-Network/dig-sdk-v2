@@ -1,29 +1,30 @@
 import Database from 'better-sqlite3';
 import { ICoinRepository } from './Interfaces/ICoinRepository';
+import { CoinStatus } from '../types/CoinStatus';
 
 export interface CoinRow {
-  wallet_id: string;
+  walletId: string;
   coinId: Buffer;
-  parent_coin_info: Buffer;
-  puzzle_hash: Buffer;
+  parentCoinInfo: Buffer;
+  puzzleHash: Buffer;
   amount: bigint;
-  synced_height: number;
-  status: 'unspent' | 'pending' | 'spent';
+  syncedHeight: number;
+  status: CoinStatus;
 }
 
 let setupTable = (db: Database.Database) => {
     db.exec(`
         CREATE TABLE IF NOT EXISTS coin (
-        wallet_id TEXT,
+        walletId TEXT,
         coinId BLOB,
-        parent_coin_info BLOB,
-        puzzle_hash BLOB,
+        parentCoinInfo BLOB,
+        puzzleHash BLOB,
         amount TEXT,
-        synced_height INTEGER,
+        syncedHeight INTEGER,
         status TEXT CHECK(status IN ('unspent', 'pending', 'spent')),
-        PRIMARY KEY (wallet_id, coinId)
+        PRIMARY KEY (walletId, coinId)
         );
-        CREATE INDEX IF NOT EXISTS idx_coin_wallet_id ON coin(wallet_id);
+        CREATE INDEX IF NOT EXISTS idx_coin_walletId ON coin(walletId);
         CREATE INDEX IF NOT EXISTS idx_coin_status ON coin(status);
     `);
 }
@@ -36,31 +37,31 @@ export class CoinRepository implements ICoinRepository {
     setupTable(db);
   }
 
-  upsertCoin(wallet_id: string, coin: { coinId: Buffer, parent_coin_info: Buffer, puzzle_hash: Buffer, amount: bigint, synced_height: number, status: string }) {
+  upsertCoin(walletId: string, coin: { coinId: Buffer, parentCoinInfo: Buffer, puzzleHash: Buffer, amount: bigint, syncedHeight: number, status: string }) {
     this.db.prepare(
-      `INSERT OR REPLACE INTO coin (wallet_id, coinId, parent_coin_info, puzzle_hash, amount, synced_height, status) VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT OR REPLACE INTO coin (walletId, coinId, parentCoinInfo, puzzleHash, amount, syncedHeight, status) VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).run(
-      wallet_id,
+      walletId,
       coin.coinId,
-      coin.parent_coin_info,
-      coin.puzzle_hash,
+      coin.parentCoinInfo,
+      coin.puzzleHash,
       coin.amount.toString(),
-      coin.synced_height,
+      coin.syncedHeight,
       coin.status
     );
   }
 
-  getCoins(wallet_id: string): CoinRow[] {
-    return this.db.prepare('SELECT * FROM coin WHERE wallet_id = ?').all(wallet_id) as CoinRow[];
+  getCoins(walletId: string): CoinRow[] {
+    return this.db.prepare('SELECT * FROM coin WHERE walletId = ?').all(walletId) as CoinRow[];
   }
 
   getPendingCoins(): CoinRow[] {
-    return this.db.prepare('SELECT * FROM coin WHERE status = ?').all('pending') as CoinRow[];
+    return this.db.prepare('SELECT * FROM coin WHERE status = ?').all(CoinStatus.PENDING) as CoinRow[];
   }
 
-  updateCoinStatus(wallet_id: string, coinId: Buffer, status: string, synced_height: number) {
+  updateCoinStatus(walletId: string, coinId: Buffer, status: CoinStatus, syncedHeight: number) {
     this.db.prepare(
-      `UPDATE coin SET status = ?, synced_height = ? WHERE wallet_id = ? AND coinId = ?`
-    ).run(status, synced_height, wallet_id, coinId);
+      `UPDATE coin SET status = ?, syncedHeight = ? WHERE walletId = ? AND coinId = ?`
+    ).run(status, syncedHeight, walletId, coinId);
   }
 }

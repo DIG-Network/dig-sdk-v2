@@ -11,7 +11,7 @@ export class TestBlockchainService implements IBlockchainService {
   constructor() {
     this.db = new Database('testservice.sqlite');
     this.db.exec(`CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-    this.db.exec(`CREATE TABLE IF NOT EXISTS coin (coin_id BLOB, parentCoinInfo BLOB, puzzleHash BLOB, amount TEXT, status TEXT, wallet_id TEXT, height INTEGER)`);
+    this.db.exec(`CREATE TABLE IF NOT EXISTS coin (coin_id BLOB, parentCoinInfo BLOB, puzzleHash BLOB, amount TEXT, status TEXT, walletId TEXT, height INTEGER)`);
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS wallet (
         address TEXT PRIMARY KEY,
@@ -60,11 +60,10 @@ export class TestBlockchainService implements IBlockchainService {
     previousHeaderHash: Buffer
   ): Promise<UnspentCoinsResponse> {
     // Query the coins table for coins with puzzleHash and height >= previousHeight
-    console.log(`TestBlockchainService.listUnspentCoins: Searching for unspent coins with puzzleHash ${puzzleHash.toString('hex')} and height >= ${previousHeight}`);
     let rows: CoinRow[] = [];
     try{
       rows = this.db.prepare(
-        'SELECT coin_id, parentCoinInfo, puzzleHash, amount, status, wallet_id, height FROM coin'
+        'SELECT coin_id, parentCoinInfo, puzzleHash, amount, status, walletId, height FROM coin'
       ).all() as CoinRow[];
     }
     catch (error) {
@@ -72,17 +71,15 @@ export class TestBlockchainService implements IBlockchainService {
       throw new Error(`Failed to query unspent coins: ${error}`);
     }
     if (!rows) throw new Error(`no data found for puzzleHash ${puzzleHash.toString('hex')} and height >= ${previousHeight}`);
-    console.log(`TestBlockchainService.listUnspentCoins: Found ${rows.length} rows matching criteria`);
     const coins = rows.map((row) => ({
-      coin_id: row.coin_id,
+      coinId: row.coinId,
       parentCoinInfo: row.parentCoinInfo,
       puzzleHash: row.puzzleHash,
       amount: BigInt(row.amount),
       status: row.status,
-      wallet_id: row.wallet_id,
-      blockHeight: row.height,
+      walletId: row.walletId,
+      blockHeight: row.syncedHeight,
     }));
-    console.log(`TestBlockchainService.listUnspentCoins: Found ${coins.length} coins for puzzleHash ${puzzleHash.toString('hex')}`);
     // Optionally, you can return lastHeight and lastHeaderHash if needed
     return { coins, lastHeight: 0, lastHeaderHash: Buffer.alloc(32) };
   }

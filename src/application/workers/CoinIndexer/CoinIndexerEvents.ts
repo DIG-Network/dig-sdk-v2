@@ -1,12 +1,14 @@
+import { CoinStatus } from "../../types/CoinStatus";
+
 export enum CoinIndexerEventNames {
   CoinStateUpdated = 'coinStateUpdated',
 }
 
 export interface CoinStateUpdatedEvent {
-  wallet_id: string;
+  walletId: string;
   coinId: Buffer;
-  status: 'unspent' | 'pending' | 'spent';
-  synced_height: number;
+  status: CoinStatus;
+  syncedHeight: number;
 }
 
 export interface CoinIndexerEvents {
