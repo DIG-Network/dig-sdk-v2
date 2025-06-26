@@ -1,18 +1,8 @@
-import {
-  Coin,
-  getCoinId,
-  masterPublicKeyToFirstPuzzleHash,
-  masterPublicKeyToWalletSyntheticKey,
-  masterSecretKeyToWalletSyntheticSecretKey,
-  Peer,
-  puzzleHashToAddress,
-  secretKeyToPublicKey,
-  selectCoins,
-  signMessage,
-} from '@dignetwork/datalayer-driver';
 import { mnemonicToSeedSync } from 'bip39';
-import { PrivateKey } from 'chia-bls';
 import { FileCacheService } from '../services/FileCacheService';
+import type { IBlockchainService } from '../interfaces/IBlockChainService';
+import { Coin, Peer } from '@dignetwork/datalayer-driver';
+import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
 
 const COIN_CACHE_DURATION = 600000;
 
@@ -36,9 +26,11 @@ export interface IWallet {
 
 export class Wallet implements IWallet {
   private mnemonic: string;
+  private blockchain: IBlockchainService;
 
   public constructor(mnemonic: string) {
     this.mnemonic = mnemonic;
+    this.blockchain = new ChiaBlockchainService();
   }
 
   public getMnemonic(): string {
@@ -50,35 +42,35 @@ export class Wallet implements IWallet {
 
   public async getMasterSecretKey(): Promise<Buffer> {
     const seed = mnemonicToSeedSync(this.getMnemonic());
-    return Buffer.from(PrivateKey.fromSeed(seed).toHex(), 'hex');
+    return this.blockchain.masterSecretKeyFromSeed(seed);
   }
 
   public async getPublicSyntheticKey(): Promise<Buffer> {
     const master_sk = await this.getMasterSecretKey();
-    const master_pk = secretKeyToPublicKey(master_sk);
-    return masterPublicKeyToWalletSyntheticKey(master_pk);
+    const master_pk = this.blockchain.secretKeyToPublicKey(master_sk);
+    return this.blockchain.masterPublicKeyToWalletSyntheticKey(master_pk);
   }
 
   public async getPrivateSyntheticKey(): Promise<Buffer> {
     const master_sk = await this.getMasterSecretKey();
-    return masterSecretKeyToWalletSyntheticSecretKey(master_sk);
+    return this.blockchain.masterSecretKeyToWalletSyntheticSecretKey(master_sk);
   }
 
   public async getOwnerPuzzleHash(): Promise<Buffer> {
     const master_sk = await this.getMasterSecretKey();
-    const master_pk = secretKeyToPublicKey(master_sk);
-    return masterPublicKeyToFirstPuzzleHash(master_pk);
+    const master_pk = this.blockchain.secretKeyToPublicKey(master_sk);
+    return this.blockchain.masterPublicKeyToFirstPuzzleHash(master_pk);
   }
 
   public async getOwnerPublicKey(): Promise<string> {
     const ownerPuzzleHash = await this.getOwnerPuzzleHash();
-    return puzzleHashToAddress(ownerPuzzleHash, 'xch'); // might need to also add txch for testnet
+    return this.blockchain.puzzleHashToAddress(ownerPuzzleHash, 'xch');
   }
 
   public async createKeyOwnershipSignature(nonce: string): Promise<string> {
     const message = `Signing this message to prove ownership of key.\n\nNonce: ${nonce}`;
     const privateSyntheticKey = await this.getPrivateSyntheticKey();
-    const signature = signMessage(Buffer.from(message, 'utf-8'), privateSyntheticKey);
+    const signature = this.blockchain.signMessage(Buffer.from(message, 'utf-8'), privateSyntheticKey);
     return signature.toString('hex');
   }
 
@@ -97,7 +89,7 @@ export class Wallet implements IWallet {
     // Define a function to attempt selecting unspent coins
     const trySelectCoins = async (): Promise<Coin[]> => {
       const now = Date.now();
-      const omitCoinIds = omitCoins.map((coin) => getCoinId(coin).toString('hex'));
+      const omitCoinIds = omitCoins.map((coin) => this.blockchain.getCoinId(coin).toString('hex'));
 
       // Update omitCoinIds with currently valid reserved coins
       const cachedReservedCoins = cache.getCachedKeys();
@@ -120,10 +112,10 @@ export class Wallet implements IWallet {
       );
 
       const unspentCoins = coinsResp.coins.filter(
-        (coin) => !omitCoinIds.includes(getCoinId(coin).toString('hex')),
+        (coin) => !omitCoinIds.includes(this.blockchain.getCoinId(coin).toString('hex')),
       );
 
-      const selectedCoins = selectCoins(unspentCoins, feeBigInt + coinAmount);
+      const selectedCoins = this.blockchain.selectCoins(unspentCoins, feeBigInt + coinAmount);
 
       return selectedCoins;
     };
@@ -157,7 +149,7 @@ export class Wallet implements IWallet {
 
     // Reserve the selected coins
     selectedCoins.forEach((coin) => {
-      const coinId = getCoinId(coin).toString('hex');
+      const coinId = this.blockchain.getCoinId(coin).toString('hex');
       cache.set(coinId, { coinId, expiry: Date.now() + COIN_CACHE_DURATION });
     });
 

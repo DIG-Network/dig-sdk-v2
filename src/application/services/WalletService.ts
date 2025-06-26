@@ -3,12 +3,16 @@ import * as bip39 from 'bip39';
 import { NconfService } from '../../infrastructure/ConfigurationServices/NconfService';
 import { EncryptionService } from './EncryptionService';
 import { EncryptedData } from '../types/EncryptedData';
-import { Peer, verifySignedMessage } from '@dignetwork/datalayer-driver';
 import { Wallet } from '../types/Wallet';
+import type { IBlockchainService } from '../interfaces/IBlockChainService';
+import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
+import { Peer } from '@dignetwork/datalayer-driver';
 
 const KEYRING_FILE = 'keyring.json';
 
 export class WalletService {
+  private static blockchain: IBlockchainService = new ChiaBlockchainService();
+
   public static async loadWallet(walletName: string = 'default'): Promise<Wallet> {
     const mnemonic = await this.getMnemonicFromKeyring(walletName);
     if (mnemonic) return new Wallet(mnemonic);
@@ -46,7 +50,7 @@ export class WalletService {
     publicKey: string,
   ): Promise<boolean> {
     const message = `Signing this message to prove ownership of key.\n\nNonce: ${nonce}`;
-    return verifySignedMessage(
+    return this.blockchain.verifyKeySignature(
       Buffer.from(signature, 'hex'),
       Buffer.from(publicKey, 'hex'),
       Buffer.from(message, 'utf-8'),
@@ -59,7 +63,7 @@ export class WalletService {
 
   public static async isCoinSpendable(peer: Peer, coinId: Buffer, lastHeight: number, lastHeaderHash: string): Promise<boolean> {
     try {
-      return await peer.isCoinSpent(coinId, lastHeight, Buffer.from(lastHeaderHash, 'hex'));
+      return await this.blockchain.isCoinSpendable(peer, coinId, lastHeight, Buffer.from(lastHeaderHash, 'hex'));
     } catch {
       return false;
     }

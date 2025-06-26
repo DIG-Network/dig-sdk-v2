@@ -1,9 +1,23 @@
 import { WalletService } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
+import { TestBlockchainService } from '../../../src/infrastructure/BlockchainServices/TestBlockchainService';
 
 const WALLET_NAMES = ['wallet1', 'wallet2', 'wallet3'];
+const blockchain = new TestBlockchainService();
+
+// Helper to clean up all wallets before each test
+async function cleanupWallets() {
+  const wallets = await WalletService.listWallets();
+  for (const name of wallets) {
+    await WalletService.deleteWallet(name);
+  }
+}
 
 describe('WalletService Integration', () => {
+  beforeEach(async () => {
+    await cleanupWallets();
+  });
+
   it('should create, load, and delete a wallet, and verify Wallet functionality', async () => {
     // Create a new wallet
     const wallet = await WalletService.createNewWallet(WALLET_NAMES[0]);
@@ -82,28 +96,34 @@ describe('WalletService Integration', () => {
   describe('isCoinSpendable', () => {
     const coinId = Buffer.from('aabbcc', 'hex');
     let peer: any;
+    let blockchainSpy: jest.SpyInstance;
 
     beforeEach(() => {
       peer = {
         isCoinSpent: jest.fn(),
       };
+      blockchainSpy = jest.spyOn(WalletService['blockchain'], 'isCoinSpendable');
     });
 
-    it('should return true if peer.isCoinSpent resolves true', async () => {
-      peer.isCoinSpent.mockResolvedValue(true);
+    afterEach(() => {
+      blockchainSpy.mockRestore();
+    });
+
+    it('should return true if blockchain.isCoinSpendable resolves true', async () => {
+      blockchainSpy.mockResolvedValue(true);
       const result = await WalletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
       expect(result).toBe(true);
-      expect(peer.isCoinSpent).toHaveBeenCalledWith(coinId, expect.any(Number), expect.any(Buffer));
+      expect(blockchainSpy).toHaveBeenCalledWith(peer, coinId, 0, expect.any(Buffer));
     });
 
-    it('should return false if peer.isCoinSpent resolves false', async () => {
-      peer.isCoinSpent.mockResolvedValue(false);
+    it('should return false if blockchain.isCoinSpendable resolves false', async () => {
+      blockchainSpy.mockResolvedValue(false);
       const result = await WalletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
       expect(result).toBe(false);
     });
 
-    it('should return false if peer.isCoinSpent throws', async () => {
-      peer.isCoinSpent.mockRejectedValue(new Error('fail'));
+    it('should return false if blockchain.isCoinSpendable throws', async () => {
+      blockchainSpy.mockRejectedValue(new Error('fail'));
       const result = await WalletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
       expect(result).toBe(false);
     });

@@ -1,4 +1,5 @@
-import { Peer, UnspentCoinsResponse, addressToPuzzleHash, verifySignedMessage, masterPublicKeyToWalletSyntheticKey, masterPublicKeyToFirstPuzzleHash } from '@dignetwork/datalayer-driver';
+import type { Peer, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
+import type { IBlockchainService } from '../interfaces/IBlockChainService';
 
 export interface IColdWallet {
   getPuzzleHash(address: string): Buffer;
@@ -6,13 +7,13 @@ export interface IColdWallet {
   listUnspentCoins(
     peer: Peer,
     puzzleHash: Buffer,
-    previousHeight: number | undefined | null,
+    previousHeight: number,
     previousHeaderHash: Buffer
   ): Promise<UnspentCoinsResponse>;
   isCoinSpendable(
     peer: Peer,
     coinId: Buffer,
-    lastHeight: number | undefined | null,
+    lastHeight: number,
     headerHash: Buffer
   ): Promise<boolean>;
   masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer;
@@ -20,12 +21,17 @@ export interface IColdWallet {
 }
 
 export class ColdWallet implements IColdWallet {
+  private blockchain: IBlockchainService;
+  constructor(blockchain: IBlockchainService) {
+    this.blockchain = blockchain;
+  }
+
   getPuzzleHash(address: string): Buffer {
-    return addressToPuzzleHash(address);
+    return this.blockchain.getPuzzleHash(address);
   }
 
   verifyKeySignature(signature: Buffer, publicKey: Buffer, message: Buffer): boolean {
-    return verifySignedMessage(signature, publicKey, message);
+    return this.blockchain.verifyKeySignature(signature, publicKey, message);
   }
 
   async listUnspentCoins(
@@ -34,7 +40,7 @@ export class ColdWallet implements IColdWallet {
     previousHeight: number,
     previousHeaderHash: Buffer
   ) {
-    return await peer.getAllUnspentCoins(puzzleHash, previousHeight, previousHeaderHash);
+    return await this.blockchain.listUnspentCoins(peer, puzzleHash, previousHeight, previousHeaderHash);
   }
 
   async isCoinSpendable(
@@ -43,14 +49,14 @@ export class ColdWallet implements IColdWallet {
     lastHeight: number,
     headerHash: Buffer
   ): Promise<boolean> {
-    return !(await peer.isCoinSpent(coinId, lastHeight, headerHash));
+    return await this.blockchain.isCoinSpendable(peer, coinId, lastHeight, headerHash);
   }
 
   masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer {
-    return masterPublicKeyToWalletSyntheticKey(publicKey);
+    return this.blockchain.masterPublicKeyToWalletSyntheticKey(publicKey);
   }
 
   masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer {
-    return masterPublicKeyToFirstPuzzleHash(publicKey);
+    return this.blockchain.masterPublicKeyToFirstPuzzleHash(publicKey);
   }
 }
