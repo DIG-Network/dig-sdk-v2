@@ -12,8 +12,9 @@ import {
   addressToPuzzleHash,
   verifySignedMessage,
 } from '@dignetwork/datalayer-driver';
-import type { Coin, Peer, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
+import { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { PrivateKey } from 'chia-bls';
+import { Level1ChiaPeer } from "../Peers/Level1ChiaPeer";
 
 export class ChiaBlockchainService implements IBlockchainService {
   async getCurrentBlockchainHeight(): Promise<number> {
@@ -83,5 +84,11 @@ export class ChiaBlockchainService implements IBlockchainService {
     headerHash: Buffer
   ): Promise<boolean> {
     return !(await peer.isCoinSpent(coinId, lastHeight, headerHash));
+  }
+
+  async connectRandom(peerType: PeerType, tls: Tls): Promise<Level1ChiaPeer> {
+    const peer = await Peer.connectRandom(peerType, tls);
+    if (!peer) throw new Error('Failed to connect to peer');
+    return new Level1ChiaPeer(peer);
   }
 }

@@ -2,8 +2,9 @@
 import { IBlockchainService } from "../../application/interfaces/IBlockChainService";
 import { Block } from "../../application/types/Block";
 import Database from 'better-sqlite3';
-import type { Coin, Peer, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
+import type { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { CoinRow } from "../../application/repositories/CoinRepository";
+import { Level1ChiaPeer } from "../Peers/Level1ChiaPeer";
 
 export class TestBlockchainService implements IBlockchainService {
   private db: Database.Database;
@@ -90,5 +91,9 @@ export class TestBlockchainService implements IBlockchainService {
     headerHash: Buffer
   ): Promise<boolean> {
     return true; // Dummy
+  }
+
+  async connectRandom(peerType: PeerType, tls: Tls): Promise<Level1ChiaPeer>{
+    throw new Error("Method not implemented.");
   }
 }
