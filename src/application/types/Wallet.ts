@@ -79,8 +79,8 @@ export class Wallet implements IWallet {
     coinAmount: bigint,
     feeBigInt: bigint,
     omitCoins: Coin[] = [],
-    lastHeight: number,
-    lastHeaderHash: string,
+    // lastHeight: number | undefined = undefined,
+    // lastHeaderHash: string | undefined = undefined,
   ): Promise<Coin[]> {
     const cache = new FileCacheService<{ coinId: string; expiry: number }>('reserved_coins');
 
@@ -105,11 +105,17 @@ export class Wallet implements IWallet {
         }
       });
 
+      const MIN_HEIGHT = 5777842;
+      const MIN_HEIGHT_HEADER_HASH =
+        "b29a4daac2434fd17a36e15ba1aac5d65012d4a66f99bed0bf2b5342e92e562c";
+
+      console.log(`Selecting unspent coins for ownerPuzzleHash: ${ownerPuzzleHash.toString('hex')}`);
       const coinsResp = await peer.getAllUnspentCoins(
         ownerPuzzleHash,
-        lastHeight,
-        Buffer.from(lastHeaderHash, 'hex'),
+        MIN_HEIGHT,
+        Buffer.from(MIN_HEIGHT_HEADER_HASH, "hex")
       );
+      console.log(`Fetched ${coinsResp.coins.length} unspent coins for ownerPuzzleHash: ${ownerPuzzleHash.toString('hex')}`);
 
       const unspentCoins = coinsResp.coins.filter(
         (coin) => !omitCoinIds.includes(this.blockchain.getCoinId(coin).toString('hex')),

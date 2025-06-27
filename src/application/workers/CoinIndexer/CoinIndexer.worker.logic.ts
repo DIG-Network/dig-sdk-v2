@@ -4,7 +4,7 @@ import { CoinStateUpdatedEvent } from './CoinIndexerEvents';
 import { CoinRepository, CoinRow } from '../../repositories/CoinRepository';
 import { WalletRepository, WalletRow } from '../../repositories/WalletRepository';
 import { IBlockchainService } from '../../interfaces/IBlockChainService';
-import { Peer, type Coin } from '@dignetwork/datalayer-driver';
+import { Peer, PeerType, Tls, type Coin } from '@dignetwork/datalayer-driver';
 import { BlockChainType } from '../../types/BlockChain';
 import { TestBlockchainService } from '../../../infrastructure/BlockchainServices/TestBlockchainService';
 import { ChiaBlockchainService } from '../../../infrastructure/BlockchainServices/ChiaBlockchainService';
@@ -19,6 +19,7 @@ let blockchainService: IBlockchainService | null = null;
 
 let coinStateObservable: Observable<CoinStateUpdatedEvent> | null = null;
 let coinStateObserver: ((event: CoinStateUpdatedEvent) => void) | null = null;
+let peer: Peer | null = null;
 
 function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: number): CoinRow {
   return {
@@ -35,9 +36,12 @@ function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: nu
 async function sync() {
   if (!coinRepo || !walletRepo || !blockchainService) return;
   const wallets: WalletRow[] = walletRepo.getWallets();
-  let peer: Peer | null = null; // TODO: get from PeerCluster if needed
+  console.log(`Syncing ${wallets.length} wallets...`);
+
+  console.log(`Connected to peer with peak: ${await peer!.getPeak()}`);
 
   for (const wallet of wallets) {
+    console.log(`Syncing wallet: ${wallet.address}`);
     // Find all coins for this wallet that are pending
     const pendingCoins = coinRepo
       .getCoins(wallet.address)
@@ -59,6 +63,9 @@ async function sync() {
       // Use the hash from the min height pending coin
       fetchFromHash = minPendingCoin.puzzleHash || fetchFromHash;
     }
+    console.log(
+      `Fetching unspent coins for wallet ${wallet.address} from height ${fetchFromHeight} and hash ${fetchFromHash.toString('hex')}`,
+    );
     // Fetch unspent coins from blockchain service
     const unspent = await blockchainService.listUnspentCoins(
       peer!,
@@ -66,6 +73,7 @@ async function sync() {
       fetchFromHeight,
       fetchFromHash,
     );
+    console.log(`Fetched ${unspent.coins.length} unspent coins for wallet ${wallet.address}`);
     // Upsert all returned coins as unspent
     const seenCoinIds = new Set<string>();
     for (const coin of unspent.coins) {
@@ -104,6 +112,10 @@ export const api = {
     db = new Database(dbPath);
     coinRepo = new CoinRepository(db);
     walletRepo = new WalletRepository(db);
+    
+
+    const tls = new Tls('ca.crt', 'ca.key');
+    peer = await Peer.connectRandom(PeerType.Testnet11, tls);
 
     switch (_blockchainType) {
       case BlockChainType.Test:
@@ -118,7 +130,7 @@ export const api = {
     await sync();
 
     started = true;
-    intervalId = setInterval(sync, 1000);
+    intervalId = setInterval(sync, 5000);
   },
   stop() {
     started = false;

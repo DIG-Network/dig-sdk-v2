@@ -45,7 +45,7 @@ export class CoinIndexer
     if (!this.worker) {
       // Use src worker for tests/dev, dist worker for production
       let workerPath: string;
-      if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
+      if (true) {
         workerPath = '../../../../dist/application/workers/CoinIndexer/CoinIndexer.worker.js';
       } else {
         workerPath = './CoinIndexer.worker.ts';

@@ -7,41 +7,50 @@ import { Wallet } from '../types/Wallet';
 import type { IBlockchainService } from '../interfaces/IBlockChainService';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { Peer } from '@dignetwork/datalayer-driver';
+import Database from 'better-sqlite3';
+import { WalletRepository } from '../repositories/WalletRepository';
 
 const KEYRING_FILE = 'keyring.json';
+const WALLET_DB_PATH = 'wallet.sqlite'; // Default DB path, can be parameterized
 
 export class WalletService {
   private static blockchain: IBlockchainService = new ChiaBlockchainService();
 
+  private static getWalletRepo(dbPath: string = WALLET_DB_PATH): WalletRepository {
+    const db = new Database(dbPath);
+    return new WalletRepository(db);
+  }
+
   public static async loadWallet(walletName: string = 'default'): Promise<Wallet> {
     const mnemonic = await this.getMnemonicFromKeyring(walletName);
     if (mnemonic) return new Wallet(mnemonic);
-
     throw new Error('Wallet Not Found');
   }
 
-  public static async createNewWallet(walletName: string): Promise<Wallet> {
-    const mnemonic = bip39.generateMnemonic(256);
+  public static async createNewWallet(walletName: string, dbPath: string = WALLET_DB_PATH, mnemonic: string = bip39.generateMnemonic(256)): Promise<Wallet> {
     await this.saveWalletToKeyring(walletName, mnemonic);
+    // Insert wallet into DB
+    const walletRepo = this.getWalletRepo(dbPath);
+    walletRepo.addWallet(walletName);
     return await this.loadWallet(walletName);
   }
 
-  public static async deleteWallet(walletName: string): Promise<boolean> {
+  public static async deleteWallet(walletName: string, dbPath: string = WALLET_DB_PATH): Promise<boolean> {
     const nconfService = new NconfService(KEYRING_FILE);
+    let deleted = false;
     if (await nconfService.configExists()) {
-      return await nconfService.deleteConfigValue(walletName);
+      deleted = await nconfService.deleteConfigValue(walletName);
     }
-    return false;
+    // Delete wallet from DB
+    const walletRepo = this.getWalletRepo(dbPath);
+    walletRepo['db'].prepare('DELETE FROM wallet WHERE address = ?').run(walletName);
+    return deleted;
   }
 
-  public static async listWallets(): Promise<string[]> {
-    const nconfService = new NconfService(KEYRING_FILE);
-    if (!(await nconfService.configExists())) {
-      return [];
-    }
-
-    const configData = await nconfService.getFullConfig();
-    return Object.keys(configData);
+  public static async listWallets(dbPath: string = WALLET_DB_PATH): Promise<string[]> {
+    const walletRepo = this.getWalletRepo(dbPath);
+    const dbWallets = walletRepo.getWallets().map(w => w.address);
+    return dbWallets;
   }
 
   public static async verifyKeyOwnershipSignature(
