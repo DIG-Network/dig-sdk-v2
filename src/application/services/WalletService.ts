@@ -6,7 +6,7 @@ import { EncryptedData } from '../types/EncryptedData';
 import { Wallet } from '../types/Wallet';
 import type { IBlockchainService } from '../interfaces/IBlockChainService';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
-import { Peer } from '@dignetwork/datalayer-driver';
+import { ILevel1Peer } from '../interfaces/ILevel1Peer';
 
 const KEYRING_FILE = 'keyring.json';
 
@@ -61,7 +61,7 @@ export class WalletService {
     return BigInt(1000000);
   }
 
-  public static async isCoinSpendable(peer: Peer, coinId: Buffer, lastHeight: number, lastHeaderHash: string): Promise<boolean> {
+  public static async isCoinSpendable(peer: ILevel1Peer, coinId: Buffer, lastHeight: number, lastHeaderHash: string): Promise<boolean> {
     try {
       return await this.blockchain.isCoinSpendable(peer, coinId, lastHeight, Buffer.from(lastHeaderHash, 'hex'));
     } catch {

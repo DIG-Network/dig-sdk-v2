@@ -4,11 +4,12 @@ import { CoinStateUpdatedEvent } from './CoinIndexerEvents';
 import { CoinRepository, CoinRow } from '../../repositories/CoinRepository';
 import { WalletRepository, WalletRow } from '../../repositories/WalletRepository';
 import { IBlockchainService } from '../../interfaces/IBlockChainService';
-import { Peer, type Coin } from '@dignetwork/datalayer-driver';
+import { type Coin } from '@dignetwork/datalayer-driver';
 import { BlockChainType } from '../../types/BlockChain';
 import { TestBlockchainService } from '../../../infrastructure/BlockchainServices/TestBlockchainService';
 import { ChiaBlockchainService } from '../../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { CoinStatus } from '../../types/CoinStatus';
+import { ILevel1Peer } from '../../interfaces/ILevel1Peer';
 
 let db: Database.Database | null = null;
 let coinRepo: CoinRepository | null = null;
@@ -35,7 +36,7 @@ function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: nu
 async function sync() {
   if (!coinRepo || !walletRepo || !blockchainService) return;
   const wallets: WalletRow[] = walletRepo.getWallets();
-  let peer: Peer | null = null; // TODO: get from PeerCluster if needed
+  let peer: ILevel1Peer | null = null; // TODO: get from PeerCluster if needed
 
   for (const wallet of wallets) {
     // Find all coins for this wallet that are pending

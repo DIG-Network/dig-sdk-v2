@@ -1,8 +1,9 @@
 import { mnemonicToSeedSync } from 'bip39';
 import { FileCacheService } from '../services/FileCacheService';
 import type { IBlockchainService } from '../interfaces/IBlockChainService';
-import { Coin, Peer } from '@dignetwork/datalayer-driver';
+import { Coin } from '@dignetwork/datalayer-driver';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
+import { ILevel1Peer } from '../interfaces/ILevel1Peer';
 
 const COIN_CACHE_DURATION = 600000;
 
@@ -15,7 +16,7 @@ export interface IWallet {
   getOwnerPublicKey(): Promise<string>;
   createKeyOwnershipSignature(nonce: string): Promise<string>;
   selectUnspentCoins(
-    peer: Peer,
+    peer: ILevel1Peer,
     coinAmount: bigint,
     feeBigInt: bigint,
     omitCoins?: Coin[],
@@ -75,7 +76,7 @@ export class Wallet implements IWallet {
   }
 
   public async selectUnspentCoins(
-    peer: Peer,
+    peer: ILevel1Peer,
     coinAmount: bigint,
     feeBigInt: bigint,
     omitCoins: Coin[] = [],
