@@ -1,20 +1,12 @@
 import { Peer, PeerType, Tls } from '@dignetwork/datalayer-driver';
 
 export class Layer1PeerService {
-  private static instance: Layer1PeerService;
-  private peers: Peer[] = [];
-  private connected: boolean = false;
+  private static peers: Peer[] = [];
+  private static connected: boolean = false;
 
   private constructor() {}
 
-  public static getInstance(): Layer1PeerService {
-    if (!Layer1PeerService.instance) {
-      Layer1PeerService.instance = new Layer1PeerService();
-    }
-    return Layer1PeerService.instance;
-  }
-
-  public async connect(minPeers: number = 5, retries: number = 5, peerType: PeerType = PeerType.Testnet11, tls: Tls): Promise<void> {
+  public static async connect(minPeers: number = 5, retries: number = 5, peerType: PeerType = PeerType.Testnet11, tls: Tls): Promise<void> {
     if (this.connected) return;
     let attempts = 0;
     this.peers = [];
@@ -32,7 +24,7 @@ export class Layer1PeerService {
     if (!this.connected) throw new Error('Failed to connect to any peers');
   }
 
-  public async withPeer<T>(fn: (peer: Peer) => Promise<T>, retries: number = 5): Promise<T> {
+  public static async withPeer<T>(fn: (peer: Peer) => Promise<T>, retries: number = 5): Promise<T> {
     if (!this.connected || this.peers.length === 0) throw new Error('No peers connected');
     // Get heights for all peers
     const peerHeights = await Promise.all(this.peers.map(async (peer) => {
@@ -66,7 +58,7 @@ export class Layer1PeerService {
     throw lastError || new Error('All peers failed');
   }
 
-  public getPeers(): Peer[] {
+  public static getPeers(): Peer[] {
     return this.peers;
   }
 }
