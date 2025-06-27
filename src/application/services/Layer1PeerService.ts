@@ -3,21 +3,32 @@ import { Peer, PeerType, Tls } from '@dignetwork/datalayer-driver';
 export class Layer1PeerService {
   private static peers: Peer[] = [];
   private static connected: boolean = false;
+  private static peerType: PeerType = PeerType.Testnet11;
+  private static tls: Tls | undefined;
 
   private constructor() {}
 
+  private static async addPeer(): Promise<Peer | null> {
+    try {
+      const peer = await Peer.connectRandom(this.peerType, this.tls!);
+      if (peer) {
+        this.peers.push(peer);
+        return peer;
+      }
+    } catch {
+      // Ignore errors
+    }
+    return null;
+  }
+
   public static async connect(minPeers: number = 5, retries: number = 5, peerType: PeerType = PeerType.Testnet11, tls: Tls): Promise<void> {
     if (this.connected) return;
+    this.peerType = peerType;
+    this.tls = tls;
     let attempts = 0;
     this.peers = [];
     while (this.peers.length < minPeers && attempts < retries) {
-      try {
-        const peer = await Peer.connectRandom(peerType, tls);
-        if (peer) {
-          this.peers.push(peer);
-        }
-      } catch {
-      }
+      await this.addPeer();
       attempts++;
     }
     this.connected = this.peers.length > 0;
@@ -51,6 +62,11 @@ export class Layer1PeerService {
       try {
         return await fn(peer);
       } catch (e) {
+        // Remove the failed peer from the main list
+        const idx = this.peers.indexOf(peer);
+        if (idx !== -1) this.peers.splice(idx, 1);
+        // Try to add a new peer using the helper
+        await this.addPeer();
         lastError = e;
         attempts++;
       }

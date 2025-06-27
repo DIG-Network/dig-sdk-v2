@@ -79,4 +79,20 @@ describe('Layer1PeerService', () => {
     const fn = jest.fn();
     await expect(Layer1PeerService.withPeer(fn)).rejects.toThrow('No peers connected');
   });
+
+  it('removes failed peer and adds a new one on fn failure', async () => {
+    (Layer1PeerService as any).peers = [mockPeers[1], mockPeers[2]];
+    (Layer1PeerService as any).connected = true;
+    // Simulate fn failing for the first peer, succeeding for the new peer
+    const fn = jest.fn()
+      .mockRejectedValueOnce(new Error('fail1'))
+      .mockResolvedValueOnce('ok');
+    // Mock Peer.connectRandom to return a new peer
+    (Peer.connectRandom as jest.Mock).mockResolvedValueOnce({ getPeak: jest.fn().mockResolvedValue(30) });
+    const result = await Layer1PeerService.withPeer(fn, 2);
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(result).toBe('ok');
+    // The failed peer should be removed
+    expect((Layer1PeerService as any).peers.length).toBe(2);
+  });
 });
