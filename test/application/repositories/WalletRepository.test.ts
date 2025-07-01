@@ -17,7 +17,7 @@ describe('WalletRepository', () => {
   });
 
   it('should add and retrieve wallets', () => {
-    walletRepo.addWallet('xch1234');
+    walletRepo.addWallet('xch1234', 'name');
     const wallets = walletRepo.getWallets();
     expect(wallets.length).toBe(1);
     expect(wallets[0].address).toBe('xch1234');
@@ -25,7 +25,7 @@ describe('WalletRepository', () => {
   });
 
   it('should add a wallet with a custom namespace', () => {
-    walletRepo.addWallet('xch5678', 'customns');
+    walletRepo.addWallet('xch5678', 'name', 'customns');
     const wallets = walletRepo.getWallets();
     expect(wallets.length).toBe(1);
     expect(wallets[0].address).toBe('xch5678');
@@ -33,7 +33,7 @@ describe('WalletRepository', () => {
   });
 
   it('should update wallet sync state', () => {
-    walletRepo.addWallet('xch1234');
+    walletRepo.addWallet('xch1234', 'name');
     walletRepo.updateWalletSync('xch1234', 42, 'abc');
     const wallets = walletRepo.getWallets();
     expect(wallets[0].synced_to_height).toBe(42);
@@ -41,9 +41,7 @@ describe('WalletRepository', () => {
   });
 
   it('should not add duplicate wallets', () => {
-    walletRepo.addWallet('xch1234');
-    walletRepo.addWallet('xch1234');
-    const wallets = walletRepo.getWallets();
-    expect(wallets.length).toBe(1);
+    walletRepo.addWallet('xch1234', 'name');
+    expect(() => walletRepo.addWallet('xch1234', 'name')).toThrow('Wallet with this name already exists');
   });
 });
