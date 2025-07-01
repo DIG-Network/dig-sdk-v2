@@ -52,8 +52,15 @@ export class Layer1PeerService {
     }));
     // Find max height
     const maxHeight = Math.max(...peerHeights);
-    // Get peers with max height
-    let candidates = this.peers.filter((_, i) => peerHeights[i] === maxHeight);
+    // Get peers with max height only for mainnet, otherwise use all peers
+    let candidates: ILevel1Peer[];
+    if (this.peerType === PeerType.Mainnet) {
+      candidates = this.peers.filter((_, i) => peerHeights[i] === maxHeight);
+    } else {
+      // on testnet the highest height peers are sometimes not very reliable from my testing
+      // so we will just use all peers and shuffle them
+      candidates = [...this.peers];
+    }
     // Shuffle candidates
     for (let i = candidates.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

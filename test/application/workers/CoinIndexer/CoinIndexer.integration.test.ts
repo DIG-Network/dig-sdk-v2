@@ -3,6 +3,7 @@ import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import { CoinStatus } from '../../../../src/application/types/CoinStatus';
+import { PeerType } from '@dignetwork/datalayer-driver';
 
 // Use the same DB as TestBlockchainService
 const serviceDbPath = 'testservice.sqlite';
@@ -73,7 +74,7 @@ describe('CoinIndexer integration', () => {
 
   it('should ingest unspent coins and mark spent coins correctly', async () => {
     // Start CoinIndexer
-    await coinIndexer.start(BlockChainType.Test, coinDbPath);
+    await coinIndexer.start(BlockChainType.Test, coinDbPath, 24, 'ca.crt', 'ca.key', PeerType.Simulator);
 
     // Simulate blockchain coins
     const walletId = 'aabbcc';

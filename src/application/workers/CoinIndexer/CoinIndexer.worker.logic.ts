@@ -4,12 +4,13 @@ import { CoinStateUpdatedEvent } from './CoinIndexerEvents';
 import { CoinRepository, CoinRow } from '../../repositories/CoinRepository';
 import { WalletRepository, WalletRow } from '../../repositories/WalletRepository';
 import { IBlockchainService } from '../../interfaces/IBlockChainService';
-import { type Coin } from '@dignetwork/datalayer-driver';
+import { PeerType, Tls, type Coin } from '@dignetwork/datalayer-driver';
 import { BlockChainType } from '../../types/BlockChain';
 import { TestBlockchainService } from '../../../infrastructure/BlockchainServices/TestBlockchainService';
 import { ChiaBlockchainService } from '../../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { CoinStatus } from '../../types/CoinStatus';
 import { ILevel1Peer } from '../../interfaces/ILevel1Peer';
+import { Layer1PeerService } from '../../services/Layer1PeerService';
 
 let db: Database.Database | null = null;
 let coinRepo: CoinRepository | null = null;
@@ -21,6 +22,8 @@ let blockchainService: IBlockchainService | null = null;
 let coinStateObservable: Observable<CoinStateUpdatedEvent> | null = null;
 let coinStateObserver: ((event: CoinStateUpdatedEvent) => void) | null = null;
 
+const minSynchedHeight = 0; // Minimum height to consider for syncing, genesis block for now
+
 function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: number): CoinRow {
   return {
     coinId: blockchainService!.getCoinId(coin),
@@ -28,7 +31,7 @@ function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: nu
     puzzleHash: coin.puzzleHash,
     amount: coin.amount,
     syncedHeight,
-    status: CoinStatus.PENDING,
+    status: CoinStatus.UNSPENT,
     walletId,
   };
 }
@@ -36,71 +39,72 @@ function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: nu
 async function sync() {
   if (!coinRepo || !walletRepo || !blockchainService) return;
   const wallets: WalletRow[] = walletRepo.getWallets();
-  let peer: ILevel1Peer | null = null; // TODO: get from PeerCluster if needed
 
   for (const wallet of wallets) {
-    // Find all coins for this wallet that are pending
-    const pendingCoins = coinRepo
+    // Find all coins for this wallet that are unspent or pending
+    const dbCoins = coinRepo
       .getCoins(wallet.address)
-      .filter((c) => c.status === CoinStatus.PENDING);
-    // Determine the smallest syncedHeight among pending coins, or use wallet.synced_to_height
-    let fetchFromHeight = wallet.synced_to_height || 0;
-    let fetchFromHash = Buffer.from(wallet.synced_to_hash) || Buffer.alloc(32);
+      .filter((c) => c.status === CoinStatus.UNSPENT || c.status === CoinStatus.PENDING);
 
-    if (pendingCoins.length > 0) {
-      // Find the pending coin with the minimum syncedHeight
-      const minPendingCoin = pendingCoins.reduce(
-        (min, c) => (c.syncedHeight < min.syncedHeight ? c : min),
-        pendingCoins[0],
-      );
-      fetchFromHeight =
-        wallet.synced_to_height === undefined
-          ? minPendingCoin.syncedHeight
-          : Math.min(fetchFromHeight, minPendingCoin.syncedHeight);
-      // Use the hash from the min height pending coin
-      fetchFromHash = minPendingCoin.puzzleHash || fetchFromHash;
-    }
+    let fetchFromHeight = wallet.synced_to_height || minSynchedHeight;
+    let fetchFromHash = Buffer.from(wallet.synced_to_hash);
+
     // Fetch unspent coins from blockchain service
-    const unspent = await blockchainService.listUnspentCoins(
-      peer!,
-      Buffer.from(wallet.address, 'hex'),
-      fetchFromHeight,
-      fetchFromHash,
-    );
-    // Upsert all returned coins as unspent
-    const seenCoinIds = new Set<string>();
-    for (const coin of unspent.coins) {
-      const mapped = mapUnspentCoinToDbFields(coin, wallet.address, fetchFromHeight);
-      coinRepo.upsertCoin(wallet.address, mapped);
-      seenCoinIds.add(mapped.coinId.toString('hex'));
-      if (coinStateObserver) {
-        coinStateObserver({
-          walletId: wallet.address,
-          coinId: mapped.coinId,
-          status: CoinStatus.UNSPENT,
-          syncedHeight: fetchFromHeight,
-        });
-      }
-    }
-    // Mark as spent any pending coins not present in the response
-    for (const coin of pendingCoins) {
-      if (!seenCoinIds.has(coin.coinId.toString('hex'))) {
-        coinRepo.updateCoinStatus(coin.walletId, coin.coinId, CoinStatus.SPENT, coin.syncedHeight);
+    const unspent = await Layer1PeerService.withPeer(async (peer: ILevel1Peer) => {
+      return await blockchainService!.listUnspentCoins(
+        peer!,
+        blockchainService!.getPuzzleHash(wallet.address),
+        fetchFromHeight,
+        fetchFromHash,
+      );
+    });
+
+    // Build a set of unspent coin IDs from the blockchain
+    const unspentCoinIds = new Set(unspent.coins.map(coin => blockchainService!.getCoinId(coin).toString('hex')));
+
+    // Mark coins as UNSPENT if present in unspent, otherwise as SPENT
+    for (const dbCoin of dbCoins) {
+      if (unspentCoinIds.has(dbCoin.coinId.toString('hex'))) {
+        // Still unspent
+        coinRepo.updateCoinStatus(wallet.address, dbCoin.coinId, CoinStatus.UNSPENT, fetchFromHeight);
         if (coinStateObserver) {
           coinStateObserver({
-            walletId: coin.walletId,
-            coinId: coin.coinId,
+            walletId: wallet.address,
+            coinId: dbCoin.coinId,
+            status: CoinStatus.UNSPENT,
+            syncedHeight: fetchFromHeight,
+          });
+        }
+      } else {
+        // Now spent
+        coinRepo.updateCoinStatus(wallet.address, dbCoin.coinId, CoinStatus.SPENT, fetchFromHeight);
+        if (coinStateObserver) {
+          coinStateObserver({
+            walletId: wallet.address,
+            coinId: dbCoin.coinId,
             status: CoinStatus.SPENT,
-            syncedHeight: coin.syncedHeight,
+            syncedHeight: fetchFromHeight,
           });
         }
       }
+    }
+
+    // Upsert all returned coins as unspent (in case there are new ones)
+    for (const coin of unspent.coins) {
+      const mapped = mapUnspentCoinToDbFields(coin, wallet.address, fetchFromHeight);
+      coinRepo.upsertCoin(wallet.address, mapped);
     }
   }
 }
 
 export const api = {
-  async start(_blockchainType: BlockChainType, dbPath: string = './coin_indexer.sqlite') {
+  async start(
+    _blockchainType: BlockChainType,
+    dbPath: string = './coin_indexer.sqlite',
+    crtPath: string = 'ca.crt',
+    keyPath: string = 'ca.key',
+    peerType?: PeerType,
+  ) {
     if (started) return;
     db = new Database(dbPath);
     coinRepo = new CoinRepository(db);
@@ -115,6 +119,9 @@ export const api = {
         blockchainService = new ChiaBlockchainService();
         break;
     }
+
+    const tls = new Tls(crtPath, keyPath);
+    await Layer1PeerService.connect(5, 10, peerType ?? PeerType.Mainnet, tls);
 
     await sync();
 

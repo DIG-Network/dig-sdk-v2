@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { api as coinIndexerApi } from '../../../../src/application/workers/CoinIndexer/CoinIndexer.worker.logic';
 import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import { existsSync, unlinkSync } from 'fs';
+import { PeerType } from '@dignetwork/datalayer-driver';
 
 const dbPath = 'test_coinindexer_worker_logic.sqlite';
 
@@ -9,15 +10,11 @@ describe('CoinIndexer.worker.logic api', () => {
   beforeAll(() => {
     if (existsSync(dbPath)) unlinkSync(dbPath);
   });
-  
-  afterEach(() => {
-    try { new Database(dbPath).close(); } catch {}
-  });
 
   it('should create the database file after start', async () => {
     coinIndexerApi.__reset();
     if (existsSync(dbPath)) unlinkSync(dbPath);
-    await coinIndexerApi.start(BlockChainType.Test, dbPath);
+    await coinIndexerApi.start(BlockChainType.Test, dbPath, 'ca.crt', 'ca.key', PeerType.Simulator);
     expect(existsSync(dbPath)).toBe(true);
     // Check table exists (should be named 'coin' not 'coins')
     const db = new Database(dbPath);
@@ -29,18 +26,18 @@ describe('CoinIndexer.worker.logic api', () => {
 
   it('should not start twice', async () => {
     coinIndexerApi.__reset();
-    await coinIndexerApi.start(BlockChainType.Test, dbPath);
-    await coinIndexerApi.start(BlockChainType.Test, dbPath); // should not throw
+    await coinIndexerApi.start(BlockChainType.Test, dbPath, 'ca.crt', 'ca.key', PeerType.Simulator);
+    await coinIndexerApi.start(BlockChainType.Test, dbPath, 'ca.crt', 'ca.key', PeerType.Simulator); // should not throw
     coinIndexerApi.stop();
   });
 
   it('should stop and reset', async () => {
     coinIndexerApi.__reset();
-    await coinIndexerApi.start(BlockChainType.Test, dbPath);
+    await coinIndexerApi.start(BlockChainType.Test, dbPath, 'ca.crt', 'ca.key', PeerType.Simulator);
     coinIndexerApi.stop();
     coinIndexerApi.__reset();
     // Should be able to start again
-    await coinIndexerApi.start(BlockChainType.Test, dbPath);
+    await coinIndexerApi.start(BlockChainType.Test, dbPath, 'ca.crt', 'ca.key', PeerType.Simulator);
     coinIndexerApi.stop();
   });
 });
