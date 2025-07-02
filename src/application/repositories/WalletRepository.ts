@@ -29,13 +29,13 @@ export class WalletRepository implements IWalletRepository {
     setupTable(db);
   }
 
-  addWallet(address: string, name: string, namespace: string = 'default') {
+  addWallet(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
     // Prevent duplicate names
     const exists = this.db.prepare('SELECT 1 FROM wallet WHERE name = ?').get(name);
     if (exists) throw new Error('Wallet with this name already exists');
     this.db.prepare(
-      `INSERT OR IGNORE INTO wallet (address, namespace, name) VALUES (?, ?, ?)`
-    ).run(address, namespace, name);
+      `INSERT OR IGNORE INTO wallet (address, namespace, name, synced_to_height, synced_to_hash) VALUES (?, ?, ?, ?, ?)`
+    ).run(address, namespace, name, synchedToHeight, synchedToHash);
   }
 
   updateWalletSync(address: string, synced_to_height: number, synced_to_hash: string) {
