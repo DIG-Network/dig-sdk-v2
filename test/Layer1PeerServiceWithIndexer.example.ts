@@ -10,7 +10,7 @@ import { WalletRepository } from '../src/application/repositories/WalletReposito
 
 async function main() {
   const testnetWalletAddress = "dev";
-  const testnetMnemonic = ""; // Replace with your actual mnemonic or generate a new one
+  const testnetMnemonic = ""; // Replace with your actual mnemonic
   const walletDbPath = "wallet.sqlite";
   const walletDb = new Database(walletDbPath)
   const walletService = new WalletService(walletDbPath);
