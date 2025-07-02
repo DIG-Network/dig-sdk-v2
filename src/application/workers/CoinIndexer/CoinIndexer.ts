@@ -39,7 +39,7 @@ export class CoinIndexer
     if (restartIntervalHours && restartIntervalHours > 0) {
       this.restartIntervalMs = restartIntervalHours * 60 * 60 * 1000;
       this.restartIntervalId = setInterval(async () => {
-        await this.restartWorker(blockchainType, dbPath);
+        await this.restartWorker(blockchainType, dbPath, crtPath, keyPath, peerType);
       }, this.restartIntervalMs);
     }
   }
