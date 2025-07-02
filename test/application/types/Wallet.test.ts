@@ -39,10 +39,16 @@ describe('Wallet', () => {
     expect(hash.toString('hex')).toBe('2485e1f2023ba59d36c63e2e52d3654d5d6a599773c82ba0895a3e74e7903550');
   });
 
-  it('should return the expected owner public key', async () => {
+  it('should return the expected owner public key for mainet', async () => {
     wallet = new (require('../../../src/application/types/Wallet').Wallet)(TEST_MNEMONIC);
-    const pub = await wallet.getOwnerPublicKey(PeerType.Simulator);
+    const pub = await wallet.getOwnerPublicKey(PeerType.Mainnet);
     expect(pub).toBe('xch1yjz7rusz8wje6dkx8ch995m9f4wk5kvhw0yzhgyftgl8feusx4gq820cf2');
+  });
+
+    it('should return the expected owner public key for testnet', async () => {
+    wallet = new (require('../../../src/application/types/Wallet').Wallet)(TEST_MNEMONIC);
+    const pub = await wallet.getOwnerPublicKey(PeerType.Testnet11);
+    expect(pub).toBe('txch1yjz7rusz8wje6dkx8ch995m9f4wk5kvhw0yzhgyftgl8feusx4gq2dgwge');
   });
 
   it('should return the expected key ownership signature', async () => {
