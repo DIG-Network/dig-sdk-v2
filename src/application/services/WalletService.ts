@@ -9,6 +9,7 @@ import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/C
 import { ILevel1Peer } from '../interfaces/ILevel1Peer';
 import Database from 'better-sqlite3';
 import { WalletRepository, WalletRow } from '../repositories/WalletRepository';
+import { PeerType } from '@dignetwork/datalayer-driver';
 
 const KEYRING_FILE = 'keyring.json';
 const WALLET_DB_FILE = 'wallet.sqlite';
@@ -34,11 +35,11 @@ export class WalletService {
     throw new Error('Wallet Not Found');
   }
 
-  public async createNewWallet(walletName: string): Promise<Wallet> {
-    const mnemonic = bip39.generateMnemonic(256);
-    await this.saveWalletToKeyring(walletName, mnemonic);
+  public async createNewWallet(walletName: string, peerType: PeerType, mnemonic?: string): Promise<Wallet> {
+    const generatedMnemonic = bip39.generateMnemonic(256);
+    await this.saveWalletToKeyring(walletName, mnemonic ?? generatedMnemonic);
     let wallet = await this.loadWallet(walletName);
-    const address = await wallet.getOwnerPublicKey();
+    const address = await wallet.getOwnerPublicKey(peerType);
     this.walletRepo.addWallet(address, walletName);
 
     return wallet;

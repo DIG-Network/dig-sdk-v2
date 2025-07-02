@@ -22,7 +22,7 @@ let blockchainService: IBlockchainService | null = null;
 let coinStateObservable: Observable<CoinStateUpdatedEvent> | null = null;
 let coinStateObserver: ((event: CoinStateUpdatedEvent) => void) | null = null;
 
-const minSynchedHeight = 0; // Minimum height to consider for syncing, genesis block for now
+const minSynchedHeight = 1; // Minimum height to consider for syncing, genesis block for now
 
 function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: number): CoinRow {
   return {
@@ -46,11 +46,12 @@ async function sync() {
       .getCoins(wallet.address)
       .filter((c) => c.status === CoinStatus.UNSPENT || c.status === CoinStatus.PENDING);
 
-    let fetchFromHeight = wallet.synced_to_height || minSynchedHeight;
-    let fetchFromHash = Buffer.from(wallet.synced_to_hash);
+    let fetchFromHeight = minSynchedHeight;
 
     // Fetch unspent coins from blockchain service
     const unspent = await Layer1PeerService.withPeer(async (peer: ILevel1Peer) => {
+      let fetchFromHash = await peer.getHeaderHashByHeight(fetchFromHeight);
+
       return await blockchainService!.listUnspentCoins(
         peer!,
         blockchainService!.getPuzzleHash(wallet.address),

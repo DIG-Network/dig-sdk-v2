@@ -54,12 +54,8 @@ export class CoinIndexer
     if (this.started) return;
     if (!this.worker) {
       // Use src worker for tests/dev, dist worker for production
-      let workerPath: string;
-      if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
-        workerPath = '../../../../dist/application/workers/CoinIndexer/CoinIndexer.worker.js';
-      } else {
-        workerPath = './CoinIndexer.worker.ts';
-      }
+      let workerPath = '../../../../dist/application/workers/CoinIndexer/CoinIndexer.worker.js';
+
       this.worker = (await spawn(
         new Worker(workerPath),
       )) as import('threads').ModuleThread<CoinIndexerWorkerApi>;

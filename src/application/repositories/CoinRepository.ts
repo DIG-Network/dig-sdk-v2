@@ -51,6 +51,10 @@ export class CoinRepository implements ICoinRepository {
     );
   }
 
+  getAllCoins(): CoinRow[] {
+    return this.db.prepare('SELECT * FROM coin').all() as CoinRow[];
+  }
+
   getCoins(walletId: string): CoinRow[] {
     return this.db.prepare('SELECT * FROM coin WHERE walletId = ?').all(walletId) as CoinRow[];
   }

@@ -1,3 +1,4 @@
+import { PeerType } from '@dignetwork/datalayer-driver';
 import { WalletService } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
 import { TestBlockchainService } from '../../../src/infrastructure/BlockchainServices/TestBlockchainService';
@@ -23,7 +24,7 @@ describe('WalletService Integration', () => {
 
   it('should create, load, and delete a wallet, and verify Wallet functionality', async () => {
     // Create a new wallet
-    const wallet = await walletService.createNewWallet(WALLET_NAMES[0]);
+    const wallet = await walletService.createNewWallet(WALLET_NAMES[0], PeerType.Simulator);
     expect(wallet).toBeInstanceOf(Wallet);
     const mnemonic = wallet.getMnemonic();
     expect(typeof mnemonic).toBe('string');
@@ -52,7 +53,7 @@ describe('WalletService Integration', () => {
     expect(Buffer.isBuffer(ownerPuzzleHash)).toBe(true);
 
     // Wallet class: getOwnerPublicKey returns a string
-    const ownerPublicKey = await loadedWallet.getOwnerPublicKey();
+    const ownerPublicKey = await loadedWallet.getOwnerPublicKey(PeerType.Simulator);
     expect(typeof ownerPublicKey).toBe('string');
     expect(ownerPublicKey.length).toBeGreaterThan(0);
 
@@ -75,8 +76,8 @@ describe('WalletService Integration', () => {
   it('should list wallets after multiple creates and deletes', async () => {
     const createdAddresses: string[] = [];
     for (const name of WALLET_NAMES) {
-      const wallet = await walletService.createNewWallet(name);
-      createdAddresses.push(await wallet.getOwnerPublicKey());
+      const wallet = await walletService.createNewWallet(name, PeerType.Simulator);
+      createdAddresses.push(await wallet.getOwnerPublicKey(PeerType.Simulator));
     }
     let wallets = await walletService.listWallets();
     let walletAddresses = wallets.map((w: any) => w.address);

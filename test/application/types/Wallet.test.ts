@@ -1,3 +1,5 @@
+import { PeerType } from "@dignetwork/datalayer-driver";
+
 describe('Wallet', () => {
   const TEST_MNEMONIC = 'test test test test test test test test test test test ball';
   let wallet: any;
@@ -39,7 +41,7 @@ describe('Wallet', () => {
 
   it('should return the expected owner public key', async () => {
     wallet = new (require('../../../src/application/types/Wallet').Wallet)(TEST_MNEMONIC);
-    const pub = await wallet.getOwnerPublicKey();
+    const pub = await wallet.getOwnerPublicKey(PeerType.Simulator);
     expect(pub).toBe('xch1yjz7rusz8wje6dkx8ch995m9f4wk5kvhw0yzhgyftgl8feusx4gq820cf2');
   });
 

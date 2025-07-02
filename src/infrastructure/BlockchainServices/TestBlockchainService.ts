@@ -5,6 +5,7 @@ import Database from 'better-sqlite3';
 import type { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { CoinRow } from "../../application/repositories/CoinRepository";
 import { Level1ChiaPeer } from "../Peers/Level1ChiaPeer";
+import { ILevel1Peer } from "../../application/interfaces/ILevel1Peer";
 
 export class TestBlockchainService implements IBlockchainService {
   private db: Database.Database;
@@ -55,7 +56,7 @@ export class TestBlockchainService implements IBlockchainService {
     return true; // Dummy
   }
   async listUnspentCoins(
-    peer: Peer,
+    peer: ILevel1Peer,
     puzzleHash: Buffer,
     previousHeight: number,
     previousHeaderHash: Buffer
@@ -85,7 +86,7 @@ export class TestBlockchainService implements IBlockchainService {
     return { coins, lastHeight: 0, lastHeaderHash: Buffer.alloc(32) };
   }
   async isCoinSpendable(
-    peer: Peer,
+    peer: ILevel1Peer,
     coinId: Buffer,
     lastHeight: number,
     headerHash: Buffer

@@ -13,4 +13,5 @@ export interface ILevel1Peer {
     lastHeight: number,
     headerHash: Buffer
   ): Promise<boolean>;
+  getHeaderHashByHeight(height: number): Promise<Buffer>;
 }

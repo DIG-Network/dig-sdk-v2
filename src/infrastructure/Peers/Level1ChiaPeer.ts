@@ -29,4 +29,10 @@ export class Level1ChiaPeer implements ILevel1Peer {
   ): Promise<boolean> {
     return this.peer.isCoinSpent(coinId, lastHeight, headerHash);
   }
+
+  async getHeaderHashByHeight(
+    height: number
+  ): Promise<Buffer> {
+    return await this.peer.getHeaderHash(height);
+  }
 }
