@@ -9,8 +9,8 @@ import { BlockChainType } from '../../types/BlockChain';
 import { TestBlockchainService } from '../../../infrastructure/BlockchainServices/TestBlockchainService';
 import { ChiaBlockchainService } from '../../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { CoinStatus } from '../../types/CoinStatus';
-import { ILevel1Peer } from '../../interfaces/ILevel1Peer';
-import { Layer1PeerService } from '../../services/Layer1PeerService';
+import { IL1Peer } from '../../interfaces/IL1Peer';
+import { L1PeerService } from '../../services/L1PeerService';
 
 let db: Database.Database | null = null;
 let coinRepo: CoinRepository | null = null;
@@ -49,7 +49,7 @@ async function sync() {
     let fetchFromHeight = minSynchedHeight;
 
     // Fetch unspent coins from blockchain service
-    const unspent = await Layer1PeerService.withPeer(async (peer: ILevel1Peer) => {
+    const unspent = await L1PeerService.withPeer(async (peer: IL1Peer) => {
       let fetchFromHash = await peer.getHeaderHashByHeight(fetchFromHeight);
 
       return await blockchainService!.listUnspentCoins(
@@ -59,6 +59,10 @@ async function sync() {
         fetchFromHash,
       );
     });
+
+    if (unspent.coins.length === 0) {
+      console.log(`No unspent coins found for wallet ${wallet.address} at height ${fetchFromHeight}`);
+    }
 
     // Build a set of unspent coin IDs from the blockchain
     const unspentCoinIds = new Set(unspent.coins.map(coin => blockchainService!.getCoinId(coin).toString('hex')));
@@ -122,7 +126,7 @@ export const api = {
     }
 
     const tls = new Tls(crtPath, keyPath);
-    await Layer1PeerService.connect(5, 10, peerType ?? PeerType.Mainnet, tls);
+    await L1PeerService.connect(5, 10, peerType ?? PeerType.Mainnet, tls);
 
     await sync();
 

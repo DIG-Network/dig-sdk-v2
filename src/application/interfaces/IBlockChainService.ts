@@ -1,6 +1,6 @@
 import { Block } from "../types/Block";
 import type { Coin, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
-import { ILevel1Peer } from "./ILevel1Peer";
+import { IL1Peer } from "./IL1Peer";
 
 
 export interface IBlockchainService {
@@ -21,16 +21,16 @@ export interface IBlockchainService {
   getPuzzleHash(address: string): Buffer;
   verifyKeySignature(signature: Buffer, publicKey: Buffer, message: Buffer): boolean;
   listUnspentCoins(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     puzzleHash: Buffer,
     previousHeight: number,
     previousHeaderHash: Buffer
   ): Promise<UnspentCoinsResponse>;
   isCoinSpendable(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     coinId: Buffer,
     lastHeight: number,
     headerHash: Buffer
   ): Promise<boolean>;
-  connectRandom(peerType: PeerType, tls: Tls): Promise<ILevel1Peer>
+  connectRandom(peerType: PeerType, tls: Tls): Promise<IL1Peer>
 }

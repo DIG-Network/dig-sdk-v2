@@ -1,9 +1,9 @@
 import type { Peer } from '@dignetwork/datalayer-driver';
 import type { Buffer } from 'buffer';
 import type { UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
-import { ILevel1Peer } from '../../application/interfaces/ILevel1Peer';
+import { IL1Peer } from '../../application/interfaces/IL1Peer';
 
-export class Level1ChiaPeer implements ILevel1Peer {
+export class L1ChiaPeer implements IL1Peer {
   private peer: Peer;
 
   public constructor(peer: Peer) {

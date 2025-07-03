@@ -1,4 +1,4 @@
-import { Layer1PeerService } from '../src/application/services/Layer1PeerService';
+import { L1PeerService } from '../src/application/services/L1PeerService';
 import { PeerType, Tls } from '@dignetwork/datalayer-driver';
 import { ChiaBlockchainService } from '../src/infrastructure/BlockchainServices/ChiaBlockchainService';
 import { CoinIndexer } from '../src/application/workers/CoinIndexer/CoinIndexer';
@@ -10,7 +10,7 @@ import { WalletRepository } from '../src/application/repositories/WalletReposito
 
 async function main() {
   const testnetWalletAddress = "dev";
-  const testnetMnemonic = ""; // Replace with your actual mnemonic
+  const testnetMnemonic = "supreme huge blossom mimic oval wear walnut toy pulp verify object panther logic wait what express alpha dice auction reduce always stuff garlic insane"; // Replace with your actual mnemonic
   const walletDbPath = "wallet.sqlite";
   const walletDb = new Database(walletDbPath)
   const walletService = new WalletService(walletDbPath);
@@ -26,7 +26,7 @@ async function main() {
     const coinIndexer = new CoinIndexer();
 
     // This starts the CoinIndexer worker and connects to the testnet chia blockchain
-    await coinIndexer.start(BlockChainType.Chia, walletDbPath, 1, 'ca.crt', 'ca.key', PeerType.Testnet11);
+    await coinIndexer.start(BlockChainType.Chia, walletDbPath, 24, 'ca.crt', 'ca.key', PeerType.Testnet11);
 
     const wallets = await walletService.listWallets();
 
@@ -42,7 +42,7 @@ async function main() {
     // do a while ininitely that waits for one second each time
     while (true) {
       console.log('-------------------------------------------------');
-      console.log('Fetching coins from repository:');
+      console.log(`Fetching coins from repository at the time ${new Date()}:`);
       coinRepository.getAllCoins().forEach((coin) => {
         console.log(`Coin ID: ${coin.coinId.toString('hex')}, Amount: ${coin.amount}, Status: ${coin.status}, Wallet ID: ${coin.walletId}`);
       });
@@ -50,7 +50,7 @@ async function main() {
       await new Promise(resolve => setTimeout(resolve, 10000));
     }
   } catch (e) {
-    console.error('Failed to connect or query peer:', e);
+    console.error('Error during execution:', e);
   }
 }
 

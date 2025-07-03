@@ -3,8 +3,8 @@ import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import fs from 'fs';
 import path from 'path';
 import { CoinStatus } from '../../../../src/application/types/CoinStatus';
-import { ILevel1Peer } from '../../../../src/application/interfaces/ILevel1Peer';
-import { Layer1PeerService } from '../../../../src/application/services/Layer1PeerService';
+import { IL1Peer } from '../../../../src/application/interfaces/IL1Peer';
+import { L1PeerService } from '../../../../src/application/services/L1PeerService';
 
 // Mock the worker and DB for async start
 jest.mock('threads', () => {

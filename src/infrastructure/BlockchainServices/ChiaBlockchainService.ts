@@ -14,8 +14,8 @@ import {
 } from '@dignetwork/datalayer-driver';
 import { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { PrivateKey } from 'chia-bls';
-import { Level1ChiaPeer } from "../Peers/Level1ChiaPeer";
-import { ILevel1Peer } from "../../application/interfaces/ILevel1Peer";
+import { L1ChiaPeer } from "../Peers/L1ChiaPeer";
+import { IL1Peer } from "../../application/interfaces/IL1Peer";
 
 export class ChiaBlockchainService implements IBlockchainService {
   async getCurrentBlockchainHeight(): Promise<number> {
@@ -70,7 +70,7 @@ export class ChiaBlockchainService implements IBlockchainService {
   }
 
   async listUnspentCoins(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     puzzleHash: Buffer,
     previousHeight: number,
     previousHeaderHash: Buffer
@@ -79,7 +79,7 @@ export class ChiaBlockchainService implements IBlockchainService {
   }
   
   async isCoinSpendable(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     coinId: Buffer,
     lastHeight: number,
     headerHash: Buffer
@@ -87,9 +87,9 @@ export class ChiaBlockchainService implements IBlockchainService {
     return !(await peer.isCoinSpent(coinId, lastHeight, headerHash));
   }
 
-  async connectRandom(peerType: PeerType, tls: Tls): Promise<Level1ChiaPeer> {
+  async connectRandom(peerType: PeerType, tls: Tls): Promise<L1ChiaPeer> {
     const peer = await Peer.connectRandom(peerType, tls);
     if (!peer) throw new Error('Failed to connect to peer');
-    return new Level1ChiaPeer(peer);
+    return new L1ChiaPeer(peer);
   }
 }

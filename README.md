@@ -1,6 +1,6 @@
-# DIG SDK v2 Example: Coin Indexer with Layer1PeerService
+# DIG SDK v2 Example: Coin Indexer with L1PeerService
 
-This example demonstrates how to use the CoinIndexer and Layer1PeerService to sync and monitor coins from the Chia blockchain using the DIG SDK v2.
+This example demonstrates how to use the CoinIndexer and L1PeerService to sync and monitor coins from the Chia blockchain using the DIG SDK v2.
 
 ## Prerequisites
 
@@ -26,7 +26,7 @@ This example demonstrates how to use the CoinIndexer and Layer1PeerService to sy
 
 3. **Configure your wallet**
 
-   - Open `test/Layer1PeerServiceWithIndexer.example.ts`.
+   - Open `test/L1PeerServiceWithIndexer.example.ts`.
    - Set `testnetMnemonic` to your testnet mnemonic phrase.
    - Set `testnetWalletAddress` to a unique name for your wallet (e.g., `"dev"`).
    - Ensure `ca.crt` and `ca.key` are present in your project root, or update the paths in the example file.
@@ -34,11 +34,11 @@ This example demonstrates how to use the CoinIndexer and Layer1PeerService to sy
 4. **Run the example**
 
    ```sh
-   npx ts-node ./test/Layer1PeerServiceWithIndexer.example.ts
+   npx ts-node ./test/L1PeerServiceWithIndexer.example.ts
    ```
 
    - The script will:
-     - Connect to the Chia testnet using Layer1PeerService.
+     - Connect to the Chia testnet using L1PeerService.
      - Create or load a wallet and add it to the local database and keyring.
      - Run the indexer which will fetch all coins for the wallet.
      - Periodically print all coins in the local database, showing their status and wallet association.

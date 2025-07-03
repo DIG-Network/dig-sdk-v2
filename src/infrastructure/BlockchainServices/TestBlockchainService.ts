@@ -4,8 +4,8 @@ import { Block } from "../../application/types/Block";
 import Database from 'better-sqlite3';
 import type { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { CoinRow } from "../../application/repositories/CoinRepository";
-import { Level1ChiaPeer } from "../Peers/Level1ChiaPeer";
-import { ILevel1Peer } from "../../application/interfaces/ILevel1Peer";
+import { L1ChiaPeer } from "../Peers/L1ChiaPeer";
+import { IL1Peer } from "../../application/interfaces/IL1Peer";
 
 export class TestBlockchainService implements IBlockchainService {
   private db: Database.Database;
@@ -56,7 +56,7 @@ export class TestBlockchainService implements IBlockchainService {
     return true; // Dummy
   }
   async listUnspentCoins(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     puzzleHash: Buffer,
     previousHeight: number,
     previousHeaderHash: Buffer
@@ -86,7 +86,7 @@ export class TestBlockchainService implements IBlockchainService {
     return { coins, lastHeight: 0, lastHeaderHash: Buffer.alloc(32) };
   }
   async isCoinSpendable(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     coinId: Buffer,
     lastHeight: number,
     headerHash: Buffer
@@ -94,7 +94,7 @@ export class TestBlockchainService implements IBlockchainService {
     return true; // Dummy
   }
 
-  async connectRandom(peerType: PeerType, tls: Tls): Promise<Level1ChiaPeer>{
+  async connectRandom(peerType: PeerType, tls: Tls): Promise<L1ChiaPeer>{
     throw new Error("Method not implemented.");
   }
 }

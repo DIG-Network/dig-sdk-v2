@@ -1,7 +1,7 @@
 import type { Buffer } from 'buffer';
 import type { UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 
-export interface ILevel1Peer {
+export interface IL1Peer {
   getPeak(): Promise<number | null>;
   getAllUnspentCoins(
     puzzleHash: Buffer,

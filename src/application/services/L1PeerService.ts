@@ -1,10 +1,10 @@
 import { PeerType, Tls } from '@dignetwork/datalayer-driver';
-import { ILevel1Peer } from '../interfaces/ILevel1Peer';
+import { IL1Peer } from '../interfaces/IL1Peer';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { IBlockchainService } from '../interfaces/IBlockChainService';
 
-export class Layer1PeerService {
-  private static peers: ILevel1Peer[] = [];
+export class L1PeerService {
+  private static peers: IL1Peer[] = [];
   private static connected: boolean = false;
   private static peerType: PeerType = PeerType.Testnet11;
   private static tls: Tls | undefined;
@@ -13,7 +13,7 @@ export class Layer1PeerService {
 
   private constructor() {}
 
-  private static async addPeer(): Promise<ILevel1Peer | null> {
+  private static async addPeer(): Promise<IL1Peer | null> {
     try {
       const peer = await this.blockchain.connectRandom(this.peerType, this.tls!);
       if (peer) {
@@ -40,7 +40,7 @@ export class Layer1PeerService {
     if (!this.connected) throw new Error('Failed to connect to any peers');
   }
 
-  public static async withPeer<T>(fn: (peer: ILevel1Peer) => Promise<T>, retries: number = 5): Promise<T> {
+  public static async withPeer<T>(fn: (peer: IL1Peer) => Promise<T>, retries: number = 5): Promise<T> {
     if (!this.connected || this.peers.length === 0) throw new Error('No peers connected');
     // Get heights for all peers
     const peerHeights = await Promise.all(this.peers.map(async (peer) => {
@@ -53,7 +53,7 @@ export class Layer1PeerService {
     // Find max height
     const maxHeight = Math.max(...peerHeights);
     // Get peers with max height only for mainnet, otherwise use all peers
-    let candidates: ILevel1Peer[];
+    let candidates: IL1Peer[];
     if (this.peerType === PeerType.Mainnet) {
       candidates = this.peers.filter((_, i) => peerHeights[i] === maxHeight);
     } else {
@@ -86,7 +86,7 @@ export class Layer1PeerService {
     throw lastError || new Error('All peers failed');
   }
 
-  public static getPeers(): ILevel1Peer[] {
+  public static getPeers(): IL1Peer[] {
     return this.peers;
   }
 }

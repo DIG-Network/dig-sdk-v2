@@ -1,18 +1,18 @@
 import type { UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import type { IBlockchainService } from '../interfaces/IBlockChainService';
-import { ILevel1Peer } from '../interfaces/ILevel1Peer';
+import { IL1Peer } from '../interfaces/IL1Peer';
 
 export interface IColdWallet {
   getPuzzleHash(address: string): Buffer;
   verifyKeySignature(signature: Buffer, publicKey: Buffer, message: Buffer): boolean;
   listUnspentCoins(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     puzzleHash: Buffer,
     previousHeight: number,
     previousHeaderHash: Buffer
   ): Promise<UnspentCoinsResponse>;
   isCoinSpendable(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     coinId: Buffer,
     lastHeight: number,
     headerHash: Buffer
@@ -36,7 +36,7 @@ export class ColdWallet implements IColdWallet {
   }
 
   async listUnspentCoins(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     puzzleHash: Buffer,
     previousHeight: number,
     previousHeaderHash: Buffer
@@ -45,7 +45,7 @@ export class ColdWallet implements IColdWallet {
   }
 
   async isCoinSpendable(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     coinId: Buffer,
     lastHeight: number,
     headerHash: Buffer

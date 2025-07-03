@@ -6,7 +6,7 @@ import { EncryptedData } from '../types/EncryptedData';
 import { Wallet } from '../types/Wallet';
 import type { IBlockchainService } from '../interfaces/IBlockChainService';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
-import { ILevel1Peer } from '../interfaces/ILevel1Peer';
+import { IL1Peer } from '../interfaces/IL1Peer';
 import Database from 'better-sqlite3';
 import { WalletRepository, WalletRow } from '../repositories/WalletRepository';
 import { PeerType } from '@dignetwork/datalayer-driver';
@@ -77,7 +77,7 @@ export class WalletService {
     return BigInt(1000000);
   }
 
-  public async isCoinSpendable(peer: ILevel1Peer, coinId: Buffer, lastHeight: number, lastHeaderHash: string): Promise<boolean> {
+  public async isCoinSpendable(peer: IL1Peer, coinId: Buffer, lastHeight: number, lastHeaderHash: string): Promise<boolean> {
     try {
       return await this.blockchain.isCoinSpendable(peer, coinId, lastHeight, Buffer.from(lastHeaderHash, 'hex'));
     } catch {

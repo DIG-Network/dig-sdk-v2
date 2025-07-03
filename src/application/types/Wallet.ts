@@ -3,7 +3,7 @@ import { FileCacheService } from '../services/FileCacheService';
 import type { IBlockchainService } from '../interfaces/IBlockChainService';
 import { Coin, PeerType } from '@dignetwork/datalayer-driver';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
-import { ILevel1Peer } from '../interfaces/ILevel1Peer';
+import { IL1Peer } from '../interfaces/IL1Peer';
 
 const COIN_CACHE_DURATION = 600000;
 
@@ -16,7 +16,7 @@ export interface IWallet {
   getOwnerPublicKey(peerType: PeerType): Promise<string>;
   createKeyOwnershipSignature(nonce: string): Promise<string>;
   selectUnspentCoins(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     coinAmount: bigint,
     feeBigInt: bigint,
     omitCoins?: Coin[],
@@ -76,7 +76,7 @@ export class Wallet implements IWallet {
   }
 
   public async selectUnspentCoins(
-    peer: ILevel1Peer,
+    peer: IL1Peer,
     coinAmount: bigint,
     feeBigInt: bigint,
     omitCoins: Coin[] = [],
