@@ -278,3 +278,5 @@ dist
 # Local dig files
 
 .dig
+ca.crt
+ca.key

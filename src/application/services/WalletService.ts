@@ -6,45 +6,61 @@ import { EncryptedData } from '../types/EncryptedData';
 import { Wallet } from '../types/Wallet';
 import type { IBlockchainService } from '../interfaces/IBlockChainService';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
-import { Peer } from '@dignetwork/datalayer-driver';
+import { IL1Peer } from '../interfaces/IL1Peer';
+import Database from 'better-sqlite3';
+import { WalletRepository, WalletRow } from '../repositories/WalletRepository';
+import { PeerType } from '@dignetwork/datalayer-driver';
 
 const KEYRING_FILE = 'keyring.json';
+const WALLET_DB_FILE = 'wallet.sqlite';
 
 export class WalletService {
-  private static blockchain: IBlockchainService = new ChiaBlockchainService();
+  private blockchain: IBlockchainService;
+  private db: Database.Database;
+  private walletRepo: WalletRepository;
 
-  public static async loadWallet(walletName: string = 'default'): Promise<Wallet> {
+  constructor(dbPath: string = WALLET_DB_FILE) {
+    this.blockchain = new ChiaBlockchainService();
+    this.db = new Database(dbPath);
+    this.walletRepo = new WalletRepository(this.db);
+  }
+
+  public async loadWallet(walletName: string = 'default'): Promise<Wallet> {
     const mnemonic = await this.getMnemonicFromKeyring(walletName);
-    if (mnemonic) return new Wallet(mnemonic);
+    if (mnemonic) {
+      const wallet = new Wallet(mnemonic);
+      return wallet;
+    }
 
     throw new Error('Wallet Not Found');
   }
 
-  public static async createNewWallet(walletName: string): Promise<Wallet> {
-    const mnemonic = bip39.generateMnemonic(256);
-    await this.saveWalletToKeyring(walletName, mnemonic);
-    return await this.loadWallet(walletName);
+  public async createNewWallet(walletName: string, peerType: PeerType, mnemonic?: string): Promise<Wallet> {
+    const generatedMnemonic = bip39.generateMnemonic(256);
+    await this.saveWalletToKeyring(walletName, mnemonic ?? generatedMnemonic);
+    let wallet = await this.loadWallet(walletName);
+    const address = await wallet.getOwnerPublicKey(peerType);
+    this.walletRepo.addWallet(address, walletName);
+
+    return wallet;
   }
 
-  public static async deleteWallet(walletName: string): Promise<boolean> {
+  public async deleteWallet(walletName: string): Promise<boolean> {
     const nconfService = new NconfService(KEYRING_FILE);
+    let deleted = false;
     if (await nconfService.configExists()) {
-      return await nconfService.deleteConfigValue(walletName);
+      deleted = await nconfService.deleteConfigValue(walletName);
     }
-    return false;
+    // Remove from DB as well
+    this.walletRepo.removeWalletByName(walletName);
+    return deleted;
   }
 
-  public static async listWallets(): Promise<string[]> {
-    const nconfService = new NconfService(KEYRING_FILE);
-    if (!(await nconfService.configExists())) {
-      return [];
-    }
-
-    const configData = await nconfService.getFullConfig();
-    return Object.keys(configData);
+  public async listWallets(): Promise<WalletRow[]> {
+    return this.walletRepo.getWallets();
   }
 
-  public static async verifyKeyOwnershipSignature(
+  public async verifyKeyOwnershipSignature(
     nonce: string,
     signature: string,
     publicKey: string,
@@ -57,11 +73,11 @@ export class WalletService {
     );
   }
 
-  public static async calculateFeeForCoinSpends(): Promise<bigint> {
+  public async calculateFeeForCoinSpends(): Promise<bigint> {
     return BigInt(1000000);
   }
 
-  public static async isCoinSpendable(peer: Peer, coinId: Buffer, lastHeight: number, lastHeaderHash: string): Promise<boolean> {
+  public async isCoinSpendable(peer: IL1Peer, coinId: Buffer, lastHeight: number, lastHeaderHash: string): Promise<boolean> {
     try {
       return await this.blockchain.isCoinSpendable(peer, coinId, lastHeight, Buffer.from(lastHeaderHash, 'hex'));
     } catch {
@@ -69,7 +85,7 @@ export class WalletService {
     }
   }
 
-  private static async getMnemonicFromKeyring(walletName: string): Promise<string | null> {
+  private async getMnemonicFromKeyring(walletName: string): Promise<string | null> {
     const nconfService = new NconfService(KEYRING_FILE);
     if (await nconfService.configExists()) {
       const encryptedData: EncryptedData | null = await nconfService.getConfigValue(walletName);
@@ -80,7 +96,7 @@ export class WalletService {
     return null;
   }
 
-  private static async saveWalletToKeyring(walletName: string, mnemonic: string): Promise<void> {
+  private async saveWalletToKeyring(walletName: string, mnemonic: string): Promise<void> {
     const nconfService = new NconfService(KEYRING_FILE);
     const encryptedData = EncryptionService.encryptData(mnemonic);
     await nconfService.setConfigValue(walletName, encryptedData);

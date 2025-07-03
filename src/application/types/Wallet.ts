@@ -1,8 +1,9 @@
 import { mnemonicToSeedSync } from 'bip39';
 import { FileCacheService } from '../services/FileCacheService';
 import type { IBlockchainService } from '../interfaces/IBlockChainService';
-import { Coin, Peer } from '@dignetwork/datalayer-driver';
+import { Coin, PeerType } from '@dignetwork/datalayer-driver';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
+import { IL1Peer } from '../interfaces/IL1Peer';
 
 const COIN_CACHE_DURATION = 600000;
 
@@ -12,10 +13,10 @@ export interface IWallet {
   getPublicSyntheticKey(): Promise<Buffer>;
   getPrivateSyntheticKey(): Promise<Buffer>;
   getOwnerPuzzleHash(): Promise<Buffer>;
-  getOwnerPublicKey(): Promise<string>;
+  getOwnerPublicKey(peerType: PeerType): Promise<string>;
   createKeyOwnershipSignature(nonce: string): Promise<string>;
   selectUnspentCoins(
-    peer: Peer,
+    peer: IL1Peer,
     coinAmount: bigint,
     feeBigInt: bigint,
     omitCoins?: Coin[],
@@ -62,9 +63,9 @@ export class Wallet implements IWallet {
     return this.blockchain.masterPublicKeyToFirstPuzzleHash(master_pk);
   }
 
-  public async getOwnerPublicKey(): Promise<string> {
+  public async getOwnerPublicKey(peerType: PeerType): Promise<string> {
     const ownerPuzzleHash = await this.getOwnerPuzzleHash();
-    return this.blockchain.puzzleHashToAddress(ownerPuzzleHash, 'xch');
+    return this.blockchain.puzzleHashToAddress(ownerPuzzleHash, peerType === PeerType.Mainnet ? 'xch' : 'txch');
   }
 
   public async createKeyOwnershipSignature(nonce: string): Promise<string> {
@@ -75,7 +76,7 @@ export class Wallet implements IWallet {
   }
 
   public async selectUnspentCoins(
-    peer: Peer,
+    peer: IL1Peer,
     coinAmount: bigint,
     feeBigInt: bigint,
     omitCoins: Coin[] = [],

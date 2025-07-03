@@ -1,33 +1,37 @@
+import { PeerType } from '@dignetwork/datalayer-driver';
 import { WalletService } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
 import { TestBlockchainService } from '../../../src/infrastructure/BlockchainServices/TestBlockchainService';
 
 const WALLET_NAMES = ['wallet1', 'wallet2', 'wallet3'];
-const blockchain = new TestBlockchainService();
+
+let walletService: WalletService;
 
 // Helper to clean up all wallets before each test
 async function cleanupWallets() {
-  const wallets = await WalletService.listWallets();
-  for (const name of wallets) {
-    await WalletService.deleteWallet(name);
-  }
+  // Drop the wallet table to force schema recreation with the 'name' column
+  const Database = require('better-sqlite3');
+  const db = new Database('wallet.sqlite');
+  db.prepare('DROP TABLE IF EXISTS wallet').run();
+  db.close();
 }
 
 describe('WalletService Integration', () => {
   beforeEach(async () => {
-    await cleanupWallets();
+    // await cleanupWallets();
+    walletService = new WalletService(":memory:");
   });
 
   it('should create, load, and delete a wallet, and verify Wallet functionality', async () => {
     // Create a new wallet
-    const wallet = await WalletService.createNewWallet(WALLET_NAMES[0]);
+    const wallet = await walletService.createNewWallet(WALLET_NAMES[0], PeerType.Simulator);
     expect(wallet).toBeInstanceOf(Wallet);
     const mnemonic = wallet.getMnemonic();
     expect(typeof mnemonic).toBe('string');
     expect(mnemonic.split(' ').length).toBeGreaterThanOrEqual(12);
 
     // Load the wallet
-    const loadedWallet = await WalletService.loadWallet(WALLET_NAMES[0]);
+    const loadedWallet = await walletService.loadWallet(WALLET_NAMES[0]);
     expect(loadedWallet).toBeInstanceOf(Wallet);
     expect(loadedWallet.getMnemonic()).toBe(mnemonic);
 
@@ -49,7 +53,7 @@ describe('WalletService Integration', () => {
     expect(Buffer.isBuffer(ownerPuzzleHash)).toBe(true);
 
     // Wallet class: getOwnerPublicKey returns a string
-    const ownerPublicKey = await loadedWallet.getOwnerPublicKey();
+    const ownerPublicKey = await loadedWallet.getOwnerPublicKey(PeerType.Simulator);
     expect(typeof ownerPublicKey).toBe('string');
     expect(ownerPublicKey.length).toBeGreaterThan(0);
 
@@ -59,88 +63,90 @@ describe('WalletService Integration', () => {
     expect(signature.length).toBeGreaterThan(0);
 
     // Delete the wallet
-    const deleted = await WalletService.deleteWallet(WALLET_NAMES[0]);
+    const deleted = await walletService.deleteWallet(WALLET_NAMES[0]);
     expect(deleted).toBe(true);
-    await expect(WalletService.loadWallet(WALLET_NAMES[0])).rejects.toThrow('Wallet Not Found');
+    await expect(walletService.loadWallet(WALLET_NAMES[0])).rejects.toThrow('Wallet Not Found');
   });
 
   it('should return empty array if no wallets exist', async () => {
-    const wallets = await WalletService.listWallets();
+    const wallets = await walletService.listWallets();
     expect(wallets).toEqual([]);
   });
 
   it('should list wallets after multiple creates and deletes', async () => {
+    const createdAddresses: string[] = [];
     for (const name of WALLET_NAMES) {
-      await WalletService.createNewWallet(name);
+      const wallet = await walletService.createNewWallet(name, PeerType.Simulator);
+      createdAddresses.push(await wallet.getOwnerPublicKey(PeerType.Simulator));
     }
-    let wallets = await WalletService.listWallets();
-    expect(wallets.sort()).toEqual(WALLET_NAMES.sort());
+    let wallets = await walletService.listWallets();
+    let walletAddresses = wallets.map((w: any) => w.address);
+    // All created addresses should be present
+    for (const addr of createdAddresses) {
+      expect(walletAddresses).toContain(addr);
+    }
     // Delete one wallet
-    await WalletService.deleteWallet(WALLET_NAMES[1]);
-    wallets = await WalletService.listWallets();
-    expect(wallets.sort()).toEqual([WALLET_NAMES[0], WALLET_NAMES[2]].sort());
+    await walletService.deleteWallet(WALLET_NAMES[1]);
+    wallets = await walletService.listWallets();
+    walletAddresses = wallets.map((w: any) => w.address);
+    // The deleted wallet's address should not be present
+    expect(walletAddresses).not.toContain(createdAddresses[1]);
+    // The other two should still be present
+    expect(walletAddresses).toContain(createdAddresses[0]);
+    expect(walletAddresses).toContain(createdAddresses[2]);
     // Delete all
-    await WalletService.deleteWallet(WALLET_NAMES[0]);
-    await WalletService.deleteWallet(WALLET_NAMES[2]);
-    wallets = await WalletService.listWallets();
+    await walletService.deleteWallet(WALLET_NAMES[0]);
+    await walletService.deleteWallet(WALLET_NAMES[2]);
+    wallets = await walletService.listWallets();
     expect(wallets).toEqual([]);
   });
 
   it('should not be able to delete or load a non-existing wallet', async () => {
-    const deleted = await WalletService.deleteWallet('nonexistent');
+    const deleted = await walletService.deleteWallet('nonexistent');
     expect(deleted).toBe(false);
     // Try to load a non-existent wallet
-    await expect(WalletService.loadWallet('nonexistent')).rejects.toThrow('Wallet Not Found');
+    await expect(walletService.loadWallet('nonexistent')).rejects.toThrow('Wallet Not Found');
   });
 
   describe('isCoinSpendable', () => {
     const coinId = Buffer.from('aabbcc', 'hex');
     let peer: any;
-    let blockchainSpy: jest.SpyInstance;
 
     beforeEach(() => {
       peer = {
         isCoinSpent: jest.fn(),
       };
-      blockchainSpy = jest.spyOn(WalletService['blockchain'], 'isCoinSpendable');
-    });
-
-    afterEach(() => {
-      blockchainSpy.mockRestore();
+      (walletService as any).blockchain.isCoinSpendable = jest.fn();
     });
 
     it('should return true if blockchain.isCoinSpendable resolves true', async () => {
-      blockchainSpy.mockResolvedValue(true);
-      const result = await WalletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
+      (walletService as any).blockchain.isCoinSpendable = jest.fn().mockResolvedValue(true);
+      const result = await walletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
       expect(result).toBe(true);
-      expect(blockchainSpy).toHaveBeenCalledWith(peer, coinId, 0, expect.any(Buffer));
+      expect((walletService as any).blockchain.isCoinSpendable).toHaveBeenCalledWith(peer, coinId, 0, expect.any(Buffer));
     });
 
     it('should return false if blockchain.isCoinSpendable resolves false', async () => {
-      blockchainSpy.mockResolvedValue(false);
-      const result = await WalletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
+      (walletService as any).blockchain.isCoinSpendable = jest.fn().mockResolvedValue(false);
+      const result = await walletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
       expect(result).toBe(false);
     });
 
     it('should return false if blockchain.isCoinSpendable throws', async () => {
-      blockchainSpy.mockRejectedValue(new Error('fail'));
-      const result = await WalletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
+      (walletService as any).blockchain.isCoinSpendable = jest.fn().mockRejectedValue(new Error('fail'));
+      const result = await walletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
       expect(result).toBe(false);
     });
   });
 
   describe('calculateFeeForCoinSpends', () => {
-    // At the time of writing the code there is no good way to fetch the "market rate" of transactions.
-    // Creating this test to ensure the method is revisited and updated after 1 year.
-    // If after 1 year there isn't a better way to calculate the fee, the suggestion is to update
-    // the fee to what is more approrpiate at the time and increase the date on the test.
     it('should return the default fee, but fail if not changed after 1 year', async () => {
       const now = new Date();
       const cutoff = new Date('2026-06-24T00:00:00Z'); // 1 year from today
       if (now >= cutoff) {
         throw new Error('calculateFeeForCoinSpends must be reviewed and updated after 1 year!');
       }
-      const fee = await WalletService.calculateFeeForCoinSpends();
+      const fee = await walletService.calculateFeeForCoinSpends();
       expect(fee).toBe(BigInt(1000000));
     });
   });
