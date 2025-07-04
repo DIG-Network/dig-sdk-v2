@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { Observable } from 'observable-fns';
 import { CoinStateUpdatedEvent } from './CoinIndexerEvents';
 import { CoinRepository, CoinRow } from '../../repositories/CoinRepository';
-import { WalletRepository, WalletRow } from '../../repositories/WalletRepository';
+import { WalletRepository, AddressRow } from '../../repositories/WalletRepository';
 import { IBlockchainService } from '../../interfaces/IBlockChainService';
 import { PeerType, Tls, type Coin } from '@dignetwork/datalayer-driver';
 import { BlockChainType } from '../../types/BlockChain';
@@ -38,7 +38,7 @@ function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: nu
 
 async function sync() {
   if (!coinRepo || !walletRepo || !blockchainService) return;
-  const wallets: WalletRow[] = walletRepo.getWallets();
+  const wallets: AddressRow[] = walletRepo.getWallets();
 
   for (const wallet of wallets) {
     // Find all coins for this wallet that are unspent or pending

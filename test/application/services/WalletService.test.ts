@@ -2,6 +2,8 @@ import { PeerType } from '@dignetwork/datalayer-driver';
 import { WalletService } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
 import { TestBlockchainService } from '../../../src/infrastructure/BlockchainServices/TestBlockchainService';
+import { setupTable } from '../../../src/application/repositories/WalletRepository';
+import Database from 'better-sqlite3';
 
 const WALLET_NAMES = ['wallet1', 'wallet2', 'wallet3'];
 
@@ -18,8 +20,9 @@ async function cleanupWallets() {
 
 describe('WalletService Integration', () => {
   beforeEach(async () => {
-    // await cleanupWallets();
-    walletService = new WalletService(":memory:");
+    await cleanupWallets();
+    setupTable(new Database('wallet.sqlite'));
+    walletService = new WalletService();
   });
 
   it('should create, load, and delete a wallet, and verify Wallet functionality', async () => {
@@ -69,7 +72,7 @@ describe('WalletService Integration', () => {
   });
 
   it('should return empty array if no wallets exist', async () => {
-    const wallets = await walletService.listWallets();
+    const wallets = WalletService.getAddresses();
     expect(wallets).toEqual([]);
   });
 
@@ -79,7 +82,7 @@ describe('WalletService Integration', () => {
       const wallet = await walletService.createNewWallet(name, PeerType.Simulator);
       createdAddresses.push(await wallet.getOwnerPublicKey(PeerType.Simulator));
     }
-    let wallets = await walletService.listWallets();
+    let wallets = WalletService.getAddresses();
     let walletAddresses = wallets.map((w: any) => w.address);
     // All created addresses should be present
     for (const addr of createdAddresses) {
@@ -87,7 +90,7 @@ describe('WalletService Integration', () => {
     }
     // Delete one wallet
     await walletService.deleteWallet(WALLET_NAMES[1]);
-    wallets = await walletService.listWallets();
+    wallets = WalletService.getAddresses();
     walletAddresses = wallets.map((w: any) => w.address);
     // The deleted wallet's address should not be present
     expect(walletAddresses).not.toContain(createdAddresses[1]);
@@ -97,7 +100,7 @@ describe('WalletService Integration', () => {
     // Delete all
     await walletService.deleteWallet(WALLET_NAMES[0]);
     await walletService.deleteWallet(WALLET_NAMES[2]);
-    wallets = await walletService.listWallets();
+    wallets = WalletService.getAddresses();
     expect(wallets).toEqual([]);
   });
 

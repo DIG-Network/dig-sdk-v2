@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { IWalletRepository } from './Interfaces/IWalletRepository';
 
-export interface WalletRow {
+export interface AddressRow {
   address: string;
   namespace: string;
   synced_to_height: number;
@@ -9,7 +9,7 @@ export interface WalletRow {
   name?: string; // Add wallet name as optional field
 }
 
-let setupTable = (db: Database.Database) => {
+export let setupTable = (db: Database.Database) => {
     db.exec(`
       CREATE TABLE IF NOT EXISTS wallet (
         address TEXT PRIMARY KEY,
@@ -56,7 +56,7 @@ export class WalletRepository implements IWalletRepository {
     ).run(name);
   }
 
-  getWallets(): WalletRow[] {
-    return this.db.prepare('SELECT * FROM wallet').all() as WalletRow[];
+  getWallets(): AddressRow[] {
+    return this.db.prepare('SELECT * FROM wallet').all() as AddressRow[];
   }
 }

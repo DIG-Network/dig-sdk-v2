@@ -13,7 +13,7 @@ async function main() {
   const testnetMnemonic = "supreme huge blossom mimic oval wear walnut toy pulp verify object panther logic wait what express alpha dice auction reduce always stuff garlic insane"; // Replace with your actual mnemonic
   const walletDbPath = "wallet.sqlite";
   const walletDb = new Database(walletDbPath)
-  const walletService = new WalletService(walletDbPath);
+  const walletService = new WalletService();
   const coinRepository = new CoinRepository(walletDb);
   // You must have ca.crt and ca.key in your working directory or adjust the path
   const tls = new Tls('ca.crt', 'ca.key');
@@ -28,7 +28,7 @@ async function main() {
     // This starts the CoinIndexer worker and connects to the testnet chia blockchain
     await coinIndexer.start(BlockChainType.Chia, walletDbPath, 24, 'ca.crt', 'ca.key', PeerType.Testnet11);
 
-    const wallets = await walletService.listWallets();
+    const wallets = WalletService.getAddresses();
 
     let wallet;
     if (!wallets.map((wallet => wallet.name)).includes(testnetWalletAddress)) {
