@@ -38,7 +38,7 @@ function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: nu
 
 async function sync() {
   if (!coinRepo || !walletRepo || !blockchainService) return;
-  const wallets: AddressRow[] = walletRepo.getWallets();
+  const wallets: AddressRow[] = walletRepo.getAddresses();
 
   for (const wallet of wallets) {
     // Find all coins for this wallet that are unspent or pending

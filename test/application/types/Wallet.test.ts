@@ -1,8 +1,13 @@
 import { PeerType } from "@dignetwork/datalayer-driver";
+import config from "../../../src/config";
 
 describe('Wallet', () => {
   const TEST_MNEMONIC = 'test test test test test test test test test test test ball';
   let wallet: any;
+
+  beforeEach(() => {
+    config.BLOCKCHAIN_NETWORK = 'testnet';
+  });
 
   it('should return the mnemonic', () => {
     wallet = new (require('../../../src/application/types/Wallet').Wallet)(TEST_MNEMONIC);
@@ -41,13 +46,15 @@ describe('Wallet', () => {
 
   it('should return the expected owner public key for mainet', async () => {
     wallet = new (require('../../../src/application/types/Wallet').Wallet)(TEST_MNEMONIC);
-    const pub = await wallet.getOwnerPublicKey(PeerType.Mainnet);
+    config.BLOCKCHAIN_NETWORK = 'mainnet';
+    const pub = await wallet.getOwnerPublicKey();
     expect(pub).toBe('xch1yjz7rusz8wje6dkx8ch995m9f4wk5kvhw0yzhgyftgl8feusx4gq820cf2');
   });
 
     it('should return the expected owner public key for testnet', async () => {
     wallet = new (require('../../../src/application/types/Wallet').Wallet)(TEST_MNEMONIC);
-    const pub = await wallet.getOwnerPublicKey(PeerType.Testnet11);
+    config.BLOCKCHAIN_NETWORK = 'testnet';
+    const pub = await wallet.getOwnerPublicKey();
     expect(pub).toBe('txch1yjz7rusz8wje6dkx8ch995m9f4wk5kvhw0yzhgyftgl8feusx4gq2dgwge');
   });
 

@@ -1,22 +1,20 @@
-import { L1PeerService } from '../src/application/services/L1PeerService';
 import { PeerType, Tls } from '@dignetwork/datalayer-driver';
-import { ChiaBlockchainService } from '../src/infrastructure/BlockchainServices/ChiaBlockchainService';
 import { CoinIndexer } from '../src/application/workers/CoinIndexer/CoinIndexer';
 import { BlockChainType } from '../src/application/types/BlockChain';
 import { WalletService } from '../src/application/services/WalletService';
 import { CoinRepository } from '../src/application/repositories/CoinRepository';
 import Database from 'better-sqlite3';
-import { WalletRepository } from '../src/application/repositories/WalletRepository';
+import config from '../src/config';
 
 async function main() {
   const testnetWalletAddress = "dev";
-  const testnetMnemonic = "supreme huge blossom mimic oval wear walnut toy pulp verify object panther logic wait what express alpha dice auction reduce always stuff garlic insane"; // Replace with your actual mnemonic
+  const testnetMnemonic = ""; // Replace with your actual mnemonic
   const walletDbPath = "wallet.sqlite";
   const walletDb = new Database(walletDbPath)
-  const walletService = new WalletService();
   const coinRepository = new CoinRepository(walletDb);
   // You must have ca.crt and ca.key in your working directory or adjust the path
   const tls = new Tls('ca.crt', 'ca.key');
+  config.BLOCKCHAIN_NETWORK = 'testnet';
   try {
     console.log('Initial coins in db:');
     coinRepository.getAllCoins().forEach((coin) => {
@@ -32,10 +30,10 @@ async function main() {
 
     let wallet;
     if (!wallets.map((wallet => wallet.name)).includes(testnetWalletAddress)) {
-        wallet = await walletService.createNewWallet(testnetWalletAddress, PeerType.Testnet11, testnetMnemonic);
+        wallet = await WalletService.createAddress(testnetWalletAddress, testnetMnemonic);
         console.log(`Wallet ${testnetWalletAddress} added to DB and keyring.`);
     } else {
-        wallet = await walletService.loadWallet(testnetWalletAddress);
+        wallet = await WalletService.createAddress(testnetWalletAddress);
         console.log(`Wallet ${testnetWalletAddress} loading existing.`);
     }
 

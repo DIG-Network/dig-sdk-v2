@@ -29,7 +29,7 @@ export class WalletRepository implements IWalletRepository {
     setupTable(db);
   }
 
-  addWallet(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
+  addAddress(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
     // Prevent duplicate names
     const exists = this.db.prepare('SELECT 1 FROM wallet WHERE name = ?').get(name);
     if (exists) throw new Error('Wallet with this name already exists');
@@ -50,13 +50,13 @@ export class WalletRepository implements IWalletRepository {
     ).run(address);
   }
 
-  removeWalletByName(name: string) {
+  removeAddressByName(name: string) {
     this.db.prepare(
       `DELETE FROM wallet WHERE name = ?`
     ).run(name);
   }
 
-  getWallets(): AddressRow[] {
+  getAddresses(): AddressRow[] {
     return this.db.prepare('SELECT * FROM wallet').all() as AddressRow[];
   }
 }

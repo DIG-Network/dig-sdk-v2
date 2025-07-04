@@ -63,9 +63,10 @@ export class Wallet implements IWallet {
     return this.blockchain.masterPublicKeyToFirstPuzzleHash(master_pk);
   }
 
-  public async getOwnerPublicKey(peerType: PeerType): Promise<string> {
+  public async getOwnerPublicKey(): Promise<string> {
     const ownerPuzzleHash = await this.getOwnerPuzzleHash();
-    return this.blockchain.puzzleHashToAddress(ownerPuzzleHash, peerType === PeerType.Mainnet ? 'xch' : 'txch');
+    let prefix = this.blockchain.getAddressPrefix();
+    return this.blockchain.puzzleHashToAddress(ownerPuzzleHash, prefix);
   }
 
   public async createKeyOwnershipSignature(nonce: string): Promise<string> {

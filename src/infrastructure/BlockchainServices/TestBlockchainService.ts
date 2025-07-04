@@ -97,4 +97,8 @@ export class TestBlockchainService implements IBlockchainService {
   async connectRandom(peerType: PeerType, tls: Tls): Promise<L1ChiaPeer>{
     throw new Error("Method not implemented.");
   }
+
+  getAddressPrefix() {
+    return 'txch';
+  }
 }
