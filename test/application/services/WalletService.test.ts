@@ -2,6 +2,9 @@ import { PeerType } from '@dignetwork/datalayer-driver';
 import { WalletService } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
 import { TestBlockchainService } from '../../../src/infrastructure/BlockchainServices/TestBlockchainService';
+import { setupTable } from '../../../src/application/repositories/WalletRepository';
+import Database from 'better-sqlite3';
+import config from '../../../src/config';
 
 const WALLET_NAMES = ['wallet1', 'wallet2', 'wallet3'];
 
@@ -18,20 +21,22 @@ async function cleanupWallets() {
 
 describe('WalletService Integration', () => {
   beforeEach(async () => {
-    // await cleanupWallets();
-    walletService = new WalletService(":memory:");
+    config.BLOCKCHAIN_NETWORK = 'testnet';
+    await cleanupWallets();
+    setupTable(new Database('wallet.sqlite'));
+    walletService = new WalletService();
   });
 
   it('should create, load, and delete a wallet, and verify Wallet functionality', async () => {
     // Create a new wallet
-    const wallet = await walletService.createNewWallet(WALLET_NAMES[0], PeerType.Simulator);
+    const wallet = await WalletService.createAddress(WALLET_NAMES[0]);
     expect(wallet).toBeInstanceOf(Wallet);
     const mnemonic = wallet.getMnemonic();
     expect(typeof mnemonic).toBe('string');
     expect(mnemonic.split(' ').length).toBeGreaterThanOrEqual(12);
 
     // Load the wallet
-    const loadedWallet = await walletService.loadWallet(WALLET_NAMES[0]);
+    const loadedWallet = await WalletService.loadAddress(WALLET_NAMES[0]);
     expect(loadedWallet).toBeInstanceOf(Wallet);
     expect(loadedWallet.getMnemonic()).toBe(mnemonic);
 
@@ -53,7 +58,7 @@ describe('WalletService Integration', () => {
     expect(Buffer.isBuffer(ownerPuzzleHash)).toBe(true);
 
     // Wallet class: getOwnerPublicKey returns a string
-    const ownerPublicKey = await loadedWallet.getOwnerPublicKey(PeerType.Simulator);
+    const ownerPublicKey = await loadedWallet.getOwnerPublicKey();
     expect(typeof ownerPublicKey).toBe('string');
     expect(ownerPublicKey.length).toBeGreaterThan(0);
 
@@ -63,31 +68,31 @@ describe('WalletService Integration', () => {
     expect(signature.length).toBeGreaterThan(0);
 
     // Delete the wallet
-    const deleted = await walletService.deleteWallet(WALLET_NAMES[0]);
+    const deleted = await WalletService.deleteAddress(WALLET_NAMES[0]);
     expect(deleted).toBe(true);
-    await expect(walletService.loadWallet(WALLET_NAMES[0])).rejects.toThrow('Wallet Not Found');
+    await expect(WalletService.loadAddress(WALLET_NAMES[0])).rejects.toThrow('Address Not Found');
   });
 
   it('should return empty array if no wallets exist', async () => {
-    const wallets = await walletService.listWallets();
+    const wallets = WalletService.getAddresses();
     expect(wallets).toEqual([]);
   });
 
   it('should list wallets after multiple creates and deletes', async () => {
     const createdAddresses: string[] = [];
     for (const name of WALLET_NAMES) {
-      const wallet = await walletService.createNewWallet(name, PeerType.Simulator);
-      createdAddresses.push(await wallet.getOwnerPublicKey(PeerType.Simulator));
+      const wallet = await WalletService.createAddress(name);
+      createdAddresses.push(await wallet.getOwnerPublicKey());
     }
-    let wallets = await walletService.listWallets();
+    let wallets = WalletService.getAddresses();
     let walletAddresses = wallets.map((w: any) => w.address);
     // All created addresses should be present
     for (const addr of createdAddresses) {
       expect(walletAddresses).toContain(addr);
     }
     // Delete one wallet
-    await walletService.deleteWallet(WALLET_NAMES[1]);
-    wallets = await walletService.listWallets();
+    await WalletService.deleteAddress(WALLET_NAMES[1]);
+    wallets = WalletService.getAddresses();
     walletAddresses = wallets.map((w: any) => w.address);
     // The deleted wallet's address should not be present
     expect(walletAddresses).not.toContain(createdAddresses[1]);
@@ -95,17 +100,17 @@ describe('WalletService Integration', () => {
     expect(walletAddresses).toContain(createdAddresses[0]);
     expect(walletAddresses).toContain(createdAddresses[2]);
     // Delete all
-    await walletService.deleteWallet(WALLET_NAMES[0]);
-    await walletService.deleteWallet(WALLET_NAMES[2]);
-    wallets = await walletService.listWallets();
+    await WalletService.deleteAddress(WALLET_NAMES[0]);
+    await WalletService.deleteAddress(WALLET_NAMES[2]);
+    wallets = WalletService.getAddresses();
     expect(wallets).toEqual([]);
   });
 
   it('should not be able to delete or load a non-existing wallet', async () => {
-    const deleted = await walletService.deleteWallet('nonexistent');
+    const deleted = await WalletService.deleteAddress('nonexistent');
     expect(deleted).toBe(false);
     // Try to load a non-existent wallet
-    await expect(walletService.loadWallet('nonexistent')).rejects.toThrow('Wallet Not Found');
+    await expect(WalletService.loadAddress('nonexistent')).rejects.toThrow('Address Not Found');
   });
 
   describe('isCoinSpendable', () => {

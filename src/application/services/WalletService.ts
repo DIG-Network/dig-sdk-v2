@@ -8,56 +8,53 @@ import type { IBlockchainService } from '../interfaces/IBlockChainService';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { IL1Peer } from '../interfaces/IL1Peer';
 import Database from 'better-sqlite3';
-import { WalletRepository, WalletRow } from '../repositories/WalletRepository';
-import { PeerType } from '@dignetwork/datalayer-driver';
+import { WalletRepository, AddressRow } from '../repositories/WalletRepository';
 
 const KEYRING_FILE = 'keyring.json';
 const WALLET_DB_FILE = 'wallet.sqlite';
 
 export class WalletService {
   private blockchain: IBlockchainService;
-  private db: Database.Database;
-  private walletRepo: WalletRepository;
+  private static db: Database.Database = new Database(WALLET_DB_FILE);
+  private static walletRepo: WalletRepository = new WalletRepository(WalletService.db);
 
-  constructor(dbPath: string = WALLET_DB_FILE) {
+  constructor() {
     this.blockchain = new ChiaBlockchainService();
-    this.db = new Database(dbPath);
-    this.walletRepo = new WalletRepository(this.db);
   }
 
-  public async loadWallet(walletName: string = 'default'): Promise<Wallet> {
-    const mnemonic = await this.getMnemonicFromKeyring(walletName);
+  public static async loadAddress(addressName: string = 'default'): Promise<Wallet> {
+    const mnemonic = await this.getMnemonicFromKeyring(addressName);
     if (mnemonic) {
       const wallet = new Wallet(mnemonic);
       return wallet;
     }
 
-    throw new Error('Wallet Not Found');
+    throw new Error('Address Not Found');
   }
 
-  public async createNewWallet(walletName: string, peerType: PeerType, mnemonic?: string): Promise<Wallet> {
+  public static async createAddress(addressName: string, mnemonic?: string): Promise<Wallet> {
     const generatedMnemonic = bip39.generateMnemonic(256);
-    await this.saveWalletToKeyring(walletName, mnemonic ?? generatedMnemonic);
-    let wallet = await this.loadWallet(walletName);
-    const address = await wallet.getOwnerPublicKey(peerType);
-    this.walletRepo.addWallet(address, walletName);
+    await this.saveAddressToKeyring(addressName, mnemonic ?? generatedMnemonic);
+    let wallet = await this.loadAddress(addressName);
+    const address = await wallet.getOwnerPublicKey();
+    WalletService.walletRepo.addAddress(address, addressName);
 
     return wallet;
   }
 
-  public async deleteWallet(walletName: string): Promise<boolean> {
+  public static async deleteAddress(addressName: string): Promise<boolean> {
     const nconfService = new NconfService(KEYRING_FILE);
     let deleted = false;
     if (await nconfService.configExists()) {
-      deleted = await nconfService.deleteConfigValue(walletName);
+      deleted = await nconfService.deleteConfigValue(addressName);
     }
     // Remove from DB as well
-    this.walletRepo.removeWalletByName(walletName);
+    WalletService.walletRepo.removeAddressByName(addressName);
     return deleted;
   }
 
-  public async listWallets(): Promise<WalletRow[]> {
-    return this.walletRepo.getWallets();
+  public static getAddresses(): AddressRow[] {
+    return WalletService.walletRepo.getAddresses();
   }
 
   public async verifyKeyOwnershipSignature(
@@ -85,7 +82,7 @@ export class WalletService {
     }
   }
 
-  private async getMnemonicFromKeyring(walletName: string): Promise<string | null> {
+  private static async getMnemonicFromKeyring(walletName: string): Promise<string | null> {
     const nconfService = new NconfService(KEYRING_FILE);
     if (await nconfService.configExists()) {
       const encryptedData: EncryptedData | null = await nconfService.getConfigValue(walletName);
@@ -96,7 +93,7 @@ export class WalletService {
     return null;
   }
 
-  private async saveWalletToKeyring(walletName: string, mnemonic: string): Promise<void> {
+  private static async saveAddressToKeyring(walletName: string, mnemonic: string): Promise<void> {
     const nconfService = new NconfService(KEYRING_FILE);
     const encryptedData = EncryptionService.encryptData(mnemonic);
     await nconfService.setConfigValue(walletName, encryptedData);

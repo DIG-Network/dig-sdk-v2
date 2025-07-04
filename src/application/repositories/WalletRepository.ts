@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { IWalletRepository } from './Interfaces/IWalletRepository';
 
-export interface WalletRow {
+export interface AddressRow {
   address: string;
   namespace: string;
   synced_to_height: number;
@@ -9,7 +9,7 @@ export interface WalletRow {
   name?: string; // Add wallet name as optional field
 }
 
-let setupTable = (db: Database.Database) => {
+export let setupTable = (db: Database.Database) => {
     db.exec(`
       CREATE TABLE IF NOT EXISTS wallet (
         address TEXT PRIMARY KEY,
@@ -29,7 +29,7 @@ export class WalletRepository implements IWalletRepository {
     setupTable(db);
   }
 
-  addWallet(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
+  addAddress(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
     // Prevent duplicate names
     const exists = this.db.prepare('SELECT 1 FROM wallet WHERE name = ?').get(name);
     if (exists) throw new Error('Wallet with this name already exists');
@@ -50,13 +50,13 @@ export class WalletRepository implements IWalletRepository {
     ).run(address);
   }
 
-  removeWalletByName(name: string) {
+  removeAddressByName(name: string) {
     this.db.prepare(
       `DELETE FROM wallet WHERE name = ?`
     ).run(name);
   }
 
-  getWallets(): WalletRow[] {
-    return this.db.prepare('SELECT * FROM wallet').all() as WalletRow[];
+  getAddresses(): AddressRow[] {
+    return this.db.prepare('SELECT * FROM wallet').all() as AddressRow[];
   }
 }

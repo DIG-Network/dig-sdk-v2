@@ -13,6 +13,7 @@ export interface IBlockchainService {
   masterSecretKeyToWalletSyntheticSecretKey(secretKey: Buffer): Buffer;
   masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer;
   puzzleHashToAddress(puzzleHash: Buffer, prefix: string): string;
+  getAddressPrefix(): string;
   signMessage(message: Buffer, privateKey: Buffer): Buffer;
   // Coin selection
   getCoinId(coin: Coin): Buffer;

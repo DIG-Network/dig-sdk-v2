@@ -16,6 +16,7 @@ import { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/dat
 import { PrivateKey } from 'chia-bls';
 import { L1ChiaPeer } from "../Peers/L1ChiaPeer";
 import { IL1Peer } from "../../application/interfaces/IL1Peer";
+import config from "../../config";
 
 export class ChiaBlockchainService implements IBlockchainService {
   async getCurrentBlockchainHeight(): Promise<number> {
@@ -48,6 +49,10 @@ export class ChiaBlockchainService implements IBlockchainService {
 
   puzzleHashToAddress(puzzleHash: Buffer, prefix: string): string {
     return puzzleHashToAddress(puzzleHash, prefix);
+  }
+
+  getAddressPrefix(): string {
+    return config.BLOCKCHAIN_NETWORK === 'mainnet' ? 'xch' : 'txch';
   }
 
   signMessage(message: Buffer, privateKey: Buffer): Buffer {
