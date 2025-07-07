@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { spawn, Worker, Thread } from 'threads';
-import { Block } from '../../types/Block';
 import { IWorker } from '../IWorker';
+import { Block } from '../../../application/types/Block';
 import { BlockIndexerEventNames, BlockIndexerEvents } from './BlockIndexerEvents';
 
 interface BlockIndexerWorkerApi {
@@ -39,7 +39,7 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
       // Use src worker for tests/dev, dist worker for production
       let workerPath: string;
       if (process.env.JEST_WORKER_ID !== undefined || process.env.NODE_ENV === 'test') {
-        workerPath = '../../../../dist/application/workers/BlockIndexer/BlockIndexer.worker.js';
+        workerPath = '../../../../dist/infrastructure/Workers/BlockIndexer/BlockIndexer.worker.js';
       } else {
         workerPath = './BlockIndexer.worker.ts';
       }

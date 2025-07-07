@@ -1,6 +1,6 @@
-import { Block } from "../types/Block";
+import { Block } from "../../application/types/Block";
 import type { Coin, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
-import { IL1Peer } from "./IL1Peer";
+import { IL1ChiaPeer } from "../Peers/L1ChiaPeer";
 
 
 export interface IBlockchainService {
@@ -21,16 +21,16 @@ export interface IBlockchainService {
   // ColdWallet/WalletService methods
   getPuzzleHash(address: string): Buffer;
   listUnspentCoins(
-    peer: IL1Peer,
+    peer: IL1ChiaPeer,
     puzzleHash: Buffer,
     previousHeight: number,
     previousHeaderHash: Buffer
   ): Promise<UnspentCoinsResponse>;
   isCoinSpendable(
-    peer: IL1Peer,
+    peer: IL1ChiaPeer,
     coinId: Buffer,
     lastHeight: number,
     headerHash: Buffer
   ): Promise<boolean>;
-  connectRandom(peerType: PeerType, tls: Tls): Promise<IL1Peer>
+  connectRandom(peerType: PeerType, tls: Tls): Promise<IL1ChiaPeer>
 }

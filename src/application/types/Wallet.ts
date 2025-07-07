@@ -1,5 +1,5 @@
 import { mnemonicToSeedSync } from 'bip39';
-import type { IBlockchainService } from '../interfaces/IBlockChainService';
+import type { IBlockchainService } from '../../infrastructure/BlockchainServices/IBlockChainService';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { IAssetBalance } from './AssetBalance';
 import { IBalanceRepository } from '../repositories/Interfaces/IBalanceRepository';

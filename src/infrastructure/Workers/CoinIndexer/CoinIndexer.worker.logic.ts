@@ -1,15 +1,16 @@
 import { Observable } from 'observable-fns';
-import { CoinStateUpdatedEvent } from './CoinIndexerEvents';
-import { CoinRepository, CoinRow } from '../../../infrastructure/Repositories/CoinRepository';
-import { WalletRepository, AddressRow } from '../../repositories/WalletRepository';
-import { IBlockchainService } from '../../interfaces/IBlockChainService';
+import { CoinRepository, CoinRow } from '../../Repositories/CoinRepository';
 import { PeerType, Tls, type Coin } from '@dignetwork/datalayer-driver';
-import { BlockChainType } from '../../types/BlockChain';
-import { TestBlockchainService } from '../../../infrastructure/BlockchainServices/TestBlockchainService';
-import { ChiaBlockchainService } from '../../../infrastructure/BlockchainServices/ChiaBlockchainService';
-import { CoinStatus } from '../../types/CoinStatus';
-import { IL1Peer } from '../../interfaces/IL1Peer';
-import { L1PeerService } from '../../services/L1PeerService';
+import { TestBlockchainService } from '../../BlockchainServices/TestBlockchainService';
+import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
+import { IBlockchainService } from '../../BlockchainServices/IBlockChainService';
+import { WalletRepository, AddressRow } from '../../../application/repositories/WalletRepository';
+import { L1PeerService } from '../../Peers/L1PeerService';
+import { BlockChainType } from '../../../application/types/BlockChain';
+import { CoinStatus } from '../../../application/types/CoinStatus';
+import { CoinStateUpdatedEvent } from './CoinIndexerEvents';
+import { IL1ChiaPeer } from '../../Peers/L1ChiaPeer';
+
 
 let coinRepo: CoinRepository | null = null;
 let walletRepo: WalletRepository | null = null;
@@ -48,7 +49,7 @@ async function sync() {
     let fetchFromHeight = minSynchedHeight;
 
     // Fetch unspent coins from blockchain service
-    const unspent = await L1PeerService.withPeer(async (peer: IL1Peer) => {
+    const unspent = await L1PeerService.withPeer(async (peer: IL1ChiaPeer) => {
       let fetchFromHash = await peer.getHeaderHashByHeight(fetchFromHeight);
 
       return await blockchainService!.listUnspentCoins(

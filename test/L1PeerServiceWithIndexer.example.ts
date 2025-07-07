@@ -1,10 +1,9 @@
-import { PeerType, Tls } from '@dignetwork/datalayer-driver';
-import { CoinIndexer } from '../src/application/workers/CoinIndexer/CoinIndexer';
+import { PeerType } from '@dignetwork/datalayer-driver';
+import { CoinIndexer } from '../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
 import { BlockChainType } from '../src/application/types/BlockChain';
-import { WalletService } from '../src/application/services/WalletService';
-import { CoinRepository } from '../src/infrastructure/Repositories/CoinRepository';
 import config from '../src/config';
 import { Wallet } from '../src/application/types/Wallet';
+import { WalletService } from '../src/application/services/WalletService';
 
 async function main() {
   const testnetWalletAddress = 'dev';

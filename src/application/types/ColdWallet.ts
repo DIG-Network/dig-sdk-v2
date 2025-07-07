@@ -1,7 +1,7 @@
 import config from '../../config';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { ChiaBalanceRepository } from '../../infrastructure/Repositories/ChiaBalanceRepository';
-import type { IBlockchainService } from '../interfaces/IBlockChainService';
+import type { IBlockchainService } from '../../infrastructure/BlockchainServices/IBlockChainService';
 import { IBalanceRepository } from '../repositories/Interfaces/IBalanceRepository';
 import { IAssetBalance } from './AssetBalance';
 

@@ -1,4 +1,4 @@
-import { api as coinIndexerApi } from '../../../../src/application/workers/CoinIndexer/CoinIndexer.worker.logic';
+import { api as coinIndexerApi } from '../../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer.worker.logic';
 import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import { PeerType } from '@dignetwork/datalayer-driver';
 

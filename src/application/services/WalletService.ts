@@ -1,12 +1,10 @@
-import { Buffer } from 'buffer';
 import * as bip39 from 'bip39';
 import { NconfService } from '../../infrastructure/ConfigurationServices/NconfService';
 import { EncryptionService } from './EncryptionService';
 import { EncryptedData } from '../types/EncryptedData';
 import { Wallet } from '../types/Wallet';
-import type { IBlockchainService } from '../interfaces/IBlockChainService';
+import type { IBlockchainService } from '../../infrastructure/BlockchainServices/IBlockChainService';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
-import { IL1Peer } from '../interfaces/IL1Peer';
 import { AddressRow, WalletRepository } from '../repositories/WalletRepository';
 
 const KEYRING_FILE = 'keyring.json';
@@ -56,14 +54,6 @@ export class WalletService {
 
   public async calculateFeeForCoinSpends(): Promise<bigint> {
     return BigInt(1000000);
-  }
-
-  public async isCoinSpendable(peer: IL1Peer, coinId: Buffer, lastHeight: number, lastHeaderHash: string): Promise<boolean> {
-    try {
-      return await this.blockchain.isCoinSpendable(peer, coinId, lastHeight, Buffer.from(lastHeaderHash, 'hex'));
-    } catch {
-      return false;
-    }
   }
 
   private static async getMnemonicFromKeyring(walletName: string): Promise<string | null> {

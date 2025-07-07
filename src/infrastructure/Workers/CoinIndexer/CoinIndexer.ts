@@ -1,12 +1,8 @@
 import { EventEmitter } from 'events';
 import { spawn, Worker, Thread } from 'threads';
-import { IWorker } from '../IWorker';
-import {
-  CoinIndexerEventNames,
-  CoinIndexerEvents,
-  CoinStateUpdatedEvent,
-} from './CoinIndexerEvents';
 import { PeerType } from '@dignetwork/datalayer-driver';
+import { IWorker } from '../IWorker';
+import { CoinIndexerEventNames, CoinIndexerEvents, CoinStateUpdatedEvent } from './CoinIndexerEvents';
 
 export interface CoinIndexerWorkerApi {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +48,7 @@ export class CoinIndexer
     if (this.started) return;
     if (!this.worker) {
       // Use src worker for tests/dev, dist worker for production
-      let workerPath = '../../../../dist/application/workers/CoinIndexer/CoinIndexer.worker.js';
+      let workerPath = '../../../../dist/infrastructure/Workers/CoinIndexer/CoinIndexer.worker.js';
 
       this.worker = (await spawn(
         new Worker(workerPath),

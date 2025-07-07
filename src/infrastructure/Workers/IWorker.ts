@@ -1,4 +1,4 @@
-import { BlockChainType } from '../types/BlockChain';
+import { BlockChainType } from "../../application/types/BlockChain";
 
 export interface IWorker {
   start(blockchainType: BlockChainType, restartIntervalHours?: number): Promise<void>;

@@ -1,7 +1,5 @@
-import { PeerType } from '@dignetwork/datalayer-driver';
-import { WalletService } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
-import { TestBlockchainService } from '../../../src/infrastructure/BlockchainServices/TestBlockchainService';
+import { WalletService } from '../../../src/application/services/WalletService';
 import { setupTable } from '../../../src/application/repositories/WalletRepository';
 import Database from 'better-sqlite3';
 import config from '../../../src/config';
@@ -111,37 +109,6 @@ describe('WalletService Integration', () => {
     expect(deleted).toBe(false);
     // Try to load a non-existent wallet
     await expect(WalletService.loadAddress('nonexistent')).rejects.toThrow('Address Not Found');
-  });
-
-  describe('isCoinSpendable', () => {
-    const coinId = Buffer.from('aabbcc', 'hex');
-    let peer: any;
-
-    beforeEach(() => {
-      peer = {
-        isCoinSpent: jest.fn(),
-      };
-      (walletService as any).blockchain.isCoinSpendable = jest.fn();
-    });
-
-    it('should return true if blockchain.isCoinSpendable resolves true', async () => {
-      (walletService as any).blockchain.isCoinSpendable = jest.fn().mockResolvedValue(true);
-      const result = await walletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
-      expect(result).toBe(true);
-      expect((walletService as any).blockchain.isCoinSpendable).toHaveBeenCalledWith(peer, coinId, 0, expect.any(Buffer));
-    });
-
-    it('should return false if blockchain.isCoinSpendable resolves false', async () => {
-      (walletService as any).blockchain.isCoinSpendable = jest.fn().mockResolvedValue(false);
-      const result = await walletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
-      expect(result).toBe(false);
-    });
-
-    it('should return false if blockchain.isCoinSpendable throws', async () => {
-      (walletService as any).blockchain.isCoinSpendable = jest.fn().mockRejectedValue(new Error('fail'));
-      const result = await walletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
-      expect(result).toBe(false);
-    });
   });
 
   describe('calculateFeeForCoinSpends', () => {

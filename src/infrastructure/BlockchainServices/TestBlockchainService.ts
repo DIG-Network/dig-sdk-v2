@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { IBlockchainService } from "../../application/interfaces/IBlockChainService";
+import { IBlockchainService } from "./IBlockChainService";
 import { Block } from "../../application/types/Block";
 import Database from 'better-sqlite3';
 import type { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { COIN_TABLE_CREATE_SQL, CoinRow } from "../Repositories/CoinRepository";
-import { L1ChiaPeer } from "../Peers/L1ChiaPeer";
-import { IL1Peer } from "../../application/interfaces/IL1Peer";
+import { IL1ChiaPeer, L1ChiaPeer } from "../Peers/L1ChiaPeer";
 import { WALLET_TABLE_CREATE_SQL } from "../../application/repositories/WalletRepository";
 import { CREATE_BLOCKS_TABLE_SQL } from "../../application/repositories/BlockRepository";
 
@@ -50,7 +49,7 @@ export class TestBlockchainService implements IBlockchainService {
 
   
   async listUnspentCoins(
-    peer: IL1Peer,
+    peer: IL1ChiaPeer,
     puzzleHash: Buffer,
     previousHeight: number,
     previousHeaderHash: Buffer
@@ -80,7 +79,7 @@ export class TestBlockchainService implements IBlockchainService {
     return { coins, lastHeight: 0, lastHeaderHash: Buffer.alloc(32) };
   }
   async isCoinSpendable(
-    peer: IL1Peer,
+    peer: IL1ChiaPeer,
     coinId: Buffer,
     lastHeight: number,
     headerHash: Buffer

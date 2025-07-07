@@ -1,4 +1,4 @@
-import { IBlockchainService } from "../../application/interfaces/IBlockChainService";
+import { IBlockchainService } from "./IBlockChainService";
 import { Block } from "../../application/types/Block";
 import {
   masterSecretKeyToWalletSyntheticSecretKey,
@@ -13,8 +13,7 @@ import {
 } from '@dignetwork/datalayer-driver';
 import { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { PrivateKey } from 'chia-bls';
-import { L1ChiaPeer } from "../Peers/L1ChiaPeer";
-import { IL1Peer } from "../../application/interfaces/IL1Peer";
+import { IL1ChiaPeer, L1ChiaPeer } from "../Peers/L1ChiaPeer";
 import config from "../../config";
 
 export class ChiaBlockchainService implements IBlockchainService {
@@ -71,7 +70,7 @@ export class ChiaBlockchainService implements IBlockchainService {
   }
 
   async listUnspentCoins(
-    peer: IL1Peer,
+    peer: IL1ChiaPeer,
     puzzleHash: Buffer,
     previousHeight: number,
     previousHeaderHash: Buffer
@@ -80,7 +79,7 @@ export class ChiaBlockchainService implements IBlockchainService {
   }
   
   async isCoinSpendable(
-    peer: IL1Peer,
+    peer: IL1ChiaPeer,
     coinId: Buffer,
     lastHeight: number,
     headerHash: Buffer
