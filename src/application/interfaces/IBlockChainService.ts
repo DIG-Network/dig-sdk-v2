@@ -20,7 +20,6 @@ export interface IBlockchainService {
   selectCoins(coins: Coin[], amount: bigint): Coin[];
   // ColdWallet/WalletService methods
   getPuzzleHash(address: string): Buffer;
-  verifyKeySignature(signature: Buffer, publicKey: Buffer, message: Buffer): boolean;
   listUnspentCoins(
     peer: IL1Peer,
     puzzleHash: Buffer,

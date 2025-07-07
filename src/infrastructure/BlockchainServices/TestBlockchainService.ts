@@ -47,9 +47,8 @@ export class TestBlockchainService implements IBlockchainService {
   getPuzzleHash(address: string): Buffer {
     return Buffer.from(address, 'utf-8'); // Dummy
   }
-  verifyKeySignature(signature: Buffer, publicKey: Buffer, message: Buffer): boolean {
-    return true; // Dummy
-  }
+
+  
   async listUnspentCoins(
     peer: IL1Peer,
     puzzleHash: Buffer,

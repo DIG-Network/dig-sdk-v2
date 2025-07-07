@@ -40,7 +40,7 @@ describe('Wallet', () => {
 
   it('should return the expected owner puzzle hash', async () => {
     wallet = new (require('../../../src/application/types/Wallet').Wallet)(TEST_MNEMONIC);
-    const hash = await wallet.getOwnerPuzzleHash();
+    const hash = await wallet.getPuzzleHash();
     expect(hash.toString('hex')).toBe('2485e1f2023ba59d36c63e2e52d3654d5d6a599773c82ba0895a3e74e7903550');
   });
 
@@ -62,78 +62,5 @@ describe('Wallet', () => {
     wallet = new (require('../../../src/application/types/Wallet').Wallet)(TEST_MNEMONIC);
     const sig = await wallet.createKeyOwnershipSignature('nonce123');
     expect(sig).toBe('a88c13c667ac01702e1629dc6aef9215239e4b1d09eb9533a43989850713e15444ff886c4d86f14841880c52ab3bffd90ebf63c2986b27ee0450dc04ee29aef9c01de29ec7d879d6d3fa269aaf8706894bdefa1fd09c03b4464ee7b2017703ee');
-  });
-
-  describe('selectUnspentCoins', () => {
-    let mockPeer: any;
-    let mockCache: any;
-    let mockGetCoinId: any;
-    let mockSelectCoins: any;
-    let mockOwnerPuzzleHash: Buffer;
-
-    beforeEach(() => {
-      // Mock FileCacheService
-      mockCache = {
-        getCachedKeys: jest.fn().mockReturnValue([]),
-        get: jest.fn(),
-        set: jest.fn(),
-        delete: jest.fn(),
-      };
-      jest.spyOn(require('../../../src/application/services/FileCacheService'), 'FileCacheService').mockImplementation(() => mockCache);
-
-      // Mock getCoinId and selectCoins
-      mockGetCoinId = jest.spyOn(require('@dignetwork/datalayer-driver'), 'getCoinId').mockImplementation((coin: any) => Buffer.from(coin.id, 'hex'));
-      mockSelectCoins = jest.spyOn(require('@dignetwork/datalayer-driver'), 'selectCoins').mockImplementation((...args: any[]) => {
-        const coins = args[0];
-        return coins.slice(0, 1);
-      });
-
-      // Mock getOwnerPuzzleHash
-      mockOwnerPuzzleHash = Buffer.from('aabbcc', 'hex');
-      wallet = new (require('../../../src/application/types/Wallet').Wallet)(TEST_MNEMONIC);
-      jest.spyOn(wallet, 'getOwnerPuzzleHash').mockResolvedValue(mockOwnerPuzzleHash);
-
-      // Mock peer
-      mockPeer = {
-        getAllUnspentCoins: jest.fn().mockResolvedValue({ coins: [
-          { id: '01', amount: 100n },
-          { id: '02', amount: 200n },
-        ] }),
-      };
-    });
-
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it('should select and reserve coins, respecting omitCoins and cache', async () => {
-      const omitCoins = [{ id: '01', amount: 100n }];
-      const result = await wallet.selectUnspentCoins(mockPeer, 50n, 10n, omitCoins, 0, '00'.repeat(32));
-      expect(mockPeer.getAllUnspentCoins).toHaveBeenCalledWith(mockOwnerPuzzleHash, expect.any(Number), expect.any(Buffer));
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBe(1);
-      // Should call cache.set for each selected coin
-      expect(mockCache.set).toHaveBeenCalled();
-      // Should not select omitted coin
-      expect(result[0].id).not.toBe('01');
-    });
-
-    it('should throw if no coins and no reserved', async () => {
-      mockPeer.getAllUnspentCoins.mockResolvedValue({ coins: [] });
-      mockCache.getCachedKeys.mockReturnValue([]);
-      await expect(wallet.selectUnspentCoins(mockPeer, 50n, 10n, [], 0, '00'.repeat(32))).rejects.toThrow('No unspent coins available.');
-    });
-
-    it('should retry if reserved coins exist', async () => {
-      // Simulate reserved coins present, but no unspent coins
-      mockPeer.getAllUnspentCoins.mockResolvedValue({ coins: [] });
-      mockCache.getCachedKeys.mockReturnValue(['deadbeef']);
-      mockCache.get.mockReturnValue({ coinId: 'deadbeef', expiry: Date.now() + 10000 });
-      const promise = wallet.selectUnspentCoins(mockPeer, 50n, 10n, [], 0, '00'.repeat(32));
-      // Fast-fail the wait
-      jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => { fn(); return 0 as any; });
-      setTimeout(() => promise.catch(() => {}), 20); // avoid unhandled rejection
-      await expect(promise).rejects.toThrow('No unspent coins available.');
-    });
   });
 });

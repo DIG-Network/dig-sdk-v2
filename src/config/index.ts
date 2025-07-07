@@ -1,7 +1,7 @@
 interface DigConfig {
   DIG_FOLDER_PATH: string;
-  BLOCKCHAIN: string,
-  BLOCKCHAIN_NETWORK?: 'mainnet' | 'testnet'; // Optional field for blockchain network
+  BLOCKCHAIN: 'chia' | 'test',
+  BLOCKCHAIN_NETWORK?: 'mainnet' | 'testnet';
 }
 
 const config: DigConfig = {

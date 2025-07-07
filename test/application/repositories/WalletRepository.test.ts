@@ -7,12 +7,12 @@ describe('WalletRepository', () => {
   let walletRepo: IWalletRepository;
 
   beforeEach(() => {
-    db = new Database(WALLET_DB_FILE);
-    db.prepare('DELETE FROM wallet').run();
     walletRepo = new WalletRepository();
   });
 
   afterEach(() => {
+    db = new Database(WALLET_DB_FILE);
+    db.prepare('DELETE FROM wallet').run();
     db.close();
   });
 

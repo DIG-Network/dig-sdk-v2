@@ -10,7 +10,6 @@ import {
   getCoinId,
   selectCoins,
   addressToPuzzleHash,
-  verifySignedMessage,
 } from '@dignetwork/datalayer-driver';
 import { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { PrivateKey } from 'chia-bls';
@@ -69,9 +68,6 @@ export class ChiaBlockchainService implements IBlockchainService {
 
   getPuzzleHash(address: string): Buffer {
     return addressToPuzzleHash(address);
-  }
-  verifyKeySignature(signature: Buffer, publicKey: Buffer, message: Buffer): boolean {
-    return verifySignedMessage(signature, publicKey, message);
   }
 
   async listUnspentCoins(

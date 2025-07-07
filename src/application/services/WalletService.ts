@@ -54,19 +54,6 @@ export class WalletService {
     return WalletService.walletRepo.getAddresses();
   }
 
-  public async verifyKeyOwnershipSignature(
-    nonce: string,
-    signature: string,
-    publicKey: string,
-  ): Promise<boolean> {
-    const message = `Signing this message to prove ownership of key.\n\nNonce: ${nonce}`;
-    return this.blockchain.verifyKeySignature(
-      Buffer.from(signature, 'hex'),
-      Buffer.from(publicKey, 'hex'),
-      Buffer.from(message, 'utf-8'),
-    );
-  }
-
   public async calculateFeeForCoinSpends(): Promise<bigint> {
     return BigInt(1000000);
   }

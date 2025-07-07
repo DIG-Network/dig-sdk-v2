@@ -53,8 +53,8 @@ describe('WalletService Integration', () => {
     const privateSyntheticKey = await loadedWallet.getPrivateSyntheticKey();
     expect(Buffer.isBuffer(privateSyntheticKey)).toBe(true);
 
-    // Wallet class: getOwnerPuzzleHash returns a Buffer
-    const ownerPuzzleHash = await loadedWallet.getOwnerPuzzleHash();
+    // Wallet class: getPuzzleHash returns a Buffer
+    const ownerPuzzleHash = await loadedWallet.getPuzzleHash();
     expect(Buffer.isBuffer(ownerPuzzleHash)).toBe(true);
 
     // Wallet class: getOwnerPublicKey returns a string
