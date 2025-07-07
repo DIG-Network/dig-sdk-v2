@@ -8,9 +8,9 @@ describe('CoinRepository', () => {
   let coinRepo: ICoinRepository;
 
   beforeEach(() => {
+    coinRepo = new CoinRepository();
     db = new Database(WALLET_DB_FILE);
     db.prepare('DELETE FROM coin').run();
-    coinRepo = new CoinRepository();
   });
 
   afterEach(() => {
