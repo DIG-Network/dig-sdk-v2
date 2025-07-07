@@ -4,10 +4,17 @@ import type { IBlockchainService } from '../interfaces/IBlockChainService';
 import { Coin, PeerType } from '@dignetwork/datalayer-driver';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { IL1Peer } from '../interfaces/IL1Peer';
+import { IAssetBalance } from './AssetBalance';
+import { IBalanceRepository } from '../repositories/Interfaces/IBalanceRepository';
+import config from '../../config';
+import { ChiaBalanceRepository } from '../../infrastructure/Repositories/ChiaBalanceRepository';
 
 const COIN_CACHE_DURATION = 600000;
 
 export interface IWallet {
+  getBalance(assetId: string): Promise<IAssetBalance>
+  getBalances(): Promise<IAssetBalance[]>
+
   getMnemonic(): string;
   getMasterSecretKey(): Promise<Buffer>;
   getPublicSyntheticKey(): Promise<Buffer>;
@@ -28,10 +35,18 @@ export interface IWallet {
 export class Wallet implements IWallet {
   private mnemonic: string;
   private blockchain: IBlockchainService;
+  private balanceRepository: IBalanceRepository;
 
   public constructor(mnemonic: string) {
     this.mnemonic = mnemonic;
-    this.blockchain = new ChiaBlockchainService();
+
+    switch (config.BLOCKCHAIN) {
+      case 'chia':
+      default:
+        this.blockchain = new ChiaBlockchainService();
+        this.balanceRepository = new ChiaBalanceRepository();
+        break;
+    }
   }
 
   public getMnemonic(): string {
@@ -39,6 +54,17 @@ export class Wallet implements IWallet {
       throw new Error('Mnemonic seed phrase is not loaded.');
     }
     return this.mnemonic;
+  }
+
+  public async getBalance(assetId: string): Promise<IAssetBalance> {
+    let address = await this.getOwnerPublicKey();
+    const balance = this.balanceRepository.getBalance(address, assetId);
+    return { assetId, balance };
+  }
+
+  public async getBalances(): Promise<IAssetBalance[]> {
+    let address = await this.getOwnerPublicKey();
+    return this.balanceRepository.getBalancesByAsset(address);
   }
 
   public async getMasterSecretKey(): Promise<Buffer> {

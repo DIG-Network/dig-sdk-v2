@@ -3,25 +3,20 @@ import { IBlockchainService } from "../../application/interfaces/IBlockChainServ
 import { Block } from "../../application/types/Block";
 import Database from 'better-sqlite3';
 import type { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
-import { CoinRow } from "../../application/repositories/CoinRepository";
+import { COIN_TABLE_CREATE_SQL, CoinRow } from "../Repositories/CoinRepository";
 import { L1ChiaPeer } from "../Peers/L1ChiaPeer";
 import { IL1Peer } from "../../application/interfaces/IL1Peer";
+import { WALLET_TABLE_CREATE_SQL } from "../../application/repositories/WalletRepository";
+import { CREATE_BLOCKS_TABLE_SQL } from "../../application/repositories/BlockRepository";
 
 export class TestBlockchainService implements IBlockchainService {
   private db: Database.Database;
 
   constructor() {
     this.db = new Database('testservice.sqlite');
-    this.db.exec(`CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-    this.db.exec(`CREATE TABLE IF NOT EXISTS coin (coin_id BLOB, parentCoinInfo BLOB, puzzleHash BLOB, amount TEXT, status TEXT, walletId TEXT, height INTEGER)`);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS wallet (
-        address TEXT PRIMARY KEY,
-        namespace TEXT DEFAULT 'default',
-        synced_to_height INTEGER,
-        synced_to_hash TEXT
-      );
-    `);
+    this.db.exec(CREATE_BLOCKS_TABLE_SQL);
+    this.db.exec(COIN_TABLE_CREATE_SQL);
+    this.db.exec(WALLET_TABLE_CREATE_SQL);
   }
 
   async getCurrentBlockchainHeight(): Promise<number> {
@@ -65,7 +60,7 @@ export class TestBlockchainService implements IBlockchainService {
     let rows: CoinRow[] = [];
     try{
       rows = this.db.prepare(
-        'SELECT coin_id, parentCoinInfo, puzzleHash, amount, status, walletId, height FROM coin'
+        'SELECT coinId, parentCoinInfo, puzzleHash, amount, status, walletId FROM coin'
       ).all() as CoinRow[];
     }
     catch (error) {

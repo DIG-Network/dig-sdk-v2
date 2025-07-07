@@ -3,12 +3,13 @@ import { Block } from '../types/Block';
 import { IBlockRepository } from './Interfaces/IBlockRepository';
 
 export const CREATE_BLOCKS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`;
+export const BLOCK_DB_FILE = 'blocks.sqlite'
 
 export class BlockRepository implements IBlockRepository {
   private db: Database.Database;
 
-  constructor(db: Database.Database) {
-    this.db = db;
+  constructor() {
+    this.db = new Database(BLOCK_DB_FILE);
     this.db.exec(CREATE_BLOCKS_TABLE_SQL);
   }
 

@@ -7,16 +7,13 @@ import { Wallet } from '../types/Wallet';
 import type { IBlockchainService } from '../interfaces/IBlockChainService';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { IL1Peer } from '../interfaces/IL1Peer';
-import Database from 'better-sqlite3';
-import { WalletRepository, AddressRow } from '../repositories/WalletRepository';
+import { AddressRow, WalletRepository } from '../repositories/WalletRepository';
 
 const KEYRING_FILE = 'keyring.json';
-const WALLET_DB_FILE = 'wallet.sqlite';
 
 export class WalletService {
   private blockchain: IBlockchainService;
-  private static db: Database.Database = new Database(WALLET_DB_FILE);
-  private static walletRepo: WalletRepository = new WalletRepository(WalletService.db);
+  private static walletRepo: WalletRepository = new WalletRepository();
 
   constructor() {
     this.blockchain = new ChiaBlockchainService();

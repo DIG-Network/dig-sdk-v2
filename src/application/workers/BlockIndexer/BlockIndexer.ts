@@ -21,20 +21,19 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
 
   async start(
     blockchainType: string,
-    dbPath: string = './block_indexer.sqlite',
     restartIntervalHours?: number
   ): Promise<void> {
-    await this.startWorker(blockchainType, dbPath);
+    await this.startWorker(blockchainType);
 
     if (restartIntervalHours && restartIntervalHours > 0) {
       this.restartIntervalMs = restartIntervalHours * 60 * 60 * 1000;
       this.restartIntervalId = setInterval(async () => {
-        await this.restartWorker(blockchainType, dbPath);
+        await this.restartWorker(blockchainType);
       }, this.restartIntervalMs);
     }
   }
 
-  private async startWorker(blockchainType: string, dbPath: string) {
+  private async startWorker(blockchainType: string) {
     if (this.started) return;
     if (!this.worker) {
       // Use src worker for tests/dev, dist worker for production
@@ -52,15 +51,15 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
     });
 
     try {
-      await this.worker.start(blockchainType, dbPath);
+      await this.worker.start(blockchainType);
     } catch {
-      await this.restartWorker(blockchainType, dbPath);
+      await this.restartWorker(blockchainType);
     }
 
     this.started = true;
   }
 
-  private async restartWorker(blockchainType: string, dbPath: string) {
+  private async restartWorker(blockchainType: string) {
     if (this.worker) {
       await this.worker.stop();
       this.started = false;
@@ -68,7 +67,7 @@ export class BlockIndexer extends (EventEmitter as { new(): BlockIndexerEvents }
       this.worker = null;
     }
 
-    await this.startWorker(blockchainType, dbPath);
+    await this.startWorker(blockchainType);
   }
 
   async stop(): Promise<void> {

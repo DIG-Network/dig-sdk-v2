@@ -2,16 +2,14 @@ import { PeerType, Tls } from '@dignetwork/datalayer-driver';
 import { CoinIndexer } from '../src/application/workers/CoinIndexer/CoinIndexer';
 import { BlockChainType } from '../src/application/types/BlockChain';
 import { WalletService } from '../src/application/services/WalletService';
-import { CoinRepository } from '../src/application/repositories/CoinRepository';
-import Database from 'better-sqlite3';
+import { CoinRepository } from '../src/infrastructure/Repositories/CoinRepository';
 import config from '../src/config';
 
 async function main() {
   const testnetWalletAddress = "dev";
   const testnetMnemonic = ""; // Replace with your actual mnemonic
   const walletDbPath = "wallet.sqlite";
-  const walletDb = new Database(walletDbPath)
-  const coinRepository = new CoinRepository(walletDb);
+  const coinRepository = new CoinRepository();
   // You must have ca.crt and ca.key in your working directory or adjust the path
   const tls = new Tls('ca.crt', 'ca.key');
   config.BLOCKCHAIN_NETWORK = 'testnet';
@@ -24,7 +22,7 @@ async function main() {
     const coinIndexer = new CoinIndexer();
 
     // This starts the CoinIndexer worker and connects to the testnet chia blockchain
-    await coinIndexer.start(BlockChainType.Chia, walletDbPath, 24, 'ca.crt', 'ca.key', PeerType.Testnet11);
+    await coinIndexer.start(BlockChainType.Chia, 24, 'ca.crt', 'ca.key', PeerType.Testnet11);
 
     const wallets = WalletService.getAddresses();
 

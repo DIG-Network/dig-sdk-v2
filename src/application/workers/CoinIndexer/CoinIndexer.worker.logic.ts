@@ -1,7 +1,6 @@
-import Database from 'better-sqlite3';
 import { Observable } from 'observable-fns';
 import { CoinStateUpdatedEvent } from './CoinIndexerEvents';
-import { CoinRepository, CoinRow } from '../../repositories/CoinRepository';
+import { CoinRepository, CoinRow } from '../../../infrastructure/Repositories/CoinRepository';
 import { WalletRepository, AddressRow } from '../../repositories/WalletRepository';
 import { IBlockchainService } from '../../interfaces/IBlockChainService';
 import { PeerType, Tls, type Coin } from '@dignetwork/datalayer-driver';
@@ -12,7 +11,6 @@ import { CoinStatus } from '../../types/CoinStatus';
 import { IL1Peer } from '../../interfaces/IL1Peer';
 import { L1PeerService } from '../../services/L1PeerService';
 
-let db: Database.Database | null = null;
 let coinRepo: CoinRepository | null = null;
 let walletRepo: WalletRepository | null = null;
 let started = false;
@@ -32,6 +30,7 @@ function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: nu
     amount: coin.amount,
     syncedHeight,
     status: CoinStatus.UNSPENT,
+    assetId: 'xch', // TODO investigate how to tell what the asset type is
     walletId,
   };
 }
@@ -105,15 +104,13 @@ async function sync() {
 export const api = {
   async start(
     _blockchainType: BlockChainType,
-    dbPath: string = './coin_indexer.sqlite',
     crtPath: string = 'ca.crt',
     keyPath: string = 'ca.key',
     peerType?: PeerType,
   ) {
     if (started) return;
-    db = new Database(dbPath);
-    coinRepo = new CoinRepository(db);
-    walletRepo = new WalletRepository(db);
+    coinRepo = new CoinRepository();
+    walletRepo = new WalletRepository();
 
     switch (_blockchainType) {
       case BlockChainType.Test:
@@ -136,7 +133,6 @@ export const api = {
   stop() {
     started = false;
     if (intervalId) clearInterval(intervalId);
-    db = null;
     coinRepo = null;
     walletRepo = null;
     blockchainService = null;
@@ -158,7 +154,6 @@ export const api = {
   },
   __reset() {
     if (intervalId) clearInterval(intervalId);
-    db = null;
     coinRepo = null;
     walletRepo = null;
     blockchainService = null;

@@ -1,15 +1,15 @@
 import Database from 'better-sqlite3';
-import { WalletRepository } from '../../../src/application/repositories/WalletRepository';
 import { IWalletRepository } from '../../../src/application/repositories/Interfaces/IWalletRepository';
+import { WALLET_DB_FILE, WalletRepository } from '../../../src/application/repositories/WalletRepository';
 
 describe('WalletRepository', () => {
-  const dbPath = ':memory:';
   let db: Database.Database;
   let walletRepo: IWalletRepository;
 
   beforeEach(() => {
-    db = new Database(dbPath);
-    walletRepo = new WalletRepository(db);
+    db = new Database(WALLET_DB_FILE);
+    db.prepare('DELETE FROM wallet').run();
+    walletRepo = new WalletRepository();
   });
 
   afterEach(() => {
