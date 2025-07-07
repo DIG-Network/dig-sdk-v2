@@ -9,7 +9,7 @@ describe('CoinRepository', () => {
 
   beforeEach(() => {
     db = new Database(WALLET_DB_FILE);
-    db.prepare('DELETE FROM coin').run(); // Clean up all coin entries before each test
+    db.prepare('DELETE FROM coin').run();
     coinRepo = new CoinRepository();
   });
 
