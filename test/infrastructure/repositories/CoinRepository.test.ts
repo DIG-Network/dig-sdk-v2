@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { CoinRepository, ICoinRepository } from '../../../src/infrastructure/Repositories/CoinRepository';
-import { CoinStatus } from '../../../src/application/types/CoinStatus';
 import { WALLET_DB_FILE } from '../../../src/application/repositories/WalletRepository';
+import { CoinStatus } from '../../../src/infrastructure/Repositories/CoinStatus';
 
 describe('CoinRepository', () => {
   let db: Database.Database;

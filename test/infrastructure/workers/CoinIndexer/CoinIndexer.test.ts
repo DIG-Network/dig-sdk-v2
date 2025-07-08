@@ -2,7 +2,7 @@ import { CoinIndexer } from '../../../../src/infrastructure/Workers/CoinIndexer/
 import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import fs from 'fs';
 import path from 'path';
-import { CoinStatus } from '../../../../src/application/types/CoinStatus';
+import { CoinStatus } from '../../../../src/infrastructure/Repositories/CoinStatus';
 
 // Mock the worker and DB for async start
 jest.mock('threads', () => {

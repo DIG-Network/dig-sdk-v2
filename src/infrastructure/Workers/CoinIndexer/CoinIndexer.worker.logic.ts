@@ -7,7 +7,7 @@ import { IBlockchainService } from '../../BlockchainServices/IBlockChainService'
 import { WalletRepository, AddressRow } from '../../../application/repositories/WalletRepository';
 import { L1PeerService } from '../../Peers/L1PeerService';
 import { BlockChainType } from '../../../application/types/BlockChain';
-import { CoinStatus } from '../../../application/types/CoinStatus';
+import { CoinStatus } from '../../Repositories/CoinStatus';
 import { CoinStateUpdatedEvent } from './CoinIndexerEvents';
 import { IL1ChiaPeer } from '../../Peers/L1ChiaPeer';
 

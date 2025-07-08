@@ -1,4 +1,3 @@
-import { PeerType } from "@dignetwork/datalayer-driver";
 import config from "../../../src/config";
 
 describe('Wallet', () => {

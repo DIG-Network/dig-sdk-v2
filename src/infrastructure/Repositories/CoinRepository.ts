@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { CoinStatus } from '../../application/types/CoinStatus';
+import { CoinStatus } from './CoinStatus';
 import { IAssetBalance } from '../../application/types/AssetBalance';
 import { WALLET_DB_FILE } from '../../application/repositories/WalletRepository';
 
