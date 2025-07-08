@@ -26,7 +26,7 @@ describe('WalletService Integration', () => {
     setupTable(new Database('wallet.sqlite'));
     walletService = new WalletService();
     // Clean up keyring file before each test
-    const keyringPath = path.resolve('keyring.json');
+    const keyringPath = path.resolve('.dig/keyring.json');
     if (await fs.pathExists(keyringPath)) {
       await fs.remove(keyringPath);
     }
@@ -118,8 +118,9 @@ describe('WalletService Integration', () => {
     await expect(WalletService.loadAddress('nonexistent')).rejects.toThrow('Address Not Found');
   });
 
-  it('should throw if keyring file exists when creating address', async () => {
+  it('should throw if address already exists when creating address', async () => {
     const keyringPath = path.resolve('keyring.json');
+    await WalletService.createAddress('any');
     // Ensure the file exists
     await fs.ensureFile(keyringPath);
     await expect(WalletService.createAddress('any')).rejects.toThrow('Address with the same name already exists.');
