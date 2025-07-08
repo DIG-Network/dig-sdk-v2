@@ -54,4 +54,10 @@ describe('BlockRepository', () => {
     expect(block5.hash.toString('hex')).toBe('e5'.padEnd(64, 'e'));
     await expect(repo.getBlockByHeight(999)).rejects.toThrow('Block with height 999 not found');
   });
+
+  it('should handle empty database gracefully', async () => {
+    const repo = new BlockRepository();
+    await expect(repo.getLatestBlock()).rejects.toThrow();
+    await expect(repo.getBlockByHeight(1)).rejects.toThrow();
+  });
 });

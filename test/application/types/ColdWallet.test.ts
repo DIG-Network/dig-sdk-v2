@@ -58,4 +58,9 @@ describe('ColdWallet', () => {
     const result = await wallet.getBalances();
     expect(result).toEqual(expectedBalances);
   });
+
+  it('should throw if getPuzzleHash is called with invalid address', async () => {
+    const wallet = new ColdWallet('invalidaddress');
+    await expect(wallet.getPuzzleHash()).rejects.toThrow();
+  });
 });

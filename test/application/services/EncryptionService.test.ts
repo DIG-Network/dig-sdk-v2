@@ -31,4 +31,18 @@ describe('EncryptionService', () => {
     const tampered = { ...encrypted, data: encrypted.data.slice(0, -1) + (encrypted.data.slice(-1) === '0' ? '1' : '0') };
     expect(() => EncryptionService.decryptData(tampered)).toThrow();
   });
+
+  it('should throw if decrypting with wrong salt', () => {
+    const data = EncryptionService.encryptData('secret');
+    // Tamper with salt
+    const tampered = { ...data, salt: 'ffffffffffffffffffffffffffffffff' };
+    expect(() => EncryptionService.decryptData(tampered)).toThrow();
+  });
+
+  it('should throw if decrypting with wrong nonce', () => {
+    const data = EncryptionService.encryptData('secret');
+    // Tamper with nonce
+    const tampered = { ...data, nonce: 'ffffffffffffffffffffffff' };
+    expect(() => EncryptionService.decryptData(tampered)).toThrow();
+  });
 });

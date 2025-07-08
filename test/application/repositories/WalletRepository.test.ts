@@ -50,4 +50,15 @@ describe('WalletRepository', () => {
     walletRepo.addAddress('xch1234', 'name');
     expect(() => walletRepo.addAddress('xch1234', 'name')).toThrow('Wallet with this name already exists');
   });
+
+  it('should return undefined when getting a wallet that does not exist', () => {
+    const repo = new WalletRepository();
+    const wallets = repo.getAddresses();
+    expect(wallets.find(w => w.name === 'notfound')).toBeUndefined();
+  });
+
+  it('should not throw when removing a wallet that does not exist', () => {
+    const repo = new WalletRepository();
+    expect(() => repo.removeAddressByName('notfound')).not.toThrow();
+  });
 });
