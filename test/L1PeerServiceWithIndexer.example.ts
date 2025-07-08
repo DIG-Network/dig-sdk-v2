@@ -24,7 +24,7 @@ async function main() {
       wallet = await WalletService.createAddress(testnetWalletAddress, testnetMnemonic);
       console.log(`Wallet ${testnetWalletAddress} added to DB and keyring.`);
     } else {
-      wallet = await WalletService.createAddress(testnetWalletAddress);
+      wallet = await WalletService.loadAddress(testnetWalletAddress);
       console.log(`Wallet ${testnetWalletAddress} loading existing.`);
     }
 

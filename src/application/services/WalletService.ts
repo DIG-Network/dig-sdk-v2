@@ -19,6 +19,7 @@ export class WalletService {
 
   public static async loadAddress(addressName: string = 'default'): Promise<Wallet> {
     const mnemonic = await this.getMnemonicFromKeyring(addressName);
+
     if (mnemonic) {
       const wallet = new Wallet(mnemonic);
       return wallet;
@@ -28,6 +29,9 @@ export class WalletService {
   }
 
   public static async createAddress(addressName: string, mnemonic?: string): Promise<Wallet> {
+    if (await this.walletExists(addressName)) {
+      throw new Error('Address with the same name already exists.');
+    }
     const generatedMnemonic = bip39.generateMnemonic(256);
     await this.saveAddressToKeyring(addressName, mnemonic ?? generatedMnemonic);
     let wallet = await this.loadAddress(addressName);
@@ -71,5 +75,14 @@ export class WalletService {
     const nconfService = new NconfService(KEYRING_FILE);
     const encryptedData = EncryptionService.encryptData(mnemonic);
     await nconfService.setConfigValue(walletName, encryptedData);
+  }
+  
+  private static async walletExists(addressName: string): Promise<boolean> {
+    const nconfService = new NconfService(KEYRING_FILE);
+    if (await nconfService.configExists()) {
+      const existing = await nconfService.getConfigValue(addressName);
+      return !!existing;
+    }
+    return false;
   }
 }

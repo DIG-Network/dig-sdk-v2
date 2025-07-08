@@ -3,6 +3,8 @@ import { WalletService } from '../../../src/application/services/WalletService';
 import { setupTable } from '../../../src/application/repositories/WalletRepository';
 import Database from 'better-sqlite3';
 import config from '../../../src/config';
+import fs from 'fs-extra';
+import path from 'path';
 
 const WALLET_NAMES = ['wallet1', 'wallet2', 'wallet3'];
 
@@ -23,6 +25,11 @@ describe('WalletService Integration', () => {
     await cleanupWallets();
     setupTable(new Database('wallet.sqlite'));
     walletService = new WalletService();
+    // Clean up keyring file before each test
+    const keyringPath = path.resolve('keyring.json');
+    if (await fs.pathExists(keyringPath)) {
+      await fs.remove(keyringPath);
+    }
   });
 
   it('should create, load, and delete a wallet, and verify Wallet functionality', async () => {
@@ -109,6 +116,15 @@ describe('WalletService Integration', () => {
     expect(deleted).toBe(false);
     // Try to load a non-existent wallet
     await expect(WalletService.loadAddress('nonexistent')).rejects.toThrow('Address Not Found');
+  });
+
+  it('should throw if keyring file exists when creating address', async () => {
+    const keyringPath = path.resolve('keyring.json');
+    // Ensure the file exists
+    await fs.ensureFile(keyringPath);
+    await expect(WalletService.createAddress('any')).rejects.toThrow('Address with the same name already exists.');
+    // Clean up
+    await fs.remove(keyringPath);
   });
 
   describe('calculateFeeForCoinSpends', () => {
