@@ -1,7 +1,6 @@
 import { Observable } from 'observable-fns';
 import { CoinRepository, CoinRow } from '../../Repositories/CoinRepository';
 import { PeerType, Tls, type Coin } from '@dignetwork/datalayer-driver';
-import { TestBlockchainService } from '../../BlockchainServices/TestBlockchainService';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 import { IBlockchainService } from '../../BlockchainServices/IBlockChainService';
 import { WalletRepository, AddressRow } from '../../../application/repositories/WalletRepository';
@@ -114,9 +113,6 @@ export const api = {
     walletRepo = new WalletRepository();
 
     switch (_blockchainType) {
-      case BlockChainType.Test:
-        blockchainService = new TestBlockchainService();
-        break;
       case BlockChainType.Chia:
       default:
         blockchainService = new ChiaBlockchainService();

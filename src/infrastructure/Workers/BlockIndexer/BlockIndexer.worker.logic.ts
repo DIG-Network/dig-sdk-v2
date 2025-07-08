@@ -1,7 +1,6 @@
 import Database from 'better-sqlite3';
 import { Observable } from 'observable-fns';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
-import { TestBlockchainService } from '../../BlockchainServices/TestBlockchainService';
 import { IBlockchainService } from '../../BlockchainServices/IBlockChainService';
 import { CREATE_BLOCKS_TABLE_SQL } from '../../../application/repositories/BlockRepository';
 import { Block } from '../../../application/types/Block';
@@ -56,9 +55,6 @@ export const api = {
     db.exec(CREATE_BLOCKS_TABLE_SQL);
 
     switch (blockchainType) {
-      case BlockChainType.Test:
-        blockchainService = new TestBlockchainService();
-        break;
       case BlockChainType.Chia:
       default:
         blockchainService = new ChiaBlockchainService();

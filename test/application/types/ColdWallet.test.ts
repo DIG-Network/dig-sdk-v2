@@ -1,6 +1,5 @@
 import { ColdWallet } from '../../../src/application/types/ColdWallet';
 import config from '../../../src/config';
-import { TestBlockchainService } from '../../../src/infrastructure/BlockchainServices/TestBlockchainService';
 
 const TEST_ADDRESS = 'xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8249j';
 const TEST_puzzleHash = Buffer.from('aabbcc', 'hex');
