@@ -29,9 +29,7 @@ export class BlockRepository implements IBlockRepository {
     return toBlock(block);
   }
 
-  // Test-only helper for inserting blocks
   async addBlock(hash: Buffer, blockHeight: number) {
-    // @ts-ignore
     return await prisma.block.create({ data: { hash, blockHeight } });
   }
 }

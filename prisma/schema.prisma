@@ -17,7 +17,7 @@ model Block {
   created_at  DateTime @default(now())
 }
 
-model Wallet {
+model Address {
   address         String  @id
   namespace       String  @default("default")
   synced_to_height Int

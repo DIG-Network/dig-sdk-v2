@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc",
     "test": "jest --runInBand",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "db:push": "prisma db push"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +32,7 @@
   "dependencies": {
     "@dignetwork/datalayer-driver": "^0.1.35",
     "@dignetwork/proof-of-storage-continuity": "^0.1.0",
+    "@prisma/client": "^6.11.1",
     "async-mutex": "^0.5.0",
     "better-sqlite3": "^11.10.0",
     "bip39": "^3.1.0",
@@ -38,6 +40,7 @@
     "fs-extra": "^11.3.0",
     "nconf": "^0.13.0",
     "observable-fns": "^0.6.1",
+    "prisma": "^6.11.1",
     "threads": "^1.7.0",
     "uuid": "^11.1.0",
     "zod": "^3.25.55"

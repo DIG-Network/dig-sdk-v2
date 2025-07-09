@@ -3,7 +3,7 @@ import { CoinRepository, CoinRow } from '../../Repositories/CoinRepository';
 import { PeerType, Tls, type Coin } from '@dignetwork/datalayer-driver';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 import { IBlockchainService } from '../../BlockchainServices/IBlockChainService';
-import { WalletRepository, AddressRow } from '../../../application/repositories/WalletRepository';
+import { AddressRepository, AddressRow, IAddressRepository } from '../../../application/repositories/AddressRepository';
 import { L1PeerService } from '../../Peers/L1PeerService';
 import { BlockChainType } from '../../../application/types/BlockChain';
 import { CoinStatus } from '../../Repositories/CoinStatus';
@@ -12,7 +12,7 @@ import { IL1ChiaPeer } from '../../Peers/L1ChiaPeer';
 
 
 let coinRepo: CoinRepository | null = null;
-let walletRepo: WalletRepository | null = null;
+let walletRepo: IAddressRepository | null = null;
 let started = false;
 let intervalId: NodeJS.Timeout | null = null;
 let blockchainService: IBlockchainService | null = null;
@@ -110,7 +110,7 @@ export const api = {
   ) {
     if (started) return;
     coinRepo = new CoinRepository();
-    walletRepo = new WalletRepository();
+    walletRepo = new AddressRepository();
 
     switch (_blockchainType) {
       case BlockChainType.Chia:
