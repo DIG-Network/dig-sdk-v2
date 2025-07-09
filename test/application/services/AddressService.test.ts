@@ -124,7 +124,7 @@ describe('AddressService Integration', () => {
     await expect(AddressService.createAddress('duplicate')).rejects.toThrow('Address with the same name already exists.');
   });
 
-  it('should allow creating different wallets even if keyring file exists', async () => {
+  it('should allow creating different addresses even if keyring file exists', async () => {
     await AddressService.createAddress('walletA');
     // The keyring file now exists, but a different wallet name should succeed
     const walletB = await AddressService.createAddress('walletB');
@@ -161,7 +161,7 @@ describe('AddressService Integration', () => {
     expect(loaded.getMnemonic()).toBe(mnemonic);
   });
 
-  it('should return empty array after deleting all wallets', async () => {
+  it('should return empty array after deleting all addresses', async () => {
     await AddressService.createAddress('del1');
     await AddressService.createAddress('del2');
     await AddressService.deleteAddress('del1');

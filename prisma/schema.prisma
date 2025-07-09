@@ -26,7 +26,7 @@ model Address {
 }
 
 model Coin {
-  walletId       String
+  addressId       String
   coinId         Bytes
   parentCoinInfo Bytes
   puzzleHash     Bytes
@@ -35,8 +35,8 @@ model Coin {
   status         String
   assetId        String  @default("xch")
 
-  @@id([walletId, coinId])
-  @@index([walletId])
+  @@id([addressId, coinId])
+  @@index([addressId])
   @@index([status])
   @@index([assetId])
 }
