@@ -3,7 +3,7 @@ import { CoinIndexer } from '../src/infrastructure/Workers/CoinIndexer/CoinIndex
 import { BlockChainType } from '../src/application/types/BlockChain';
 import config from '../src/config';
 import { Wallet } from '../src/application/types/Wallet';
-import { AddressService } from '../src/application/services/AddressService';
+import { WalletService } from '../src/application/services/WalletService';
 
 async function main() {
   const testnetWalletAddress = 'dev';
@@ -17,14 +17,14 @@ async function main() {
     // This starts the CoinIndexer worker and connects to the testnet chia blockchain
     await coinIndexer.start(BlockChainType.Chia, 24, 'ca.crt', 'ca.key', PeerType.Testnet11);
 
-    const addresses = await AddressService.getAddresses();
+    const addresses = await WalletService.getWallets();
 
     let wallet: Wallet;
     if (!addresses.map((address) => address.name).includes(testnetWalletAddress)) {
-      wallet = await AddressService.createAddress(testnetWalletAddress, testnetMnemonic);
+      wallet = await WalletService.createWallet(testnetWalletAddress, testnetMnemonic);
       console.log(`Address ${testnetWalletAddress} added to DB and keyring.`);
     } else {
-      wallet = await AddressService.loadAddress(testnetWalletAddress);
+      wallet = await WalletService.loadWallet(testnetWalletAddress);
       console.log(`Address ${testnetWalletAddress} loading existing.`);
     }
 

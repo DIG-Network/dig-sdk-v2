@@ -3,21 +3,14 @@ import { NconfService } from '../../infrastructure/ConfigurationServices/NconfSe
 import { EncryptionService } from './EncryptionService';
 import { EncryptedData } from '../types/EncryptedData';
 import { Wallet } from '../types/Wallet';
-import type { IBlockchainService } from '../../infrastructure/BlockchainServices/IBlockChainService';
-import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
 import { AddressRow, AddressRepository } from '../repositories/AddressRepository';
 
 const KEYRING_FILE = 'keyring.json';
 
-export class AddressService {
-  private blockchain: IBlockchainService;
+export class WalletService {
   private static addressRepo: AddressRepository = new AddressRepository();
 
-  constructor() {
-    this.blockchain = new ChiaBlockchainService();
-  }
-
-  public static async loadAddress(addressName: string = 'default'): Promise<Wallet> {
+  public static async loadWallet(addressName: string = 'default'): Promise<Wallet> {
     const mnemonic = await this.getMnemonicFromKeyring(addressName);
 
     if (mnemonic) {
@@ -28,32 +21,32 @@ export class AddressService {
     throw new Error('Address Not Found');
   }
 
-  public static async createAddress(addressName: string, mnemonic?: string): Promise<Wallet> {
+  public static async createWallet(addressName: string, mnemonic?: string): Promise<Wallet> {
     if (await this.addressExists(addressName)) {
       throw new Error('Address with the same name already exists.');
     }
     const generatedMnemonic = bip39.generateMnemonic(256);
     await this.saveAddressToKeyring(addressName, mnemonic ?? generatedMnemonic);
-    let wallet = await this.loadAddress(addressName);
+    let wallet = await this.loadWallet(addressName);
     const address = await wallet.getOwnerPublicKey();
-    await AddressService.addressRepo.addAddress(address, addressName);
+    await WalletService.addressRepo.addAddress(address, addressName);
 
     return wallet;
   }
 
-  public static async deleteAddress(addressName: string): Promise<boolean> {
+  public static async deleteWallet(addressName: string): Promise<boolean> {
     const nconfService = new NconfService(KEYRING_FILE);
     let deleted = false;
     if (await nconfService.configExists()) {
       deleted = await nconfService.deleteConfigValue(addressName);
     }
     // Remove from DB as well
-    await AddressService.addressRepo.removeAddressByName(addressName);
+    await WalletService.addressRepo.removeAddressByName(addressName);
     return deleted;
   }
 
-  public static async getAddresses(): Promise<AddressRow[]> {
-    return AddressService.addressRepo.getAddresses();
+  public static async getWallets(): Promise<AddressRow[]> {
+    return WalletService.addressRepo.getAddresses();
   }
 
   public async calculateFeeForCoinSpends(): Promise<bigint> {
