@@ -1,4 +1,4 @@
-import { api } from '../../../../src/application/workers/BlockIndexer/BlockIndexer.worker.logic';
+import { api } from '../../../../src/infrastructure/Workers/BlockIndexer/BlockIndexer.worker.logic';
 import Database from 'better-sqlite3';
 import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import fs from 'fs';

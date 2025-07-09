@@ -1,12 +1,8 @@
 import { EventEmitter } from 'events';
 import { spawn, Worker, Thread } from 'threads';
-import { IWorker } from '../IWorker';
-import {
-  CoinIndexerEventNames,
-  CoinIndexerEvents,
-  CoinStateUpdatedEvent,
-} from './CoinIndexerEvents';
 import { PeerType } from '@dignetwork/datalayer-driver';
+import { IWorker } from '../IWorker';
+import { CoinIndexerEventNames, CoinIndexerEvents, CoinStateUpdatedEvent } from './CoinIndexerEvents';
 
 export interface CoinIndexerWorkerApi {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,25 +24,23 @@ export class CoinIndexer
 
   async start(
     blockchainType: string,
-    dbPath: string = './coin_indexer.sqlite',
     restartIntervalHours?: number,
     crtPath: string = 'ca.crt',
     keyPath: string = 'ca.key',
     peerType?: PeerType,
   ): Promise<void> {
-    await this.startWorker(blockchainType, dbPath, crtPath, keyPath, peerType);
+    await this.startWorker(blockchainType, crtPath, keyPath, peerType);
 
     if (restartIntervalHours && restartIntervalHours > 0) {
       this.restartIntervalMs = restartIntervalHours * 60 * 60 * 1000;
       this.restartIntervalId = setInterval(async () => {
-        await this.restartWorker(blockchainType, dbPath, crtPath, keyPath, peerType);
+        await this.restartWorker(blockchainType, crtPath, keyPath, peerType);
       }, this.restartIntervalMs);
     }
   }
 
   private async startWorker(
     blockchainType: string,
-    dbPath: string,
     crtPath: string = 'ca.crt',
     keyPath: string = 'ca.key',
     peerType?: PeerType,
@@ -54,7 +48,7 @@ export class CoinIndexer
     if (this.started) return;
     if (!this.worker) {
       // Use src worker for tests/dev, dist worker for production
-      let workerPath = '../../../../dist/application/workers/CoinIndexer/CoinIndexer.worker.js';
+      let workerPath = '../../../../dist/infrastructure/Workers/CoinIndexer/CoinIndexer.worker.js';
 
       this.worker = (await spawn(
         new Worker(workerPath),
@@ -68,9 +62,9 @@ export class CoinIndexer
     });
 
     try {
-      await this.worker.start(blockchainType, dbPath, crtPath, keyPath, peerType);
+      await this.worker.start(blockchainType, crtPath, keyPath, peerType);
     } catch {
-      await this.restartWorker(blockchainType, dbPath, crtPath, keyPath, peerType);
+      await this.restartWorker(blockchainType, crtPath, keyPath, peerType);
     }
 
     this.started = true;
@@ -78,7 +72,6 @@ export class CoinIndexer
 
   private async restartWorker(
     blockchainType: string,
-    dbPath: string,
     crtPath: string = 'ca.crt',
     keyPath: string = 'ca.key',
     peerType?: PeerType,
@@ -89,7 +82,7 @@ export class CoinIndexer
       await Thread.terminate(this.worker);
       this.worker = null;
     }
-    await this.startWorker(blockchainType, dbPath, crtPath, keyPath, peerType);
+    await this.startWorker(blockchainType, crtPath, keyPath, peerType);
   }
 
   async stop(): Promise<void> {

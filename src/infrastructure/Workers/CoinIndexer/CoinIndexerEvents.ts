@@ -1,4 +1,4 @@
-import { CoinStatus } from "../../types/CoinStatus";
+import { CoinStatus } from "../../Repositories/CoinStatus";
 
 export enum CoinIndexerEventNames {
   CoinStateUpdated = 'coinStateUpdated',

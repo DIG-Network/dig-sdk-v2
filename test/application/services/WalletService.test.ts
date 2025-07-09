@@ -1,7 +1,10 @@
-import { PeerType } from '@dignetwork/datalayer-driver';
-import { WalletService } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
-import { TestBlockchainService } from '../../../src/infrastructure/BlockchainServices/TestBlockchainService';
+import { WalletService } from '../../../src/application/services/WalletService';
+import { setupTable } from '../../../src/application/repositories/WalletRepository';
+import Database from 'better-sqlite3';
+import config from '../../../src/config';
+import fs from 'fs-extra';
+import path from 'path';
 
 const WALLET_NAMES = ['wallet1', 'wallet2', 'wallet3'];
 
@@ -18,20 +21,27 @@ async function cleanupWallets() {
 
 describe('WalletService Integration', () => {
   beforeEach(async () => {
-    // await cleanupWallets();
-    walletService = new WalletService(":memory:");
+    config.BLOCKCHAIN_NETWORK = 'testnet';
+    await cleanupWallets();
+    setupTable(new Database('wallet.sqlite'));
+    walletService = new WalletService();
+    // Clean up keyring file before each test
+    const keyringPath = path.resolve('.dig/keyring.json');
+    if (await fs.pathExists(keyringPath)) {
+      await fs.remove(keyringPath);
+    }
   });
 
   it('should create, load, and delete a wallet, and verify Wallet functionality', async () => {
     // Create a new wallet
-    const wallet = await walletService.createNewWallet(WALLET_NAMES[0], PeerType.Simulator);
+    const wallet = await WalletService.createAddress(WALLET_NAMES[0]);
     expect(wallet).toBeInstanceOf(Wallet);
     const mnemonic = wallet.getMnemonic();
     expect(typeof mnemonic).toBe('string');
     expect(mnemonic.split(' ').length).toBeGreaterThanOrEqual(12);
 
     // Load the wallet
-    const loadedWallet = await walletService.loadWallet(WALLET_NAMES[0]);
+    const loadedWallet = await WalletService.loadAddress(WALLET_NAMES[0]);
     expect(loadedWallet).toBeInstanceOf(Wallet);
     expect(loadedWallet.getMnemonic()).toBe(mnemonic);
 
@@ -48,12 +58,12 @@ describe('WalletService Integration', () => {
     const privateSyntheticKey = await loadedWallet.getPrivateSyntheticKey();
     expect(Buffer.isBuffer(privateSyntheticKey)).toBe(true);
 
-    // Wallet class: getOwnerPuzzleHash returns a Buffer
-    const ownerPuzzleHash = await loadedWallet.getOwnerPuzzleHash();
+    // Wallet class: getPuzzleHash returns a Buffer
+    const ownerPuzzleHash = await loadedWallet.getPuzzleHash();
     expect(Buffer.isBuffer(ownerPuzzleHash)).toBe(true);
 
     // Wallet class: getOwnerPublicKey returns a string
-    const ownerPublicKey = await loadedWallet.getOwnerPublicKey(PeerType.Simulator);
+    const ownerPublicKey = await loadedWallet.getOwnerPublicKey();
     expect(typeof ownerPublicKey).toBe('string');
     expect(ownerPublicKey.length).toBeGreaterThan(0);
 
@@ -63,31 +73,31 @@ describe('WalletService Integration', () => {
     expect(signature.length).toBeGreaterThan(0);
 
     // Delete the wallet
-    const deleted = await walletService.deleteWallet(WALLET_NAMES[0]);
+    const deleted = await WalletService.deleteAddress(WALLET_NAMES[0]);
     expect(deleted).toBe(true);
-    await expect(walletService.loadWallet(WALLET_NAMES[0])).rejects.toThrow('Wallet Not Found');
+    await expect(WalletService.loadAddress(WALLET_NAMES[0])).rejects.toThrow('Address Not Found');
   });
 
   it('should return empty array if no wallets exist', async () => {
-    const wallets = await walletService.listWallets();
+    const wallets = WalletService.getAddresses();
     expect(wallets).toEqual([]);
   });
 
   it('should list wallets after multiple creates and deletes', async () => {
     const createdAddresses: string[] = [];
     for (const name of WALLET_NAMES) {
-      const wallet = await walletService.createNewWallet(name, PeerType.Simulator);
-      createdAddresses.push(await wallet.getOwnerPublicKey(PeerType.Simulator));
+      const wallet = await WalletService.createAddress(name);
+      createdAddresses.push(await wallet.getOwnerPublicKey());
     }
-    let wallets = await walletService.listWallets();
+    let wallets = WalletService.getAddresses();
     let walletAddresses = wallets.map((w: any) => w.address);
     // All created addresses should be present
     for (const addr of createdAddresses) {
       expect(walletAddresses).toContain(addr);
     }
     // Delete one wallet
-    await walletService.deleteWallet(WALLET_NAMES[1]);
-    wallets = await walletService.listWallets();
+    await WalletService.deleteAddress(WALLET_NAMES[1]);
+    wallets = WalletService.getAddresses();
     walletAddresses = wallets.map((w: any) => w.address);
     // The deleted wallet's address should not be present
     expect(walletAddresses).not.toContain(createdAddresses[1]);
@@ -95,48 +105,30 @@ describe('WalletService Integration', () => {
     expect(walletAddresses).toContain(createdAddresses[0]);
     expect(walletAddresses).toContain(createdAddresses[2]);
     // Delete all
-    await walletService.deleteWallet(WALLET_NAMES[0]);
-    await walletService.deleteWallet(WALLET_NAMES[2]);
-    wallets = await walletService.listWallets();
+    await WalletService.deleteAddress(WALLET_NAMES[0]);
+    await WalletService.deleteAddress(WALLET_NAMES[2]);
+    wallets = WalletService.getAddresses();
     expect(wallets).toEqual([]);
   });
 
   it('should not be able to delete or load a non-existing wallet', async () => {
-    const deleted = await walletService.deleteWallet('nonexistent');
+    const deleted = await WalletService.deleteAddress('nonexistent');
     expect(deleted).toBe(false);
     // Try to load a non-existent wallet
-    await expect(walletService.loadWallet('nonexistent')).rejects.toThrow('Wallet Not Found');
+    await expect(WalletService.loadAddress('nonexistent')).rejects.toThrow('Address Not Found');
   });
 
-  describe('isCoinSpendable', () => {
-    const coinId = Buffer.from('aabbcc', 'hex');
-    let peer: any;
 
-    beforeEach(() => {
-      peer = {
-        isCoinSpent: jest.fn(),
-      };
-      (walletService as any).blockchain.isCoinSpendable = jest.fn();
-    });
+  it('should throw if a wallet with the same name already exists in the keyring', async () => {
+    await WalletService.createAddress('duplicate');
+    await expect(WalletService.createAddress('duplicate')).rejects.toThrow('Address with the same name already exists.');
+  });
 
-    it('should return true if blockchain.isCoinSpendable resolves true', async () => {
-      (walletService as any).blockchain.isCoinSpendable = jest.fn().mockResolvedValue(true);
-      const result = await walletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
-      expect(result).toBe(true);
-      expect((walletService as any).blockchain.isCoinSpendable).toHaveBeenCalledWith(peer, coinId, 0, expect.any(Buffer));
-    });
-
-    it('should return false if blockchain.isCoinSpendable resolves false', async () => {
-      (walletService as any).blockchain.isCoinSpendable = jest.fn().mockResolvedValue(false);
-      const result = await walletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
-      expect(result).toBe(false);
-    });
-
-    it('should return false if blockchain.isCoinSpendable throws', async () => {
-      (walletService as any).blockchain.isCoinSpendable = jest.fn().mockRejectedValue(new Error('fail'));
-      const result = await walletService.isCoinSpendable(peer, coinId, 0, '00'.repeat(32));
-      expect(result).toBe(false);
-    });
+  it('should allow creating different wallets even if keyring file exists', async () => {
+    await WalletService.createAddress('walletA');
+    // The keyring file now exists, but a different wallet name should succeed
+    const walletB = await WalletService.createAddress('walletB');
+    expect(walletB).toBeInstanceOf(Wallet);
   });
 
   describe('calculateFeeForCoinSpends', () => {
@@ -149,5 +141,32 @@ describe('WalletService Integration', () => {
       const fee = await walletService.calculateFeeForCoinSpends();
       expect(fee).toBe(BigInt(1000000));
     });
+  });
+
+  it('should return false when deleting a wallet that does not exist but keyring file exists', async () => {
+    await WalletService.createAddress('walletX');
+    const deleted = await WalletService.deleteAddress('nonexistent2');
+    expect(deleted).toBe(false);
+  });
+
+  it('should throw Address Not Found if keyring file exists but wallet name does not', async () => {
+    await WalletService.createAddress('walletY');
+    await expect(WalletService.loadAddress('notthere')).rejects.toThrow('Address Not Found');
+  });
+
+  it('should store and load the exact mnemonic if provided', async () => {
+    const mnemonic = 'test test test test test test test test test test test about';
+    await WalletService.createAddress('mnemonicTest', mnemonic);
+    const loaded = await WalletService.loadAddress('mnemonicTest');
+    expect(loaded.getMnemonic()).toBe(mnemonic);
+  });
+
+  it('should return empty array after deleting all wallets', async () => {
+    await WalletService.createAddress('del1');
+    await WalletService.createAddress('del2');
+    await WalletService.deleteAddress('del1');
+    await WalletService.deleteAddress('del2');
+    const wallets = WalletService.getAddresses();
+    expect(wallets).toEqual([]);
   });
 });

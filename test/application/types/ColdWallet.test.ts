@@ -1,44 +1,66 @@
 import { ColdWallet } from '../../../src/application/types/ColdWallet';
-import { TestBlockchainService } from '../../../src/infrastructure/BlockchainServices/TestBlockchainService';
+import config from '../../../src/config';
 
 const TEST_ADDRESS = 'xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8249j';
 const TEST_puzzleHash = Buffer.from('aabbcc', 'hex');
-const TEST_SIGNATURE = Buffer.from('deadbeef', 'hex');
-const TEST_PUBLIC_KEY = Buffer.from('cafebabe', 'hex');
-const TEST_MESSAGE = Buffer.from('test message', 'utf-8');
-const TEST_COIN_ID = Buffer.from('1234', 'hex');
-
-const blockchain = new TestBlockchainService();
 
 describe('ColdWallet', () => {
   let wallet: ColdWallet;
   let mockPeer: any;
 
   beforeEach(() => {
-    wallet = new ColdWallet(blockchain);
+    config.BLOCKCHAIN_NETWORK = 'testnet';
+    wallet = new ColdWallet(TEST_ADDRESS);
+    // Mock the blockchain's getPuzzleHash method to avoid real address decoding
+    (jest.spyOn(wallet["blockchain"], 'getPuzzleHash') as any).mockResolvedValue(TEST_puzzleHash);
     mockPeer = {
       getAllUnspentCoins: jest.fn().mockResolvedValue({ coins: [1, 2, 3], lastHeight: 1, lastHeaderHash: Buffer.alloc(32) }),
       isCoinSpent: jest.fn().mockResolvedValue(false),
     };
   });
 
-  it('getPuzzleHash should delegate to blockchain and return a Buffer', () => {
-    const result = wallet.getPuzzleHash(TEST_ADDRESS);
+  it('getPuzzleHash should delegate to blockchain and return a Buffer', async () => {
+    const result = await wallet.getPuzzleHash();
     expect(Buffer.isBuffer(result)).toBe(true);
+    expect(result).toEqual(TEST_puzzleHash);
   });
 
-  it('verifyKeySignature should delegate to blockchain and return true', () => {
-    const result = wallet.verifyKeySignature(TEST_SIGNATURE, TEST_PUBLIC_KEY, TEST_MESSAGE);
-    expect(result).toBe(true);
+  it('masterPublicKeyToWalletSyntheticKey should delegate to blockchain and return a Buffer', () => {
+    const testPubKey = Buffer.from('cafebabe', 'hex');
+    const expected = Buffer.from('deadbeef', 'hex');
+    jest.spyOn(wallet["blockchain"], 'masterPublicKeyToWalletSyntheticKey').mockReturnValue(expected);
+    const result = wallet.masterPublicKeyToWalletSyntheticKey(testPubKey);
+    expect(result).toEqual(expected);
   });
 
-  it('listUnspentCoins should delegate to blockchain and return coins', async () => {
-    const result = await wallet.listUnspentCoins(mockPeer, TEST_puzzleHash, 0, Buffer.alloc(32));
-    expect(result).toHaveProperty('coins');
+  it('masterPublicKeyToFirstPuzzleHash should delegate to blockchain and return a Buffer', () => {
+    const testPubKey = Buffer.from('cafebabe', 'hex');
+    const expected = Buffer.from('beadfeed', 'hex');
+    jest.spyOn(wallet["blockchain"], 'masterPublicKeyToFirstPuzzleHash').mockReturnValue(expected);
+    const result = wallet.masterPublicKeyToFirstPuzzleHash(testPubKey);
+    expect(result).toEqual(expected);
   });
 
-  it('isCoinSpendable should delegate to blockchain and return a boolean', async () => {
-    const result = await wallet.isCoinSpendable(mockPeer, TEST_COIN_ID, 0, Buffer.alloc(32));
-    expect(typeof result).toBe('boolean');
+  it('getBalance should delegate to balanceRepository and return expected balance', async () => {
+    const assetId = 'xch';
+    const expectedBalance = 42n;
+    jest.spyOn(wallet["balanceRepository"], 'getBalance').mockReturnValue(expectedBalance);
+    const result = await wallet.getBalance(assetId);
+    expect(result).toEqual({ assetId, balance: expectedBalance });
+  });
+
+  it('getBalances should delegate to balanceRepository and return expected balances', async () => {
+    const expectedBalances = [
+      { assetId: 'xch', balance: 100n },
+      { assetId: 'btc', balance: 50n }
+    ];
+    jest.spyOn(wallet["balanceRepository"], 'getBalancesByAsset').mockReturnValue(expectedBalances);
+    const result = await wallet.getBalances();
+    expect(result).toEqual(expectedBalances);
+  });
+
+  it('should throw if getPuzzleHash is called with invalid address', async () => {
+    const wallet = new ColdWallet('invalidaddress');
+    await expect(wallet.getPuzzleHash()).rejects.toThrow();
   });
 });

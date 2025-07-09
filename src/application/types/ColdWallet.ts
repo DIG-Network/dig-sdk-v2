@@ -1,63 +1,54 @@
-import type { UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
-import type { IBlockchainService } from '../interfaces/IBlockChainService';
-import { IL1Peer } from '../interfaces/IL1Peer';
+import config from '../../config';
+import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
+import { ChiaBalanceRepository } from '../../infrastructure/Repositories/ChiaBalanceRepository';
+import type { IBlockchainService } from '../../infrastructure/BlockchainServices/IBlockChainService';
+import { IBalanceRepository } from '../repositories/Interfaces/IBalanceRepository';
+import { IAssetBalance } from './AssetBalance';
 
 export interface IColdWallet {
-  getPuzzleHash(address: string): Buffer;
-  verifyKeySignature(signature: Buffer, publicKey: Buffer, message: Buffer): boolean;
-  listUnspentCoins(
-    peer: IL1Peer,
-    puzzleHash: Buffer,
-    previousHeight: number,
-    previousHeaderHash: Buffer
-  ): Promise<UnspentCoinsResponse>;
-  isCoinSpendable(
-    peer: IL1Peer,
-    coinId: Buffer,
-    lastHeight: number,
-    headerHash: Buffer
-  ): Promise<boolean>;
+  getBalance(assetId: string): Promise<IAssetBalance>
+  getBalances(): Promise<IAssetBalance[]>
+
+  getPuzzleHash(): Promise<Buffer>;
   masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer;
   masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer;
 }
 
 export class ColdWallet implements IColdWallet {
   private blockchain: IBlockchainService;
-  constructor(blockchain: IBlockchainService) {
-    this.blockchain = blockchain;
+  private balanceRepository: IBalanceRepository;
+  private address: string;
+
+  constructor(address: string) {
+    this.address = address;
+
+    switch (config.BLOCKCHAIN) {
+      case 'chia':
+      default:
+        this.blockchain = new ChiaBlockchainService();
+        this.balanceRepository = new ChiaBalanceRepository();
+        break;
+    }
   }
 
-  getPuzzleHash(address: string): Buffer {
-    return this.blockchain.getPuzzleHash(address);
+  async getPuzzleHash(): Promise<Buffer> {
+    return await this.blockchain.getPuzzleHash(this.address);
   }
 
-  verifyKeySignature(signature: Buffer, publicKey: Buffer, message: Buffer): boolean {
-    return this.blockchain.verifyKeySignature(signature, publicKey, message);
-  }
-
-  async listUnspentCoins(
-    peer: IL1Peer,
-    puzzleHash: Buffer,
-    previousHeight: number,
-    previousHeaderHash: Buffer
-  ) {
-    return await this.blockchain.listUnspentCoins(peer, puzzleHash, previousHeight, previousHeaderHash);
-  }
-
-  async isCoinSpendable(
-    peer: IL1Peer,
-    coinId: Buffer,
-    lastHeight: number,
-    headerHash: Buffer
-  ): Promise<boolean> {
-    return await this.blockchain.isCoinSpendable(peer, coinId, lastHeight, headerHash);
-  }
-
-  masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer {
+  public masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer {
     return this.blockchain.masterPublicKeyToWalletSyntheticKey(publicKey);
   }
 
-  masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer {
+  public masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer {
     return this.blockchain.masterPublicKeyToFirstPuzzleHash(publicKey);
+  }
+
+  public async getBalance(assetId: string): Promise<IAssetBalance> {
+    const balance = this.balanceRepository.getBalance(this.address, assetId);
+    return { assetId, balance };
+  }
+
+  public async getBalances(): Promise<IAssetBalance[]> {
+    return this.balanceRepository.getBalancesByAsset(this.address);
   }
 }

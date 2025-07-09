@@ -1,10 +1,8 @@
-import { CoinIndexer } from '../../../../src/application/workers/CoinIndexer/CoinIndexer';
+import { CoinIndexer } from '../../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
 import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import fs from 'fs';
 import path from 'path';
-import { CoinStatus } from '../../../../src/application/types/CoinStatus';
-import { IL1Peer } from '../../../../src/application/interfaces/IL1Peer';
-import { L1PeerService } from '../../../../src/application/services/L1PeerService';
+import { CoinStatus } from '../../../../src/infrastructure/Repositories/CoinStatus';
 
 // Mock the worker and DB for async start
 jest.mock('threads', () => {
@@ -51,7 +49,7 @@ describe('CoinIndexer async start', () => {
 
   it('should start without waiting for worker sync', async () => {
     // Should resolve immediately
-    const startPromise = coinIndexer.start(BlockChainType.Test, dbPath);
+    const startPromise = coinIndexer.start(BlockChainType.Test);
     expect(startPromise).toBeInstanceOf(Promise);
     await startPromise;
   });
@@ -77,7 +75,7 @@ describe('CoinIndexer async start', () => {
 
     const listener = jest.fn();
     coinIndexer.onCoinStateUpdated(listener);
-    await coinIndexer.start(BlockChainType.Test, dbPath);
+    await coinIndexer.start(BlockChainType.Test);
 
     expect(workerStart).toHaveBeenCalled();
     expect(onCoinStateUpdated).toHaveBeenCalled();
@@ -101,7 +99,7 @@ describe('CoinIndexer async start', () => {
     Thread.terminate = workerTerminate;
     const restartSpy = jest.spyOn(coinIndexer as any, 'restartWorker');
 
-    await coinIndexer.start(BlockChainType.Test, dbPath, 1/1800); // 2 seconds for test
+    await coinIndexer.start(BlockChainType.Test, 1/1800); // 2 seconds for test
     expect(workerStart).toHaveBeenCalledTimes(1);
 
     jest.advanceTimersByTime(2200);
@@ -131,7 +129,7 @@ describe('CoinIndexer async start', () => {
     Thread.terminate = workerTerminate;
     const restartSpy = jest.spyOn(coinIndexer as any, 'restartWorker');
 
-    await coinIndexer.start(BlockChainType.Test, dbPath); // no interval
+    await coinIndexer.start(BlockChainType.Test); // no interval
     expect(workerStart).toHaveBeenCalledTimes(1);
     jest.advanceTimersByTime(10000);
     await Promise.resolve();

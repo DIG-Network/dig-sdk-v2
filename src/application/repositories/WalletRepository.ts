@@ -1,16 +1,17 @@
 import Database from 'better-sqlite3';
 import { IWalletRepository } from './Interfaces/IWalletRepository';
 
-export interface WalletRow {
+export const WALLET_DB_FILE = 'wallet.sqlite';
+
+export interface AddressRow {
   address: string;
   namespace: string;
   synced_to_height: number;
   synced_to_hash: string;
-  name?: string; // Add wallet name as optional field
+  name?: string;
 }
 
-let setupTable = (db: Database.Database) => {
-    db.exec(`
+export const WALLET_TABLE_CREATE_SQL = `
       CREATE TABLE IF NOT EXISTS wallet (
         address TEXT PRIMARY KEY,
         namespace TEXT DEFAULT 'default',
@@ -18,18 +19,21 @@ let setupTable = (db: Database.Database) => {
         synced_to_hash TEXT,
         name TEXT UNIQUE
       );
-    `);
+    `;
+
+export let setupTable = (db: Database.Database) => {
+    db.exec(WALLET_TABLE_CREATE_SQL);
   }
 
 export class WalletRepository implements IWalletRepository {
   private db: Database.Database;
 
-  constructor(db: Database.Database) {
-    this.db = db;
-    setupTable(db);
+  constructor() {
+    this.db = new Database(WALLET_DB_FILE);
+    setupTable(this.db);
   }
 
-  addWallet(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
+  addAddress(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
     // Prevent duplicate names
     const exists = this.db.prepare('SELECT 1 FROM wallet WHERE name = ?').get(name);
     if (exists) throw new Error('Wallet with this name already exists');
@@ -50,13 +54,13 @@ export class WalletRepository implements IWalletRepository {
     ).run(address);
   }
 
-  removeWalletByName(name: string) {
+  removeAddressByName(name: string) {
     this.db.prepare(
       `DELETE FROM wallet WHERE name = ?`
     ).run(name);
   }
 
-  getWallets(): WalletRow[] {
-    return this.db.prepare('SELECT * FROM wallet').all() as WalletRow[];
+  getAddresses(): AddressRow[] {
+    return this.db.prepare('SELECT * FROM wallet').all() as AddressRow[];
   }
 }

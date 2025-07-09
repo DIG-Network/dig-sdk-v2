@@ -1,4 +1,4 @@
-import { L1PeerService } from '../../../src/application/services/L1PeerService';
+import { L1PeerService } from '../../../src/infrastructure/Peers/L1PeerService';
 import { Peer, PeerType, Tls } from '@dignetwork/datalayer-driver';
 
 jest.mock('@dignetwork/datalayer-driver', () => {

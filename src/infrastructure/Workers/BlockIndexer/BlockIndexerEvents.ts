@@ -1,4 +1,4 @@
-import { Block } from "../../types/Block";
+import { Block } from "../../../application/types/Block";
 
 export const enum BlockIndexerEventNames {
     BlockIngested = 'hashGenerated',

@@ -1,4 +1,4 @@
-import { IBlockchainService } from "../../application/interfaces/IBlockChainService";
+import { IBlockchainService } from "./IBlockChainService";
 import { Block } from "../../application/types/Block";
 import {
   masterSecretKeyToWalletSyntheticSecretKey,
@@ -10,12 +10,11 @@ import {
   getCoinId,
   selectCoins,
   addressToPuzzleHash,
-  verifySignedMessage,
 } from '@dignetwork/datalayer-driver';
 import { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { PrivateKey } from 'chia-bls';
-import { L1ChiaPeer } from "../Peers/L1ChiaPeer";
-import { IL1Peer } from "../../application/interfaces/IL1Peer";
+import { IL1ChiaPeer, L1ChiaPeer } from "../Peers/L1ChiaPeer";
+import config from "../../config";
 
 export class ChiaBlockchainService implements IBlockchainService {
   async getCurrentBlockchainHeight(): Promise<number> {
@@ -50,6 +49,10 @@ export class ChiaBlockchainService implements IBlockchainService {
     return puzzleHashToAddress(puzzleHash, prefix);
   }
 
+  getAddressPrefix(): string {
+    return config.BLOCKCHAIN_NETWORK === 'mainnet' ? 'xch' : 'txch';
+  }
+
   signMessage(message: Buffer, privateKey: Buffer): Buffer {
     return signMessage(message, privateKey);
   }
@@ -65,12 +68,9 @@ export class ChiaBlockchainService implements IBlockchainService {
   getPuzzleHash(address: string): Buffer {
     return addressToPuzzleHash(address);
   }
-  verifyKeySignature(signature: Buffer, publicKey: Buffer, message: Buffer): boolean {
-    return verifySignedMessage(signature, publicKey, message);
-  }
 
   async listUnspentCoins(
-    peer: IL1Peer,
+    peer: IL1ChiaPeer,
     puzzleHash: Buffer,
     previousHeight: number,
     previousHeaderHash: Buffer
@@ -79,7 +79,7 @@ export class ChiaBlockchainService implements IBlockchainService {
   }
   
   async isCoinSpendable(
-    peer: IL1Peer,
+    peer: IL1ChiaPeer,
     coinId: Buffer,
     lastHeight: number,
     headerHash: Buffer

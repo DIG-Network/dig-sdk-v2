@@ -1,4 +1,4 @@
-import { BlockIndexer } from '../../../../src/application/workers/BlockIndexer/BlockIndexer';
+import { BlockIndexer } from '../../../../src/infrastructure/Workers/BlockIndexer/BlockIndexer';
 import { BlockChainType } from '../../../../src/application/types/BlockChain';
 import fs from 'fs';
 import path from 'path';
@@ -48,7 +48,7 @@ describe('BlockIndexer async start', () => {
 
   it('should start without waiting for worker sync', async () => {
     // Should resolve immediately
-    const startPromise = blockIndexer.start(BlockChainType.Chia, dbPath);
+    const startPromise = blockIndexer.start(BlockChainType.Chia);
     // Not awaiting startPromise here to simulate async fire-and-forget
     expect(startPromise).toBeInstanceOf(Promise);
     // Await to ensure no errors
@@ -79,7 +79,7 @@ describe('BlockIndexer async start', () => {
     // Act
     const listener = jest.fn();
     blockIndexer.onBlockIngested(listener);
-    await blockIndexer.start(BlockChainType.Chia, dbPath);
+    await blockIndexer.start(BlockChainType.Chia);
 
     // Assert
     expect(workerStart).toHaveBeenCalled();
@@ -105,7 +105,7 @@ describe('BlockIndexer async start', () => {
     // Spy on restartWorker
     const restartSpy = jest.spyOn(blockIndexer, 'restartWorker' as any);
 
-    await blockIndexer.start(BlockChainType.Chia, dbPath, 1/1800); // 2 seconds for test
+    await blockIndexer.start(BlockChainType.Chia, 1/1800); // 2 seconds for test
     expect(workerStart).toHaveBeenCalledTimes(1);
 
     jest.advanceTimersByTime(2200);
@@ -136,7 +136,7 @@ describe('BlockIndexer async start', () => {
     // Spy on restartWorker
     const restartSpy = jest.spyOn(blockIndexer, 'restartWorker' as any);
 
-    await blockIndexer.start(BlockChainType.Chia, dbPath); // no interval
+    await blockIndexer.start(BlockChainType.Chia); // no interval
     expect(workerStart).toHaveBeenCalledTimes(1);
     // Simulate time passing
     jest.advanceTimersByTime(10000);
