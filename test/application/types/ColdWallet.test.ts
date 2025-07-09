@@ -44,7 +44,7 @@ describe('ColdWallet', () => {
   it('getBalance should delegate to balanceRepository and return expected balance', async () => {
     const assetId = 'xch';
     const expectedBalance = 42n;
-    jest.spyOn(wallet["balanceRepository"], 'getBalance').mockReturnValue(expectedBalance);
+    jest.spyOn(wallet["balanceRepository"], 'getBalance').mockReturnValue(Promise.resolve(expectedBalance));
     const result = await wallet.getBalance(assetId);
     expect(result).toEqual({ assetId, balance: expectedBalance });
   });
@@ -54,7 +54,7 @@ describe('ColdWallet', () => {
       { assetId: 'xch', balance: 100n },
       { assetId: 'btc', balance: 50n }
     ];
-    jest.spyOn(wallet["balanceRepository"], 'getBalancesByAsset').mockReturnValue(expectedBalances);
+    jest.spyOn(wallet["balanceRepository"], 'getBalancesByAsset').mockReturnValue(Promise.resolve(expectedBalances));
     const result = await wallet.getBalances();
     expect(result).toEqual(expectedBalances);
   });

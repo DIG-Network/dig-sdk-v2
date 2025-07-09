@@ -42,7 +42,7 @@ export class Wallet implements IWallet {
 
   public async getBalance(assetId: string): Promise<IAssetBalance> {
     let address = await this.getOwnerPublicKey();
-    const balance = this.balanceRepository.getBalance(address, assetId);
+    const balance = await this.balanceRepository.getBalance(address, assetId);
     return { assetId, balance };
   }
 

@@ -5,10 +5,10 @@ import { CoinRepository, ICoinRepository } from "./CoinRepository";
 export class ChiaBalanceRepository implements IBalanceRepository {
     private coinRepository: ICoinRepository = new CoinRepository();
 
-    public getBalancesByAsset(address: string): IAssetBalance[] {
+    public async getBalancesByAsset(address: string): Promise<IAssetBalance[]> {
         return this.coinRepository.getBalancesByAsset(address);
     }
-    public getBalance(address: string, assetId: string): bigint {
+    public async getBalance(address: string, assetId: string): Promise<bigint> {
         return this.coinRepository.getBalance(address, assetId);
     }
 }

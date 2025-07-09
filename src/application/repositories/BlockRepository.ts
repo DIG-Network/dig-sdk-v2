@@ -1,29 +1,37 @@
-import Database from 'better-sqlite3';
+import { PrismaClient } from '@prisma/client';
 import { Block } from '../types/Block';
 import { IBlockRepository } from './Interfaces/IBlockRepository';
 
-export const CREATE_BLOCKS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS blocks (hash BLOB, blockHeight INTEGER PRIMARY KEY, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`;
-export const BLOCK_DB_FILE = 'blocks.sqlite'
+const prisma = new PrismaClient();
+
+function toBlock(prismaBlock: { hash: Buffer | Uint8Array; blockHeight: number }): Block {
+  // Prisma returns Uint8Array for Bytes, convert to Buffer if needed
+  return {
+    hash: Buffer.isBuffer(prismaBlock.hash) ? prismaBlock.hash : Buffer.from(prismaBlock.hash),
+    blockHeight: prismaBlock.blockHeight,
+  };
+}
 
 export class BlockRepository implements IBlockRepository {
-  private db: Database.Database;
-
-  constructor() {
-    this.db = new Database(BLOCK_DB_FILE);
-    this.db.exec(CREATE_BLOCKS_TABLE_SQL);
-  }
-
   async getLatestBlock(): Promise<Block> {
-    const stmt = this.db.prepare('SELECT * FROM blocks ORDER BY blockHeight DESC LIMIT 1');
-    const block = stmt.get() as { hash: Buffer, blockHeight: number } | undefined;
+    const block = await prisma.block.findFirst({
+      orderBy: { blockHeight: 'desc' },
+    });
     if (!block) throw new Error('No blocks found');
-    return block;
+    return toBlock(block);
   }
 
   async getBlockByHeight(height: number): Promise<Block> {
-    const stmt = this.db.prepare('SELECT * FROM blocks WHERE blockHeight = ?');
-    const block = stmt.get(height) as { hash: Buffer, blockHeight: number } | undefined;
+    const block = await prisma.block.findUnique({
+      where: { blockHeight: height },
+    });
     if (!block) throw new Error(`Block with height ${height} not found`);
-    return block;
+    return toBlock(block);
+  }
+
+  // Test-only helper for inserting blocks
+  async addBlock(hash: Buffer, blockHeight: number) {
+    // @ts-ignore
+    return await prisma.block.create({ data: { hash, blockHeight } });
   }
 }

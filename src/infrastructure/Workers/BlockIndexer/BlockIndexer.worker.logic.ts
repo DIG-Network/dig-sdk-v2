@@ -1,13 +1,12 @@
-import Database from 'better-sqlite3';
+import { PrismaClient } from '@prisma/client';
 import { Observable } from 'observable-fns';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 import { IBlockchainService } from '../../BlockchainServices/IBlockChainService';
-import { CREATE_BLOCKS_TABLE_SQL } from '../../../application/repositories/BlockRepository';
 import { Block } from '../../../application/types/Block';
 import { BlockChainType } from '../../../application/types/BlockChain';
 
+const prisma = new PrismaClient();
 
-let db: Database.Database | null = null;
 let intervalId: NodeJS.Timeout | null = null;
 let started = false;
 
@@ -19,21 +18,20 @@ let blockHeight = 0;
 let blockchainService: IBlockchainService;
 
 async function syncToBlockchainHeight() {
-  const row = db!.prepare('SELECT MAX(blockHeight) as maxHeight FROM blocks').get() as {
-    maxHeight?: number;
-  };
-  blockHeight =
-    row && typeof row.maxHeight === 'number' && !isNaN(row.maxHeight) ? row.maxHeight : 0;
+  const row = await prisma.block.findFirst({ orderBy: { blockHeight: 'desc' } });
+  blockHeight = row && typeof row.blockHeight === 'number' && !isNaN(row.blockHeight) ? row.blockHeight : 0;
 
   const blockchainHeight = await blockchainService.getCurrentBlockchainHeight();
   if (blockchainHeight > blockHeight) {
     for (let h = blockHeight + 1; h <= blockchainHeight; h++) {
       const block = await blockchainService.getBlockchainBlockByHeight(h);
-      if (block && db) {
-        db.prepare('INSERT INTO blocks (hash, blockHeight) VALUES (?, ?)').run(
-          block.hash,
-          block.blockHeight,
-        );
+      if (block) {
+        await prisma.block.create({
+          data: {
+            hash: Buffer.isBuffer(block.hash) ? block.hash : Buffer.from(block.hash),
+            blockHeight: block.blockHeight,
+          },
+        });
         if (blockObserver) {
           blockObserver(block);
         }
@@ -47,23 +45,18 @@ export const api = {
   /**
    * Start the BlockIndexer worker.
    * @param blockchainType String to select blockchain service.
-   * @param dbPath Path to the SQLite database file.
+   * @param dbPath Path to the SQLite database file. (Ignored, always uses Prisma)
    */
-  async start(blockchainType: string, dbPath: string = './block_indexer.sqlite') {
+  async start(blockchainType: string) {
     if (started) return;
-    db = new Database(dbPath);
-    db.exec(CREATE_BLOCKS_TABLE_SQL);
-
     switch (blockchainType) {
       case BlockChainType.Chia:
       default:
         blockchainService = new ChiaBlockchainService();
         break;
     }
-
     await syncToBlockchainHeight();
     started = true;
-
     intervalId = setInterval(syncToBlockchainHeight, 1000);
   },
   stop() {
@@ -84,10 +77,9 @@ export const api = {
     return blockObservable;
   },
   // For testing: reset all state
-  __reset() {
+  async __reset() {
     if (intervalId) clearInterval(intervalId);
-    if (db) db.close();
-    db = null;
+    await prisma.$disconnect();
     intervalId = null;
     started = false;
     blockObservable = null;

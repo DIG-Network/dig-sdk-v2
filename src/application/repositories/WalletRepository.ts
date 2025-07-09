@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3';
+import { PrismaClient } from '@prisma/client';
 import { IWalletRepository } from './Interfaces/IWalletRepository';
 
-export const WALLET_DB_FILE = 'wallet.sqlite';
+const prisma = new PrismaClient();
 
 export interface AddressRow {
   address: string;
@@ -11,56 +11,38 @@ export interface AddressRow {
   name?: string;
 }
 
-export const WALLET_TABLE_CREATE_SQL = `
-      CREATE TABLE IF NOT EXISTS wallet (
-        address TEXT PRIMARY KEY,
-        namespace TEXT DEFAULT 'default',
-        synced_to_height INTEGER,
-        synced_to_hash TEXT,
-        name TEXT UNIQUE
-      );
-    `;
-
-export let setupTable = (db: Database.Database) => {
-    db.exec(WALLET_TABLE_CREATE_SQL);
-  }
-
 export class WalletRepository implements IWalletRepository {
-  private db: Database.Database;
-
-  constructor() {
-    this.db = new Database(WALLET_DB_FILE);
-    setupTable(this.db);
-  }
-
-  addAddress(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
+  async addAddress(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
     // Prevent duplicate names
-    const exists = this.db.prepare('SELECT 1 FROM wallet WHERE name = ?').get(name);
+    const exists = await prisma.wallet.findUnique({ where: { name } });
     if (exists) throw new Error('Wallet with this name already exists');
-    this.db.prepare(
-      `INSERT OR IGNORE INTO wallet (address, namespace, name, synced_to_height, synced_to_hash) VALUES (?, ?, ?, ?, ?)`
-    ).run(address, namespace, name, synchedToHeight, synchedToHash);
+    await prisma.wallet.create({
+      data: {
+        address,
+        namespace,
+        name,
+        synced_to_height: synchedToHeight,
+        synced_to_hash: synchedToHash,
+      },
+    });
   }
 
-  updateWalletSync(address: string, synced_to_height: number, synced_to_hash: string) {
-    this.db.prepare(
-      `UPDATE wallet SET synced_to_height = ?, synced_to_hash = ? WHERE address = ?`
-    ).run(synced_to_height, synced_to_hash, address);
+  async updateWalletSync(address: string, synced_to_height: number, synced_to_hash: string) {
+    await prisma.wallet.update({
+      where: { address },
+      data: { synced_to_height, synced_to_hash },
+    });
   }
 
-  removeWallet(address: string) {
-    this.db.prepare(
-      `DELETE FROM wallet WHERE address = ?`
-    ).run(address);
+  async removeWallet(address: string) {
+    await prisma.wallet.deleteMany({ where: { address } });
   }
 
-  removeAddressByName(name: string) {
-    this.db.prepare(
-      `DELETE FROM wallet WHERE name = ?`
-    ).run(name);
+  async removeAddressByName(name: string) {
+    await prisma.wallet.deleteMany({ where: { name } });
   }
 
-  getAddresses(): AddressRow[] {
-    return this.db.prepare('SELECT * FROM wallet').all() as AddressRow[];
+  async getAddresses(): Promise<AddressRow[]> {
+    return prisma.wallet.findMany();
   }
 }

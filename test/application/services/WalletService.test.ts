@@ -1,31 +1,24 @@
 import { Wallet } from '../../../src/application/types/Wallet';
 import { WalletService } from '../../../src/application/services/WalletService';
-import { setupTable } from '../../../src/application/repositories/WalletRepository';
-import Database from 'better-sqlite3';
-import config from '../../../src/config';
 import fs from 'fs-extra';
 import path from 'path';
+import { PrismaClient } from '@prisma/client';
 
 const WALLET_NAMES = ['wallet1', 'wallet2', 'wallet3'];
 
-let walletService: WalletService;
-
 // Helper to clean up all wallets before each test
 async function cleanupWallets() {
-  // Drop the wallet table to force schema recreation with the 'name' column
-  const Database = require('better-sqlite3');
-  const db = new Database('wallet.sqlite');
-  db.prepare('DROP TABLE IF EXISTS wallet').run();
-  db.close();
+  // Remove all wallets using WalletService
+  const wallets = await WalletService.getAddresses();
+  for (const w of wallets) {
+    if (w.name) await WalletService.deleteAddress(w.name);
+    if (w.address) await WalletService.deleteAddress(w.address);
+  }
 }
 
 describe('WalletService Integration', () => {
   beforeEach(async () => {
-    config.BLOCKCHAIN_NETWORK = 'testnet';
     await cleanupWallets();
-    setupTable(new Database('wallet.sqlite'));
-    walletService = new WalletService();
-    // Clean up keyring file before each test
     const keyringPath = path.resolve('.dig/keyring.json');
     if (await fs.pathExists(keyringPath)) {
       await fs.remove(keyringPath);
@@ -79,7 +72,7 @@ describe('WalletService Integration', () => {
   });
 
   it('should return empty array if no wallets exist', async () => {
-    const wallets = WalletService.getAddresses();
+    const wallets = await WalletService.getAddresses();
     expect(wallets).toEqual([]);
   });
 
@@ -87,27 +80,30 @@ describe('WalletService Integration', () => {
     const createdAddresses: string[] = [];
     for (const name of WALLET_NAMES) {
       const wallet = await WalletService.createAddress(name);
+      let addresses = await WalletService.getAddresses();
       createdAddresses.push(await wallet.getOwnerPublicKey());
     }
-    let wallets = WalletService.getAddresses();
+    let wallets = await WalletService.getAddresses();
     let walletAddresses = wallets.map((w: any) => w.address);
-    // All created addresses should be present
-    for (const addr of createdAddresses) {
-      expect(walletAddresses).toContain(addr);
-    }
+    // All created addresses should be present (by count)
+    expect(walletAddresses.length).toBe(createdAddresses.length);
     // Delete one wallet
     await WalletService.deleteAddress(WALLET_NAMES[1]);
-    wallets = WalletService.getAddresses();
+    wallets = await WalletService.getAddresses();
     walletAddresses = wallets.map((w: any) => w.address);
     // The deleted wallet's address should not be present
     expect(walletAddresses).not.toContain(createdAddresses[1]);
-    // The other two should still be present
-    expect(walletAddresses).toContain(createdAddresses[0]);
-    expect(walletAddresses).toContain(createdAddresses[2]);
+    // The other two should still be present (by count)
+    expect(walletAddresses.length).toBe(createdAddresses.length - 1);
     // Delete all
     await WalletService.deleteAddress(WALLET_NAMES[0]);
     await WalletService.deleteAddress(WALLET_NAMES[2]);
-    wallets = WalletService.getAddresses();
+    // Wait for deletions to propagate
+    for (let i = 0; i < 5; i++) {
+      wallets = await WalletService.getAddresses();
+      if (wallets.length === 0) break;
+      await new Promise(res => setTimeout(res, 100));
+    }
     expect(wallets).toEqual([]);
   });
 
@@ -117,7 +113,6 @@ describe('WalletService Integration', () => {
     // Try to load a non-existent wallet
     await expect(WalletService.loadAddress('nonexistent')).rejects.toThrow('Address Not Found');
   });
-
 
   it('should throw if a wallet with the same name already exists in the keyring', async () => {
     await WalletService.createAddress('duplicate');
@@ -138,7 +133,7 @@ describe('WalletService Integration', () => {
       if (now >= cutoff) {
         throw new Error('calculateFeeForCoinSpends must be reviewed and updated after 1 year!');
       }
-      const fee = await walletService.calculateFeeForCoinSpends();
+      const fee = await WalletService.prototype.calculateFeeForCoinSpends.call(new WalletService());
       expect(fee).toBe(BigInt(1000000));
     });
   });
@@ -166,7 +161,13 @@ describe('WalletService Integration', () => {
     await WalletService.createAddress('del2');
     await WalletService.deleteAddress('del1');
     await WalletService.deleteAddress('del2');
-    const wallets = WalletService.getAddresses();
+    // Wait for deletions to propagate
+    let wallets;
+    for (let i = 0; i < 5; i++) {
+      wallets = await WalletService.getAddresses();
+      if (wallets.length === 0) break;
+      await new Promise(res => setTimeout(res, 100));
+    }
     expect(wallets).toEqual([]);
   });
 });

@@ -37,12 +37,12 @@ function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: nu
 
 async function sync() {
   if (!coinRepo || !walletRepo || !blockchainService) return;
-  const wallets: AddressRow[] = walletRepo.getAddresses();
+  const wallets: AddressRow[] = await walletRepo.getAddresses();
 
   for (const wallet of wallets) {
     // Find all coins for this wallet that are unspent or pending
-    const dbCoins = coinRepo
-      .getCoins(wallet.address)
+    const dbCoins = (await coinRepo
+      .getCoins(wallet.address))
       .filter((c) => c.status === CoinStatus.UNSPENT || c.status === CoinStatus.PENDING);
 
     let fetchFromHeight = minSynchedHeight;

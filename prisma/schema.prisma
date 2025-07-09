@@ -1,0 +1,42 @@
+// Prisma schema for dig-sdk-v2
+// This file is auto-generated from the current SQLite schema definitions in the codebase.
+// No environment variables are used for datasource.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../wallet.sqlite"
+}
+
+model Block {
+  hash        Bytes
+  blockHeight Int    @id
+  created_at  DateTime @default(now())
+}
+
+model Wallet {
+  address         String  @id
+  namespace       String  @default("default")
+  synced_to_height Int
+  synced_to_hash  String
+  name            String  @unique
+}
+
+model Coin {
+  walletId       String
+  coinId         Bytes
+  parentCoinInfo Bytes
+  puzzleHash     Bytes
+  amount         String
+  syncedHeight   Int
+  status         String
+  assetId        String  @default("xch")
+
+  @@id([walletId, coinId])
+  @@index([walletId])
+  @@index([status])
+  @@index([assetId])
+}

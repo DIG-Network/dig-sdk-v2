@@ -1,7 +1,8 @@
-import Database from 'better-sqlite3';
+import { PrismaClient, Coin as PrismaCoin } from '@prisma/client';
 import { CoinStatus } from './CoinStatus';
 import { IAssetBalance } from '../../application/types/AssetBalance';
-import { WALLET_DB_FILE } from '../../application/repositories/WalletRepository';
+
+const prisma = new PrismaClient();
 
 export interface CoinRow {
   walletId: string;
@@ -14,89 +15,95 @@ export interface CoinRow {
   assetId: string;
 }
 
-export const COIN_TABLE_CREATE_SQL = `
-        CREATE TABLE IF NOT EXISTS coin (
-        walletId TEXT,
-        coinId BLOB,
-        parentCoinInfo BLOB,
-        puzzleHash BLOB,
-        amount TEXT,
-        syncedHeight INTEGER,
-        status TEXT CHECK(status IN ('unspent', 'pending', 'spent')),
-        assetId TEXT DEFAULT 'xch',
-        PRIMARY KEY (walletId, coinId)
-        );
-        CREATE INDEX IF NOT EXISTS idx_coin_walletId ON coin(walletId);
-        CREATE INDEX IF NOT EXISTS idx_coin_status ON coin(status);
-        CREATE INDEX IF NOT EXISTS idx_coin_assetId ON coin(assetId);
-    `;
-
-let setupTable = (db: Database.Database) => {
-    db.exec(COIN_TABLE_CREATE_SQL);
+export interface ICoinRepository {
+  upsertCoin(walletId: string, coin: { coinId: Buffer, parentCoinInfo: Buffer, puzzleHash: Buffer, amount: bigint, syncedHeight: number, status: CoinStatus, assetId?: string }): Promise<void>;
+  getCoins(walletId: string): Promise<CoinRow[]>;
+  getAllCoins(): Promise<CoinRow[]>;
+  getPendingCoins(): Promise<CoinRow[]>;
+  updateCoinStatus(walletId: string, coinId: Buffer, status: CoinStatus, syncedHeight: number): Promise<void>;
+  getBalancesByAsset(walletId: string): Promise<IAssetBalance[]>;
+  getBalance(walletId: string, assetId: string): Promise<bigint>;
 }
 
-export interface ICoinRepository {
-  upsertCoin(walletId: string, coin: { coinId: Buffer, parentCoinInfo: Buffer, puzzleHash: Buffer, amount: bigint, syncedHeight: number, status: CoinStatus, assetId?: string }): void;
-  getCoins(walletId: string): CoinRow[];
-  getAllCoins(): CoinRow[];
-  getPendingCoins(): CoinRow[];
-  updateCoinStatus(walletId: string, coinId: Buffer, status: CoinStatus, syncedHeight: number): void;
-  getBalancesByAsset(walletId: string): IAssetBalance[];
-  getBalance(walletId: string, assetId: string): bigint;
+function toCoinRow(prismaCoin: PrismaCoin): CoinRow {
+  return {
+    walletId: prismaCoin.walletId,
+    coinId: Buffer.from(prismaCoin.coinId),
+    parentCoinInfo: Buffer.from(prismaCoin.parentCoinInfo),
+    puzzleHash: Buffer.from(prismaCoin.puzzleHash),
+    amount: BigInt(prismaCoin.amount),
+    syncedHeight: prismaCoin.syncedHeight,
+    status: prismaCoin.status as CoinStatus,
+    assetId: prismaCoin.assetId,
+  };
 }
 
 export class CoinRepository implements ICoinRepository {
-  private db: Database.Database;
-
-  constructor() {
-    this.db = new Database(WALLET_DB_FILE);
-    setupTable(this.db);
+  async upsertCoin(walletId: string, coin: { coinId: Buffer, parentCoinInfo: Buffer, puzzleHash: Buffer, amount: bigint, syncedHeight: number, status: string, assetId?: string }) {
+    await prisma.coin.upsert({
+      where: { walletId_coinId: { walletId, coinId: coin.coinId } },
+      update: {
+        parentCoinInfo: coin.parentCoinInfo,
+        puzzleHash: coin.puzzleHash,
+        amount: coin.amount.toString(),
+        syncedHeight: coin.syncedHeight,
+        status: coin.status,
+        assetId: coin.assetId || 'xch',
+      },
+      create: {
+        walletId,
+        coinId: coin.coinId,
+        parentCoinInfo: coin.parentCoinInfo,
+        puzzleHash: coin.puzzleHash,
+        amount: coin.amount.toString(),
+        syncedHeight: coin.syncedHeight,
+        status: coin.status,
+        assetId: coin.assetId || 'xch',
+      },
+    });
   }
 
-  upsertCoin(walletId: string, coin: { coinId: Buffer, parentCoinInfo: Buffer, puzzleHash: Buffer, amount: bigint, syncedHeight: number, status: string, assetId?: string }) {
-    this.db.prepare(
-      `INSERT OR REPLACE INTO coin (walletId, coinId, parentCoinInfo, puzzleHash, amount, syncedHeight, status, assetId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      walletId,
-      coin.coinId,
-      coin.parentCoinInfo,
-      coin.puzzleHash,
-      coin.amount.toString(),
-      coin.syncedHeight,
-      coin.status,
-      coin.assetId || 'xch'
-    );
+  async getAllCoins(): Promise<CoinRow[]> {
+    const coins = await prisma.coin.findMany();
+    return coins.map(toCoinRow);
   }
 
-  getAllCoins(): CoinRow[] {
-    return this.db.prepare('SELECT * FROM coin').all() as CoinRow[];
+  async getCoins(walletId: string): Promise<CoinRow[]> {
+    const coins = await prisma.coin.findMany({ where: { walletId } });
+    return coins.map(toCoinRow);
   }
 
-  getCoins(walletId: string): CoinRow[] {
-    return this.db.prepare('SELECT * FROM coin WHERE walletId = ?').all(walletId) as CoinRow[];
+  async getPendingCoins(): Promise<CoinRow[]> {
+    const coins = await prisma.coin.findMany({ where: { status: CoinStatus.PENDING } });
+    return coins.map(toCoinRow);
   }
 
-  getPendingCoins(): CoinRow[] {
-    return this.db.prepare('SELECT * FROM coin WHERE status = ?').all(CoinStatus.PENDING) as CoinRow[];
+  async updateCoinStatus(walletId: string, coinId: Buffer, status: CoinStatus, syncedHeight: number): Promise<void> {
+    await prisma.coin.update({
+      where: { walletId_coinId: { walletId, coinId } },
+      data: { status, syncedHeight },
+    });
   }
 
-  updateCoinStatus(walletId: string, coinId: Buffer, status: CoinStatus, syncedHeight: number) {
-    this.db.prepare(
-      `UPDATE coin SET status = ?, syncedHeight = ? WHERE walletId = ? AND coinId = ?`
-    ).run(status, syncedHeight, walletId, coinId);
+  async getBalancesByAsset(walletId: string): Promise<IAssetBalance[]> {
+    const rows = await prisma.coin.findMany({
+      where: { walletId, status: CoinStatus.UNSPENT },
+    });
+    const assetMap: Record<string, bigint> = {};
+    for (const row of rows) {
+      assetMap[row.assetId] = (assetMap[row.assetId] || 0n) + BigInt(row.amount);
+    }
+    return Object.entries(assetMap).map(([assetId, balance]) => ({ assetId, balance }));
   }
 
-  getBalancesByAsset(walletId: string): IAssetBalance[] {
-    const rows = this.db.prepare(
-      `SELECT assetId, SUM(CAST(amount AS INTEGER)) as balance FROM coin WHERE walletId = ? AND status = ? GROUP BY assetId`
-    ).all(walletId, CoinStatus.UNSPENT) as { assetId: string, balance: string }[];
-    return rows.map(row => ({ assetId: row.assetId, balance: BigInt(row.balance) }));
-  }
-
-  getBalance(walletId: string, assetId: string): bigint {
-    const row = this.db.prepare(
-      `SELECT SUM(CAST(amount AS INTEGER)) as balance FROM coin WHERE walletId = ? AND assetId = ? AND status = ?`
-    ).get(walletId, assetId, CoinStatus.UNSPENT) as { balance: string } | undefined;
-    return row && row.balance ? BigInt(row.balance) : 0n;
+  async getBalance(walletId: string, assetId: string): Promise<bigint> {
+    const rows = await prisma.coin.findMany({
+      where: { walletId, assetId, status: CoinStatus.UNSPENT },
+    });
+    let sum = 0n;
+    for (const row of rows) {
+      sum += BigInt(row.amount);
+    }
+    return sum;
   }
 }

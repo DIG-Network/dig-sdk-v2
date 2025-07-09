@@ -36,7 +36,7 @@ export class WalletService {
     await this.saveAddressToKeyring(addressName, mnemonic ?? generatedMnemonic);
     let wallet = await this.loadAddress(addressName);
     const address = await wallet.getOwnerPublicKey();
-    WalletService.walletRepo.addAddress(address, addressName);
+    await WalletService.walletRepo.addAddress(address, addressName);
 
     return wallet;
   }
@@ -48,11 +48,11 @@ export class WalletService {
       deleted = await nconfService.deleteConfigValue(addressName);
     }
     // Remove from DB as well
-    WalletService.walletRepo.removeAddressByName(addressName);
+    await WalletService.walletRepo.removeAddressByName(addressName);
     return deleted;
   }
 
-  public static getAddresses(): AddressRow[] {
+  public static async getAddresses(): Promise<AddressRow[]> {
     return WalletService.walletRepo.getAddresses();
   }
 
