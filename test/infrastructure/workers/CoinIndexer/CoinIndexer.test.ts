@@ -60,7 +60,7 @@ describe('CoinIndexer async start', () => {
     const onCoinStateUpdated = jest.fn(() => ({
       subscribe: ({ next }: any) => {
         if (typeof next === 'function') {
-          next({ walletId: 'wallet1', coinId: Buffer.from('01', 'hex'), status: CoinStatus.UNSPENT, syncedHeight: 2 });
+          next({ addressId: 'wallet1', coinId: Buffer.from('01', 'hex'), status: CoinStatus.UNSPENT, syncedHeight: 2 });
         }
         return { unsubscribe: jest.fn() };
       }
@@ -79,7 +79,7 @@ describe('CoinIndexer async start', () => {
 
     expect(workerStart).toHaveBeenCalled();
     expect(onCoinStateUpdated).toHaveBeenCalled();
-    expect(listener).toHaveBeenCalledWith({ walletId: 'wallet1', coinId: Buffer.from('01', 'hex'), status: CoinStatus.UNSPENT, syncedHeight: 2 });
+    expect(listener).toHaveBeenCalledWith({ addressId: 'wallet1', coinId: Buffer.from('01', 'hex'), status: CoinStatus.UNSPENT, syncedHeight: 2 });
   });
 
   it('should call restartWorker, worker.stop, and Thread.terminate at the correct interval', async () => {

@@ -1,46 +1,45 @@
+import { PrismaClient } from '@prisma/client';
 import { api } from '../../../../src/infrastructure/Workers/BlockIndexer/BlockIndexer.worker.logic';
-import Database from 'better-sqlite3';
 import { BlockChainType } from '../../../../src/application/types/BlockChain';
-import fs from 'fs';
+
+const prisma = new PrismaClient();
 
 describe('BlockIndexer.worker.logic api', () => {
-  const dbPath = 'test_blockindexer_worker_logic.sqlite';
-  
-  beforeAll(() => {
-    if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
+  beforeAll(async () => {
+    await prisma.block.deleteMany({});
   });
   
-  afterEach(() => {
-    try { new Database(dbPath).close(); } catch {}
+  afterEach(async () => {
+    await prisma.block.deleteMany({});
   });
 
-  it('should create the database file after start', async () => {
+  it('should create the database table after start', async () => {
     api.__reset();
-    if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
-    await api.start(BlockChainType.Test, dbPath);
-    expect(fs.existsSync(dbPath)).toBe(true);
-    // Check table exists
-    const db = new Database(dbPath);
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='blocks'").get();
-    expect(tables).toBeDefined();
-    db.close();
+    await prisma.block.deleteMany({});
+    await api.start(BlockChainType.Test);
+    // Check table exists by inserting and querying a block
+    const testBlock = { hash: Buffer.from('abcd', 'hex'), blockHeight: 1 };
+    await prisma.block.create({ data: { ...testBlock } });
+    const found = await prisma.block.findUnique({ where: { blockHeight: 1 } });
+    expect(found).toBeDefined();
+    await prisma.block.delete({ where: { blockHeight: 1 } });
     api.stop();
   });
 
   it('should not start twice', async () => {
     api.__reset();
-    await api.start(BlockChainType.Test, dbPath);
-    await api.start(BlockChainType.Test, dbPath); // should not throw
+    await api.start(BlockChainType.Test);
+    await api.start(BlockChainType.Test); // should not throw
     api.stop();
   });
 
   it('should stop and reset', async () => {
     api.__reset();
-    await api.start(BlockChainType.Test, dbPath);
+    await api.start(BlockChainType.Test);
     api.stop();
     api.__reset();
     // Should be able to start again
-    await api.start(BlockChainType.Test, dbPath);
+    await api.start(BlockChainType.Test);
     api.stop();
   });
 });

@@ -1,7 +1,0 @@
-import { AddressRow } from '../WalletRepository';
-
-export interface IWalletRepository {
-  addAddress(address: string, name: string, namespace?: string): void;
-  updateWalletSync(address: string, synced_to_height: number, synced_to_hash: string): void;
-  getAddresses(): AddressRow[];
-}

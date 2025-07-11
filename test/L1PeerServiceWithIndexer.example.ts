@@ -17,22 +17,22 @@ async function main() {
     // This starts the CoinIndexer worker and connects to the testnet chia blockchain
     await coinIndexer.start(BlockChainType.Chia, 24, 'ca.crt', 'ca.key', PeerType.Testnet11);
 
-    const wallets = WalletService.getAddresses();
+    const addresses = await WalletService.getWallets();
 
     let wallet: Wallet;
-    if (!wallets.map((wallet) => wallet.name).includes(testnetWalletAddress)) {
-      wallet = await WalletService.createAddress(testnetWalletAddress, testnetMnemonic);
-      console.log(`Wallet ${testnetWalletAddress} added to DB and keyring.`);
+    if (!addresses.map((address) => address.name).includes(testnetWalletAddress)) {
+      wallet = await WalletService.createWallet(testnetWalletAddress, testnetMnemonic);
+      console.log(`Address ${testnetWalletAddress} added to DB and keyring.`);
     } else {
-      wallet = await WalletService.loadAddress(testnetWalletAddress);
-      console.log(`Wallet ${testnetWalletAddress} loading existing.`);
+      wallet = await WalletService.loadWallet(testnetWalletAddress);
+      console.log(`Address ${testnetWalletAddress} loading existing.`);
     }
 
     // do a while ininitely that waits for one second each time
     while (true) {
       console.log('-------------------------------------------------');
       let balance = await wallet.getBalance('xch');
-      console.log(`Balance for wallet ${testnetWalletAddress}: ${balance.balance} ${balance.assetId}`);
+      console.log(`Balance for address ${testnetWalletAddress}: ${balance.balance} ${balance.assetId}`);
       console.log('-------------------------------------------------');
       await new Promise((resolve) => setTimeout(resolve, 10000));
     }

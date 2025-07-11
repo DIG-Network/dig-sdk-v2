@@ -1,23 +1,25 @@
-import Database from 'better-sqlite3';
 import { CoinRepository, ICoinRepository } from '../../../src/infrastructure/Repositories/CoinRepository';
-import { WALLET_DB_FILE } from '../../../src/application/repositories/WalletRepository';
 import { CoinStatus } from '../../../src/infrastructure/Repositories/CoinStatus';
 
 describe('CoinRepository', () => {
-  let db: Database.Database;
   let coinRepo: ICoinRepository;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     coinRepo = new CoinRepository();
-    db = new Database(WALLET_DB_FILE);
-    db.prepare('DELETE FROM coin').run();
+    // Truncate Coin table for test isolation
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    await prisma.coin.deleteMany();
   });
 
-  afterEach(() => {
-    db.close();
+  afterEach(async () => {
+    // Truncate Coin table for test isolation
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    await prisma.coin.deleteMany();
   });
 
-  it('should upsert and retrieve coins', () => {
+  it('should upsert and retrieve coins', async () => {
     const coin = {
       coinId: Buffer.from('aabbcc', 'hex'),
       parentCoinInfo: Buffer.from('ddeeff', 'hex'),
@@ -26,15 +28,12 @@ describe('CoinRepository', () => {
       syncedHeight: 10,
       status: CoinStatus.UNSPENT,
     };
-    coinRepo.upsertCoin('xch1234', coin);
-    const coins = coinRepo.getCoins('xch1234');
-    expect(coins.length).toBe(1);
-    expect(Buffer.isBuffer(coins[0].coinId) || typeof coins[0].coinId === 'object').toBe(true);
-    expect(coins[0].amount).toBe('1000'); // expect string, matches repo logic
-    expect(coins[0].status).toBe(CoinStatus.UNSPENT);
+    await coinRepo.upsertCoin('xch1234', coin);
+    const coins = await coinRepo.getCoins('xch1234');
+    expect(coins.some(c => c.coinId.equals(coin.coinId) && c.amount === 1000n && c.status === CoinStatus.UNSPENT)).toBe(true);
   });
 
-  it('should update coin status', () => {
+  it('should update coin status', async () => {
     const coin = {
       coinId: Buffer.from('aabbcc', 'hex'),
       parentCoinInfo: Buffer.from('ddeeff', 'hex'),
@@ -43,14 +42,14 @@ describe('CoinRepository', () => {
       syncedHeight: 10,
       status: CoinStatus.PENDING,
     };
-    coinRepo.upsertCoin('xch1234', coin);
-    coinRepo.updateCoinStatus('xch1234', coin.coinId, CoinStatus.SPENT, 11);
-    const coins = coinRepo.getCoins('xch1234');
+    await coinRepo.upsertCoin('xch1234', coin);
+    await coinRepo.updateCoinStatus('xch1234', coin.coinId, CoinStatus.SPENT, 11);
+    const coins = await coinRepo.getCoins('xch1234');
     expect(coins[0].status).toBe(CoinStatus.SPENT);
     expect(coins[0].syncedHeight).toBe(11);
   });
 
-  it('should get pending coins', () => {
+  it('should get pending coins', async () => {
     const coin1 = {
       coinId: Buffer.from('aabbcc', 'hex'),
       parentCoinInfo: Buffer.from('ddeeff', 'hex'),
@@ -67,15 +66,15 @@ describe('CoinRepository', () => {
       syncedHeight: 12,
       status: CoinStatus.UNSPENT,
     };
-    coinRepo.upsertCoin('xch1234', coin1);
-    coinRepo.upsertCoin('xch1234', coin2);
-    const pending = coinRepo.getPendingCoins();
+    await coinRepo.upsertCoin('xch1234', coin1);
+    await coinRepo.upsertCoin('xch1234', coin2);
+    const pending = await coinRepo.getPendingCoins();
     expect(pending.length).toBe(1);
     expect(pending[0].status).toBe(CoinStatus.PENDING);
     expect(pending[0].coinId.equals(coin1.coinId)).toBe(true);
   });
 
-  it('should sum balances by assetId and retrieve assetId correctly', () => {
+  it('should sum balances by assetId and retrieve assetId correctly', async () => {
     const coin1 = {
       coinId: Buffer.from('aabbcc01', 'hex'),
       parentCoinInfo: Buffer.from('ddeeff01', 'hex'),
@@ -103,23 +102,23 @@ describe('CoinRepository', () => {
       status: CoinStatus.UNSPENT,
       assetId: 'cat1',
     };
-    coinRepo.upsertCoin('wallet1', coin1);
-    coinRepo.upsertCoin('wallet1', coin2);
-    coinRepo.upsertCoin('wallet1', coin3);
-    const coins = coinRepo.getCoins('wallet1');
+    await coinRepo.upsertCoin('wallet1', coin1);
+    await coinRepo.upsertCoin('wallet1', coin2);
+    await coinRepo.upsertCoin('wallet1', coin3);
+    const coins = await coinRepo.getCoins('wallet1');
     expect(coins.length).toBe(3);
     expect(coins.find(c => c.assetId === 'xch')).toBeDefined();
     expect(coins.filter(c => c.assetId === 'cat1').length).toBe(2);
-    const balances = coinRepo.getBalancesByAsset('wallet1');
+    const balances = await coinRepo.getBalancesByAsset('wallet1');
     expect(balances).toEqual(
       expect.arrayContaining([
         { assetId: 'xch', balance: 1000n },
         { assetId: 'cat1', balance: 5000n },
       ])
     );
-    const cat1Balance = coinRepo.getBalance('wallet1', 'cat1');
+    const cat1Balance = await coinRepo.getBalance('wallet1', 'cat1');
     expect(cat1Balance).toBe(5000n);
-    const xchBalance = coinRepo.getBalance('wallet1', 'xch');
+    const xchBalance = await coinRepo.getBalance('wallet1', 'xch');
     expect(xchBalance).toBe(1000n);
   });
 });

@@ -3,7 +3,7 @@ import { CoinRepository, CoinRow } from '../../Repositories/CoinRepository';
 import { PeerType, Tls, type Coin } from '@dignetwork/datalayer-driver';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 import { IBlockchainService } from '../../BlockchainServices/IBlockChainService';
-import { WalletRepository, AddressRow } from '../../../application/repositories/WalletRepository';
+import { AddressRepository, AddressRow, IAddressRepository } from '../../../application/repositories/AddressRepository';
 import { L1PeerService } from '../../Peers/L1PeerService';
 import { BlockChainType } from '../../../application/types/BlockChain';
 import { CoinStatus } from '../../Repositories/CoinStatus';
@@ -12,7 +12,7 @@ import { IL1ChiaPeer } from '../../Peers/L1ChiaPeer';
 
 
 let coinRepo: CoinRepository | null = null;
-let walletRepo: WalletRepository | null = null;
+let addressRepo: IAddressRepository | null = null;
 let started = false;
 let intervalId: NodeJS.Timeout | null = null;
 let blockchainService: IBlockchainService | null = null;
@@ -22,7 +22,7 @@ let coinStateObserver: ((event: CoinStateUpdatedEvent) => void) | null = null;
 
 const minSynchedHeight = 1; // Minimum height to consider for syncing, genesis block for now
 
-function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: number): CoinRow {
+function mapUnspentCoinToDbFields(coin: Coin, addressId: string, syncedHeight: number): CoinRow {
   return {
     coinId: blockchainService!.getCoinId(coin),
     parentCoinInfo: coin.parentCoinInfo,
@@ -31,18 +31,18 @@ function mapUnspentCoinToDbFields(coin: Coin, walletId: string, syncedHeight: nu
     syncedHeight,
     status: CoinStatus.UNSPENT,
     assetId: 'xch', // TODO investigate how to tell what the asset type is
-    walletId,
+    addressId,
   };
 }
 
 async function sync() {
-  if (!coinRepo || !walletRepo || !blockchainService) return;
-  const wallets: AddressRow[] = walletRepo.getAddresses();
+  if (!coinRepo || !addressRepo || !blockchainService) return;
+  const addresses: AddressRow[] = await addressRepo.getAddresses();
 
-  for (const wallet of wallets) {
-    // Find all coins for this wallet that are unspent or pending
-    const dbCoins = coinRepo
-      .getCoins(wallet.address)
+  for (const address of addresses) {
+    // Find all coins for this address that are unspent or pending
+    const dbCoins = (await coinRepo
+      .getCoins(address.address))
       .filter((c) => c.status === CoinStatus.UNSPENT || c.status === CoinStatus.PENDING);
 
     let fetchFromHeight = minSynchedHeight;
@@ -53,14 +53,14 @@ async function sync() {
 
       return await blockchainService!.listUnspentCoins(
         peer!,
-        blockchainService!.getPuzzleHash(wallet.address),
+        blockchainService!.getPuzzleHash(address.address),
         fetchFromHeight,
         fetchFromHash,
       );
     });
 
     if (unspent.coins.length === 0) {
-      console.log(`No unspent coins found for wallet ${wallet.address} at height ${fetchFromHeight}`);
+      console.log(`No unspent coins found for wallet ${address.address} at height ${fetchFromHeight}`);
     }
 
     // Build a set of unspent coin IDs from the blockchain
@@ -70,10 +70,10 @@ async function sync() {
     for (const dbCoin of dbCoins) {
       if (unspentCoinIds.has(dbCoin.coinId.toString('hex'))) {
         // Still unspent
-        coinRepo.updateCoinStatus(wallet.address, dbCoin.coinId, CoinStatus.UNSPENT, fetchFromHeight);
+        coinRepo.updateCoinStatus(address.address, dbCoin.coinId, CoinStatus.UNSPENT, fetchFromHeight);
         if (coinStateObserver) {
           coinStateObserver({
-            walletId: wallet.address,
+            addressId: address.address,
             coinId: dbCoin.coinId,
             status: CoinStatus.UNSPENT,
             syncedHeight: fetchFromHeight,
@@ -81,10 +81,10 @@ async function sync() {
         }
       } else {
         // Now spent
-        coinRepo.updateCoinStatus(wallet.address, dbCoin.coinId, CoinStatus.SPENT, fetchFromHeight);
+        coinRepo.updateCoinStatus(address.address, dbCoin.coinId, CoinStatus.SPENT, fetchFromHeight);
         if (coinStateObserver) {
           coinStateObserver({
-            walletId: wallet.address,
+            addressId: address.address,
             coinId: dbCoin.coinId,
             status: CoinStatus.SPENT,
             syncedHeight: fetchFromHeight,
@@ -95,8 +95,8 @@ async function sync() {
 
     // Upsert all returned coins as unspent (in case there are new ones)
     for (const coin of unspent.coins) {
-      const mapped = mapUnspentCoinToDbFields(coin, wallet.address, fetchFromHeight);
-      coinRepo.upsertCoin(wallet.address, mapped);
+      const mapped = mapUnspentCoinToDbFields(coin, address.address, fetchFromHeight);
+      coinRepo.upsertCoin(address.address, mapped);
     }
   }
 }
@@ -110,7 +110,7 @@ export const api = {
   ) {
     if (started) return;
     coinRepo = new CoinRepository();
-    walletRepo = new WalletRepository();
+    addressRepo = new AddressRepository();
 
     switch (_blockchainType) {
       case BlockChainType.Chia:
@@ -131,7 +131,7 @@ export const api = {
     started = false;
     if (intervalId) clearInterval(intervalId);
     coinRepo = null;
-    walletRepo = null;
+    addressRepo = null;
     blockchainService = null;
     coinStateObservable = null;
     coinStateObserver = null;
@@ -152,7 +152,7 @@ export const api = {
   __reset() {
     if (intervalId) clearInterval(intervalId);
     coinRepo = null;
-    walletRepo = null;
+    addressRepo = null;
     blockchainService = null;
     started = false;
     coinStateObservable = null;
