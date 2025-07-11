@@ -131,18 +131,6 @@ describe('AddressService Integration', () => {
     expect(walletB).toBeInstanceOf(Wallet);
   });
 
-  describe('calculateFeeForCoinSpends', () => {
-    it('should return the default fee, but fail if not changed after 1 year', async () => {
-      const now = new Date();
-      const cutoff = new Date('2026-06-24T00:00:00Z'); // 1 year from today
-      if (now >= cutoff) {
-        throw new Error('calculateFeeForCoinSpends must be reviewed and updated after 1 year!');
-      }
-      const fee = await WalletService.prototype.calculateFeeForCoinSpends.call(new WalletService());
-      expect(fee).toBe(BigInt(1000000));
-    });
-  });
-
   it('should return false when deleting a wallet that does not exist but keyring file exists', async () => {
     await WalletService.createWallet('walletX');
     const deleted = await WalletService.deleteWallet('nonexistent2');

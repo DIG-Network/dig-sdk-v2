@@ -49,10 +49,6 @@ export class WalletService {
     return WalletService.addressRepo.getAddresses();
   }
 
-  public async calculateFeeForCoinSpends(): Promise<bigint> {
-    return BigInt(1000000);
-  }
-
   private static async getMnemonicFromKeyring(walletName: string): Promise<string | null> {
     const nconfService = new NconfService(KEYRING_FILE);
     if (await nconfService.configExists()) {

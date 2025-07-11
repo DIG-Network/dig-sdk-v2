@@ -1,7 +1,5 @@
 import { PeerType, Tls } from '@dignetwork/datalayer-driver';
-import { ChiaBlockchainService } from '../BlockchainServices/ChiaBlockchainService';
-import { IBlockchainService } from '../BlockchainServices/IBlockChainService';
-import { IL1ChiaPeer } from './L1ChiaPeer';
+import { IL1ChiaPeer, L1ChiaPeer } from './L1ChiaPeer';
 
 export class L1PeerService {
   private static peers: IL1ChiaPeer[] = [];
@@ -9,13 +7,11 @@ export class L1PeerService {
   private static peerType: PeerType = PeerType.Testnet11;
   private static tls: Tls | undefined;
 
-  private static blockchain: IBlockchainService = new ChiaBlockchainService();
-
   private constructor() {}
 
   private static async addPeer(): Promise<IL1ChiaPeer | null> {
     try {
-      const peer = await this.blockchain.connectRandom(this.peerType, this.tls!);
+      const peer = await L1ChiaPeer.connectRandom(this.peerType, this.tls!);
       if (peer) {
         this.peers.push(peer);
         return peer;

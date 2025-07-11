@@ -59,10 +59,6 @@ async function sync() {
       );
     });
 
-    if (unspent.coins.length === 0) {
-      console.log(`No unspent coins found for wallet ${address.address} at height ${fetchFromHeight}`);
-    }
-
     // Build a set of unspent coin IDs from the blockchain
     const unspentCoinIds = new Set(unspent.coins.map(coin => blockchainService!.getCoinId(coin).toString('hex')));
 

@@ -1,6 +1,7 @@
 import { Block } from "../../application/types/Block";
 import type { Coin, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { IL1ChiaPeer } from "../Peers/L1ChiaPeer";
+import { Wallet } from "../../application/types/Wallet";
 
 
 export interface IBlockchainService {
@@ -33,4 +34,5 @@ export interface IBlockchainService {
     headerHash: Buffer
   ): Promise<boolean>;
   connectRandom(peerType: PeerType, tls: Tls): Promise<IL1ChiaPeer>
+  spendBalance(wallet: Wallet, amount: bigint, recipientAddress: string): Promise<void>;
 }
