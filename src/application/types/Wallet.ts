@@ -14,6 +14,7 @@ export interface IWallet extends IColdWallet {
   getPrivateSyntheticKey(): Promise<Buffer>;
   getOwnerPublicKey(): Promise<string>;
   createKeyOwnershipSignature(nonce: string): Promise<string>;
+  spendBalance(amount: bigint, recipientAddress: string): Promise<void>;
 }
 
 export class Wallet implements IWallet {
@@ -87,6 +88,10 @@ export class Wallet implements IWallet {
       privateSyntheticKey,
     );
     return signature.toString('hex');
+  }
+
+  public async spendBalance(amount: bigint, recipientAddress: string): Promise<void> {
+    await this.blockchain.spendBalance(this, amount, recipientAddress);
   }
 
   public masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer {

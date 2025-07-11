@@ -1,6 +1,6 @@
-import type { Peer } from '@dignetwork/datalayer-driver';
+import { Peer } from '@dignetwork/datalayer-driver';
 import type { Buffer } from 'buffer';
-import type { UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
+import type { UnspentCoinsResponse, CoinSpend, Tls, PeerType } from '@dignetwork/datalayer-driver';
 
 export interface IL1ChiaPeer {
   getPeak(): Promise<number | null>;
@@ -15,6 +15,7 @@ export interface IL1ChiaPeer {
     headerHash: Buffer
   ): Promise<boolean>;
   getHeaderHashByHeight(height: number): Promise<Buffer>;
+  broadcastSpend(coinSpends: CoinSpend[], signatures: Buffer[]): Promise<string | null>;
 }
 
 export class L1ChiaPeer implements IL1ChiaPeer {
@@ -48,5 +49,19 @@ export class L1ChiaPeer implements IL1ChiaPeer {
     height: number
   ): Promise<Buffer> {
     return await this.peer.getHeaderHash(height);
+  }
+
+  async broadcastSpend(coinSpends: CoinSpend[], signatures: Buffer[]): Promise<string | null> {
+    // This is a placeholder. Replace with actual RPC or network call as needed.
+    if (typeof this.peer.broadcastSpend === 'function') {
+      return this.peer.broadcastSpend(coinSpends, signatures);
+    }
+    throw new Error('broadcastSpend not implemented');
+  }
+
+  static async connectRandom(peerType: PeerType, tls: Tls): Promise<IL1ChiaPeer> {
+    const peer = await Peer.connectRandom(peerType, tls);
+    if (!peer) throw new Error('Failed to connect to peer');
+    return new L1ChiaPeer(peer);
   }
 }
