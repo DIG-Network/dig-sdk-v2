@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "jest --runInBand",
+    "test": "prisma migrate deploy && jest --runInBand",
     "lint": "eslint . --ext .ts",
     "db:push": "prisma db push"
   },

@@ -7,7 +7,7 @@ interface DigConfig {
 const config: DigConfig = {
   DIG_FOLDER_PATH: '.dig',
   BLOCKCHAIN: 'chia',
-  BLOCKCHAIN_NETWORK: 'mainnet',
+  BLOCKCHAIN_NETWORK: 'testnet',
 };
 
 export default config;

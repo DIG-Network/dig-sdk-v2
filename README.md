@@ -34,12 +34,17 @@ This example demonstrates how to use the CoinIndexer and L1PeerService to sync a
 4. **Run the example**
 
    ```sh
+   prisma db push
+   ```
+
+   ```sh
    npx ts-node ./test/L1PeerServiceWithIndexer.example.ts
    ```
 
    - The script will:
      - Connect to the Chia testnet using L1PeerService.
      - Create or load a wallet and add it to the local database and keyring.
+     - Make a transaction by sending txch
      - Run the indexer which will fetch all coins for the wallet.
      - Periodically print all coins in the local database, showing their status and wallet association.
 

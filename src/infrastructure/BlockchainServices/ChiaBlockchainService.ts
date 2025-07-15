@@ -1,5 +1,5 @@
-import { IBlockchainService } from "./IBlockChainService";
-import { Block } from "../../application/types/Block";
+import { IBlockchainService } from './IBlockChainService';
+import { Block } from '../../application/types/Block';
 import {
   masterSecretKeyToWalletSyntheticSecretKey,
   masterPublicKeyToWalletSyntheticKey,
@@ -10,11 +10,16 @@ import {
   getCoinId,
   selectCoins,
   addressToPuzzleHash,
+  sendXch,
+  signCoinSpends,
 } from '@dignetwork/datalayer-driver';
 import { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { PrivateKey } from 'chia-bls';
-import { IL1ChiaPeer, L1ChiaPeer } from "../Peers/L1ChiaPeer";
-import config from "../../config";
+import { IL1ChiaPeer, L1ChiaPeer } from '../Peers/L1ChiaPeer';
+import config from '../../config';
+import { CoinRepository } from '../../infrastructure/Repositories/CoinRepository';
+import { Wallet } from '../../application/types/Wallet';
+import { L1PeerService } from '../Peers/L1PeerService';
 
 export class ChiaBlockchainService implements IBlockchainService {
   async getCurrentBlockchainHeight(): Promise<number> {
@@ -40,7 +45,7 @@ export class ChiaBlockchainService implements IBlockchainService {
   masterSecretKeyToWalletSyntheticSecretKey(secretKey: Buffer): Buffer {
     return masterSecretKeyToWalletSyntheticSecretKey(secretKey);
   }
-  
+
   masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer {
     return masterPublicKeyToFirstPuzzleHash(publicKey);
   }
@@ -73,16 +78,16 @@ export class ChiaBlockchainService implements IBlockchainService {
     peer: IL1ChiaPeer,
     puzzleHash: Buffer,
     previousHeight: number,
-    previousHeaderHash: Buffer
+    previousHeaderHash: Buffer,
   ): Promise<UnspentCoinsResponse> {
     return await peer.getAllUnspentCoins(puzzleHash, previousHeight, previousHeaderHash);
   }
-  
+
   async isCoinSpendable(
     peer: IL1ChiaPeer,
     coinId: Buffer,
     lastHeight: number,
-    headerHash: Buffer
+    headerHash: Buffer,
   ): Promise<boolean> {
     return !(await peer.isCoinSpent(coinId, lastHeight, headerHash));
   }
@@ -91,5 +96,36 @@ export class ChiaBlockchainService implements IBlockchainService {
     const peer = await Peer.connectRandom(peerType, tls);
     if (!peer) throw new Error('Failed to connect to peer');
     return new L1ChiaPeer(peer);
+  }
+
+  async spendBalance(wallet: Wallet, amount: bigint, recipientAddress: string): Promise<void> {
+    // Fetch unspent coins from repository
+    const publicSyntheticKey = await wallet.getPublicSyntheticKey();
+    const addressId = await wallet.getOwnerPublicKey();
+    const coinRepo = new CoinRepository();
+    const unspentCoins = (await coinRepo.getCoins(addressId)).filter((c) => c.status === 'unspent');
+
+    const selectedCoins = selectCoins(unspentCoins, amount);
+    let fee = await this.calculateFeeForCoinSpends();
+
+    const recipientOutput = {
+      puzzleHash: addressToPuzzleHash(recipientAddress),
+      amount,
+      memos: [],
+    };
+
+    const coinSpends = await sendXch(publicSyntheticKey, selectedCoins, [recipientOutput], fee);
+
+    const privateSyntheticKey = await wallet.getPrivateSyntheticKey();
+    const signature = signCoinSpends(coinSpends, [privateSyntheticKey], config.BLOCKCHAIN_NETWORK === 'testnet');
+
+    await L1PeerService.withPeer(async (peer: IL1ChiaPeer) => {
+      const err = await peer.broadcastSpend(coinSpends, [signature]);
+      if (err) throw new Error(`Broadcast failed: ${err}`);
+    });
+  }
+
+  public async calculateFeeForCoinSpends(): Promise<bigint> {
+    return BigInt(1000000);
   }
 }
