@@ -2,7 +2,7 @@
 interface DigConfig {
   DIG_FOLDER_PATH: string;
   BLOCKCHAIN: 'chia' | 'test';
-  BLOCKCHAIN_NETWORK?: 'mainnet' | 'testnet';
+  BLOCKCHAIN_NETWORK: 'mainnet' | 'testnet';
   DATABASE_TYPE?: 'sqlite' | 'postgres';
   DATABASE_URL?: string;
 }
