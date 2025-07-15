@@ -1,8 +1,9 @@
-import { PrismaClient, Coin as PrismaCoin } from '@prisma/client';
+import { Coin as PrismaCoin } from '@prisma/client';
+import { getDatabaseProvider } from '../DatabaseProvider';
 import { CoinStatus } from './CoinStatus';
 import { IAssetBalance } from '../../application/types/AssetBalance';
 
-const prisma = new PrismaClient();
+const prisma = getDatabaseProvider().getPrismaClient();
 
 export interface CoinRow {
   addressId: string;
