@@ -11,12 +11,6 @@ datasource db {
   url      = "file:../wallet.sqlite"
 }
 
-model Block {
-  hash        Bytes
-  blockHeight Int    @id
-  created_at  DateTime @default(now())
-}
-
 model Address {
   address         String  @id
   namespace       String  @default("default")

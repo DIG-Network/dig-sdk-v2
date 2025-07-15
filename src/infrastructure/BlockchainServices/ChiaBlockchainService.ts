@@ -1,5 +1,4 @@
 import { IBlockchainService } from './IBlockChainService';
-import { Block } from '../../application/types/Block';
 import {
   masterSecretKeyToWalletSyntheticSecretKey,
   masterPublicKeyToWalletSyntheticKey,
@@ -22,14 +21,6 @@ import { Wallet } from '../../application/types/Wallet';
 import { L1PeerService } from '../Peers/L1PeerService';
 
 export class ChiaBlockchainService implements IBlockchainService {
-  async getCurrentBlockchainHeight(): Promise<number> {
-    return 0;
-  }
-
-  async getBlockchainBlockByHeight(height: number): Promise<Block> {
-    return { hash: Buffer.from('abc', 'hex'), blockHeight: height };
-  }
-
   masterSecretKeyFromSeed(seed: Buffer): Buffer {
     return Buffer.from(PrivateKey.fromSeed(seed).toHex(), 'hex');
   }

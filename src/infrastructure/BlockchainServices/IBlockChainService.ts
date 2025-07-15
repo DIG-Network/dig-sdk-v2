@@ -1,12 +1,9 @@
-import { Block } from "../../application/types/Block";
 import type { Coin, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { IL1ChiaPeer } from "../Peers/L1ChiaPeer";
 import { Wallet } from "../../application/types/Wallet";
 
 
 export interface IBlockchainService {
-  getCurrentBlockchainHeight(): Promise<number>;
-  getBlockchainBlockByHeight(height: number): Promise<Block>;
   // Key and address methods
   masterSecretKeyFromSeed(seed: Buffer): Buffer;
   secretKeyToPublicKey(secretKey: Buffer): Buffer;
