@@ -1,11 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { getDatabaseProvider } from '../../DatabaseProvider';
 import { Observable } from 'observable-fns';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 import { IBlockchainService } from '../../BlockchainServices/IBlockChainService';
 import { Block } from '../../../application/types/Block';
 import { BlockChainType } from '../../../application/types/BlockChain';
 
-const prisma = new PrismaClient();
+const prisma = getDatabaseProvider().getPrismaClient();
 
 let intervalId: NodeJS.Timeout | null = null;
 let started = false;

@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { getDatabaseProvider } from '../../infrastructure/DatabaseProvider';
+const prisma = getDatabaseProvider().getPrismaClient();
 
 export interface AddressRow {
   address: string;

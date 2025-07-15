@@ -34,7 +34,7 @@ This example demonstrates how to use the CoinIndexer and L1PeerService to sync a
 4. **Run the example**
 
    ```sh
-   prisma db push
+   npx prisma db push
    ```
 
    ```sh

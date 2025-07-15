@@ -1,8 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { getDatabaseProvider } from '../../infrastructure/DatabaseProvider';
 import { Block } from '../types/Block';
 import { IBlockRepository } from './Interfaces/IBlockRepository';
 
-const prisma = new PrismaClient();
+const prisma = getDatabaseProvider().getPrismaClient();
 
 function toBlock(prismaBlock: { hash: Buffer | Uint8Array; blockHeight: number }): Block {
   // Prisma returns Uint8Array for Bytes, convert to Buffer if needed
