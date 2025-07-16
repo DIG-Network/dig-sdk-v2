@@ -19,6 +19,7 @@ import config from '../../config';
 import { CoinRepository } from '../../infrastructure/Repositories/CoinRepository';
 import { Wallet } from '../../application/types/Wallet';
 import { L1PeerService } from '../Peers/L1PeerService';
+import { BlockchainNetwork } from '../../config/types/BlockchainNetwork';
 
 export class ChiaBlockchainService implements IBlockchainService {
   masterSecretKeyFromSeed(seed: Buffer): Buffer {
@@ -46,7 +47,7 @@ export class ChiaBlockchainService implements IBlockchainService {
   }
 
   getAddressPrefix(): string {
-    return config.BLOCKCHAIN_NETWORK === 'mainnet' ? 'xch' : 'txch';
+    return config.BLOCKCHAIN_NETWORK === BlockchainNetwork.MAINNET ? 'xch' : 'txch';
   }
 
   signMessage(message: Buffer, privateKey: Buffer): Buffer {

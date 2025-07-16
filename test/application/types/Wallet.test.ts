@@ -1,12 +1,13 @@
 import { Wallet } from '../../../src/application/types/Wallet';
 import config from '../../../src/config';
+import { BlockchainNetwork } from '../../../src/config/types/BlockchainNetwork';
 
 describe('Wallet', () => {
   const TEST_MNEMONIC = 'test test test test test test test test test test test ball';
   let wallet: any;
 
   beforeEach(() => {
-    config.BLOCKCHAIN_NETWORK = 'testnet';
+    config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
   });
 
   it('should return the mnemonic', () => {
@@ -48,14 +49,14 @@ describe('Wallet', () => {
 
   it('should return the expected owner public key for mainet', async () => {
     wallet = new Wallet(TEST_MNEMONIC);
-    config.BLOCKCHAIN_NETWORK = 'mainnet';
+    config.BLOCKCHAIN_NETWORK = BlockchainNetwork.MAINNET;
     const pub = await wallet.getOwnerPublicKey();
     expect(pub).toBe('xch1yjz7rusz8wje6dkx8ch995m9f4wk5kvhw0yzhgyftgl8feusx4gq820cf2');
   });
 
   it('should return the expected owner public key for testnet', async () => {
     wallet = new Wallet(TEST_MNEMONIC);
-    config.BLOCKCHAIN_NETWORK = 'testnet';
+    config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
     const pub = await wallet.getOwnerPublicKey();
     expect(pub).toBe('txch1yjz7rusz8wje6dkx8ch995m9f4wk5kvhw0yzhgyftgl8feusx4gq2dgwge');
   });

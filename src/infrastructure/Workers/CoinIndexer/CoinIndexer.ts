@@ -4,18 +4,15 @@ import {
   CoinIndexerEvents,
   CoinStateUpdatedEvent,
 } from './CoinIndexerEvents';
-import { ChiaBlockListener } from '@dignetwork/chia-block-listener';
+import { BlockReceivedEvent, ChiaBlockListener } from '@dignetwork/chia-block-listener';
 import { L1ChiaPeer } from '../../Peers/L1ChiaPeer';
 import { WalletService } from '../../../application/services/WalletService';
 import config from '../../../config';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 import { CoinRepository } from '../../Repositories/CoinRepository';
 import { CoinStatus } from '../../Repositories/CoinStatus';
-
-export interface CoinIndexerWorkerApi {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: (...args: any[]) => any;
-}
+import { BlockRepository } from '../../../application/repositories/BlockRepository';
+import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
 
 interface ICoinIndexer {
   onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void;
@@ -29,6 +26,8 @@ export class CoinIndexer
   private listener: ChiaBlockListener;
 
   private coinRepo: CoinRepository;
+  private blockRepo: BlockRepository;
+
   private chiaService: ChiaBlockchainService;
 
   private minConnections;
@@ -39,6 +38,7 @@ export class CoinIndexer
     this.minConnections = minConnections;
     this.listener = new ChiaBlockListener();
     this.coinRepo = new CoinRepository();
+    this.blockRepo = new BlockRepository();
     this.chiaService = new ChiaBlockchainService();
     this.connectedPeers = new Set();
   }
@@ -48,9 +48,37 @@ export class CoinIndexer
     this.started = true;
 
     this.listener.on('peerConnected', this.handlePeerConnected);
-
     this.listener.on('peerDisconnected', this.handlePeerDisconnected);
 
+    await this.addPeersToListener();
+
+    this.listener.on('blockReceived', async (block: BlockReceivedEvent) => {
+      await this.blockRepo.addBlock(block.height, block.headerHash);
+
+      const trackedPuzzleHashesToAddr: Record<string, string> =
+        await this.getTrackedAddressesAsPuzzleHashToAddressMap();
+      console.log(`Processing block at height ${block.height} with ${block.coinCreations?.length || 0} creations and ${block.coinSpends?.length || 0} spends`);
+      console.log(`Tracked addresses: ${Object.values(trackedPuzzleHashesToAddr)}`);
+
+      await this.handleCoinCreations(block, trackedPuzzleHashesToAddr);
+      await this.handleCoinRemovals(block, trackedPuzzleHashesToAddr);
+    });
+  }
+
+  private async getTrackedAddressesAsPuzzleHashToAddressMap(): Promise<Record<string, string>> {
+    const addressRows = await WalletService.getWallets();
+
+    const trackedPuzzleHashesToAddr: Record<string, string> = {};
+
+    for (const row of addressRows) {
+      const puzzleHash = this.chiaService.getPuzzleHash(row.address);
+      trackedPuzzleHashesToAddr[puzzleHash.toString('hex')] = row.address;
+    }
+
+    return trackedPuzzleHashesToAddr;
+  }
+
+  private async addPeersToListener() {
     const peers = await L1ChiaPeer.discoverRawDataPeers();
     let peerIdx = 0;
     while (this.connectedPeers.size < this.minConnections && peerIdx < peers.length) {
@@ -61,77 +89,71 @@ export class CoinIndexer
         this.listener.addPeer(
           peer.host,
           peer.port,
-          config.BLOCKCHAIN_NETWORK === 'mainnet' ? 'mainnet' : 'testnet11',
+          config.BLOCKCHAIN_NETWORK === BlockchainNetwork.MAINNET ? 'mainnet' : 'testnet11',
         );
-      } catch {
-      }
+      } catch {}
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
+  }
 
-    const addressRows = await WalletService.getWallets();
-
-    const trackedPuzzleHashesToAddr: Record<string, string> = {};
-    for (const row of addressRows) {
-      const puzzleHash = this.chiaService.getPuzzleHash(row.address);
-      trackedPuzzleHashesToAddr[puzzleHash.toString('hex')] = row.address;
+  private async handleCoinRemovals(
+    block: BlockReceivedEvent,
+    trackedPuzzleHashesToAddr: Record<string, string>,
+  ) {
+    if (!block.coinSpends) return;
+    for (const coinSpend of block.coinSpends) {
+      const addr = trackedPuzzleHashesToAddr[coinSpend.coin.puzzleHash];
+      if (addr) {
+        console.log(`Coin spend for address ${addr}: ${coinSpend.coin.puzzleHash}`);
+        await this.coinRepo.updateCoinStatus(
+          addr,
+          Buffer.from(
+            coinSpend.coin.parentCoinInfo + coinSpend.coin.puzzleHash + coinSpend.coin.amount,
+            'hex',
+          ),
+          CoinStatus.SPENT,
+          block.height,
+        );
+        this.emit(CoinIndexerEventNames.CoinStateUpdated, {
+          addressId: addr,
+          coinId: Buffer.from(
+            coinSpend.coin.parentCoinInfo + coinSpend.coin.puzzleHash + coinSpend.coin.amount,
+            'hex',
+          ),
+          status: CoinStatus.SPENT,
+          syncedHeight: block.height,
+        });
+      }
     }
+  }
 
-    // Listen for new blocks
-    this.listener.on('blockReceived', async (block) => {
-      console.log(`New block received: ${block.height}`);
-      console.log(`Header hash: ${block.headerHash}`);
-      console.log(`Timestamp: ${new Date(block.timestamp * 1000)}`);
-      console.log(`Coin additions: ${block.coinAdditions.length}`);
-      console.log(`Coin removals: ${block.coinRemovals.length}`);
-      console.log(`Coin spends: ${block.coinSpends.length}`);
-
-      for (const coin of block.coinAdditions) {
-        console.log(`-----------------------------------------------`);
-        console.log(`Coin addition: ${coin.puzzleHash} - ${coin.amount}`);
-        console.log(`Parent coin info: ${coin.parentCoinInfo}`);
-        console.log(`-----------------------------------------------`);
-        const walletAddr = trackedPuzzleHashesToAddr[coin.puzzleHash];
-        if (walletAddr) {
-          await this.coinRepo.upsertCoin(walletAddr, {
-            coinId: Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
-            parentCoinInfo: Buffer.from(coin.parentCoinInfo, 'hex'),
-            puzzleHash: Buffer.from(coin.puzzleHash, 'hex'),
-            amount: BigInt(coin.amount),
-            syncedHeight: block.height,
-            status: CoinStatus.UNSPENT,
-            assetId: 'xch',
-          });
-          this.emit(CoinIndexerEventNames.CoinStateUpdated, {
-            addressId: walletAddr,
-            coinId: Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
-            status: CoinStatus.UNSPENT,
-            syncedHeight: block.height,
-          });
-        }
+  private async handleCoinCreations(
+    block: BlockReceivedEvent,
+    trackedPuzzleHashesToAddr: Record<string, string>,
+  ) {
+    if (!block.coinCreations) return;
+    for (const coin of block.coinCreations) {
+      const walletAddr = trackedPuzzleHashesToAddr[coin.puzzleHash];
+      console.log(`Processing coin creation for puzzle hash ${coin.puzzleHash}`);
+      if (walletAddr) {
+        console.log(`Coin creation for address ${walletAddr}: ${coin.puzzleHash}`);
+        await this.coinRepo.upsertCoin(walletAddr, {
+          coinId: Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
+          parentCoinInfo: Buffer.from(coin.parentCoinInfo, 'hex'),
+          puzzleHash: Buffer.from(coin.puzzleHash, 'hex'),
+          amount: BigInt(coin.amount),
+          syncedHeight: block.height,
+          status: CoinStatus.UNSPENT,
+          assetId: 'xch',
+        });
+        this.emit(CoinIndexerEventNames.CoinStateUpdated, {
+          addressId: walletAddr,
+          coinId: Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
+          status: CoinStatus.UNSPENT,
+          syncedHeight: block.height,
+        });
       }
-      
-      for (const coin of block.coinRemovals) {
-        console.log(`-----------------------------------------------`);
-        console.log(`Coin removal: ${coin.puzzleHash} - ${coin.amount}`);
-        console.log(`Parent coin info: ${coin.parentCoinInfo}`);
-        console.log(`-----------------------------------------------`);
-        const addr = trackedPuzzleHashesToAddr[coin.puzzleHash];
-        if (addr) {
-          await this.coinRepo.updateCoinStatus(
-            addr,
-            Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
-            CoinStatus.SPENT,
-            block.height
-          );
-          this.emit(CoinIndexerEventNames.CoinStateUpdated, {
-            addressId: addr,
-            coinId: Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
-            status: CoinStatus.SPENT,
-            syncedHeight: block.height,
-          });
-        }
-      }
-    });
+    }
   }
 
   private handlePeerDisconnected = async (peer: { host: string; port: number }) => {
@@ -146,7 +168,7 @@ export class CoinIndexer
             this.listener.addPeer(
               candidate.host,
               candidate.port,
-              config.BLOCKCHAIN_NETWORK === 'mainnet' ? 'mainnet' : 'testnet11',
+              config.BLOCKCHAIN_NETWORK === BlockchainNetwork.MAINNET ? 'mainnet' : 'testnet11',
             );
             break;
           } catch {}

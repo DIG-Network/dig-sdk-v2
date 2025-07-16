@@ -34,3 +34,8 @@ model Coin {
   @@index([status])
   @@index([assetId])
 }
+
+model Block {
+  height     Int    @id
+  headerHash String
+}

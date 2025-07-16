@@ -6,28 +6,30 @@ import { Wallet } from '../src/application/types/Wallet';
 import { WalletService } from '../src/application/services/WalletService';
 import { L1PeerService } from '../src/infrastructure/Peers/L1PeerService';
 import { L1ChiaPeer } from '../src/infrastructure/Peers/L1ChiaPeer';
+import { BlockchainNetwork } from '../src/config/types/BlockchainNetwork';
+import { ChiaBlockchainService } from '../src/infrastructure/BlockchainServices/ChiaBlockchainService';
 
 async function main() {
   const testnetWalletAddress = 'dev';
   const testnetMnemonic =
     ''; // Replace with your actual mnemonic
   // You must have ca.crt and ca.key in your working directory or adjust the path
-  config.BLOCKCHAIN_NETWORK = 'testnet';
+  config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
   // try {
   //   const coinIndexer = new CoinIndexer();
 
   //   await coinIndexer.start(BlockChainType.Chia, 24, 'ca.crt', 'ca.key', PeerType.Testnet11);
 
-    const addresses = await WalletService.getWallets();
+    // const addresses = await WalletService.getWallets();
 
-    let wallet: Wallet;
-    if (!addresses.map((address) => address.name).includes(testnetWalletAddress)) {
-      wallet = await WalletService.createWallet(testnetWalletAddress, testnetMnemonic);
-      console.log(`Address ${testnetWalletAddress} added to DB and keyring.`);
-    } else {
-      wallet = await WalletService.loadWallet(testnetWalletAddress);
-      console.log(`Address ${testnetWalletAddress} loading existing.`);
-    }
+    // let wallet: Wallet;
+    // if (!addresses.map((address) => address.name).includes(testnetWalletAddress)) {
+    //   wallet = await WalletService.createWallet(testnetWalletAddress, testnetMnemonic);
+    //   console.log(`Address ${testnetWalletAddress} added to DB and keyring.`);
+    // } else {
+    //   wallet = await WalletService.loadWallet(testnetWalletAddress);
+    //   console.log(`Address ${testnetWalletAddress} loading existing.`);
+    // }
 
   //   const tls = new Tls('ca.crt', 'ca.key');
   //   await L1PeerService.connect(5, 10, PeerType.Testnet11, tls);
@@ -56,8 +58,13 @@ async function main() {
   //   console.error('Error during execution:', e);
   // }
 
-  let coinIndexer = new CoinIndexer();
-  coinIndexer.start();
-}
+  // let coinIndexer = new CoinIndexer();
+  // coinIndexer.start();
+
+  const chiaService = new ChiaBlockchainService();
+  //  var address = chiaService.puzzleHashToAddress(Buffer.from('63373530636262646161356532356631353166303838323866366533613139313530636233323939316338316436616330636130343037376630343738633332'), 'txch');
+  var hash = chiaService.getPuzzleHash('txch1qcf59ph8tsxaa58r2zfwhcse7f52etwcct33xwn9s6aa7v8ulj6qhque3x');
+  console.log(`Address from puzzle hash ${hash.toString('hex')}: ${chiaService.puzzleHashToAddress(hash, 'txch')}`);
+  }
 
 main();

@@ -3,6 +3,7 @@ import type { Buffer } from 'buffer';
 import type { UnspentCoinsResponse, CoinSpend, Tls, PeerType } from '@dignetwork/datalayer-driver';
 import * as dns from 'dns/promises';
 import config from '../../config';
+import { BlockchainNetwork } from '../../config/types/BlockchainNetwork';
 
 export interface IL1ChiaPeer {
   getPeak(): Promise<number | null>;
@@ -59,7 +60,7 @@ export class L1ChiaPeer implements IL1ChiaPeer {
 
   static async discoverRawDataPeers() {
     let introducers = [];
-    if (config.BLOCKCHAIN_NETWORK === 'mainnet') {
+    if (config.BLOCKCHAIN_NETWORK === BlockchainNetwork.MAINNET) {
       introducers = [
         'dns-introducer.chia.net',
         'chia.ctrlaltdel.ch',
@@ -75,7 +76,7 @@ export class L1ChiaPeer implements IL1ChiaPeer {
     for (const introducer of introducers) {
       try {
         const addresses = await dns.resolve4(introducer);
-        const port = config.BLOCKCHAIN_NETWORK === 'mainnet' ? 8444 : 58444;
+        const port = config.BLOCKCHAIN_NETWORK === BlockchainNetwork.MAINNET ? 8444 : 58444;
         const peers = addresses.map((ip) => ({
           host: ip,
           port: port,
@@ -88,8 +89,6 @@ export class L1ChiaPeer implements IL1ChiaPeer {
     }
 
     const uniquePeers = Array.from(new Map(allPeers.map((p) => [p.host, p])).values());
-    console.log(`Discovered ${uniquePeers.length} unique peers from introducers.`);
-    console.log(uniquePeers);
 
     return uniquePeers;
   }

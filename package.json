@@ -30,7 +30,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@dignetwork/chia-block-listener": "^0.1.7",
+    "@dignetwork/chia-block-listener": "^0.1.8",
     "@dignetwork/datalayer-driver": "^0.1.35",
     "@dignetwork/proof-of-storage-continuity": "^0.1.0",
     "@prisma/client": "^6.11.1",
