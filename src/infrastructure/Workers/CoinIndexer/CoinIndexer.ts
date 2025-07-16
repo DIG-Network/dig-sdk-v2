@@ -59,8 +59,6 @@ export class CoinIndexer
 
       const trackedPuzzleHashesToAddr: Record<string, string> =
         await this.getTrackedAddressesAsPuzzleHashToAddressMap();
-      console.log(`Processing block at height ${block.height} with ${block.coinCreations?.length || 0} creations and ${block.coinSpends?.length || 0} spends`);
-      console.log(`Tracked addresses: ${Object.values(trackedPuzzleHashesToAddr)}`);
 
       await this.handleCoinCreations(block, trackedPuzzleHashesToAddr);
       await this.handleCoinSpends(block, trackedPuzzleHashesToAddr);
@@ -106,8 +104,6 @@ export class CoinIndexer
     for (const coinSpend of block.coinSpends) {
       const addr = trackedPuzzleHashesToAddr[coinSpend.coin.puzzleHash];
       if (addr) {
-        console.log(`Coin spend for address ${addr}: ${coinSpend.coin.puzzleHash}`);
-        // Only add spent coin details to DB, do not update added coin status here
         if (coinSpend.puzzleReveal && coinSpend.solution && typeof coinSpend.offset === 'number') {
           await this.coinRepo.addSpentCoin(addr, {
             coinId: Buffer.from(coinSpend.coin.parentCoinInfo + coinSpend.coin.puzzleHash + coinSpend.coin.amount, 'hex'),
@@ -143,9 +139,7 @@ export class CoinIndexer
     if (!block.coinCreations) return;
     for (const coin of block.coinCreations) {
       const walletAddr = trackedPuzzleHashesToAddr[coin.puzzleHash];
-      console.log(`Processing coin creation for puzzle hash ${coin.puzzleHash}`);
       if (walletAddr) {
-        console.log(`Coin creation for address ${walletAddr}: ${coin.puzzleHash}`);
         await this.coinRepo.upsertAddedCoin(walletAddr, {
           coinId: Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
           parentCoinInfo: Buffer.from(coin.parentCoinInfo, 'hex'),
@@ -189,9 +183,7 @@ export class CoinIndexer
   };
 
   private handlePeerConnected = (peer: { host: string; port: number }) => {
-    console.log(`Peer connected: ${peer.host}:${peer.port}`);
     const key = `${peer.host}:${peer.port}`;
-    console.log(`Connected peers: ${this.connectedPeers.size}`);
     this.connectedPeers.add(key);
   };
 
