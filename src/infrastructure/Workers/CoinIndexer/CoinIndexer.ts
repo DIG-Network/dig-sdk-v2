@@ -116,7 +116,7 @@ export class CoinIndexer
             puzzleReveal: coinSpend.puzzleReveal,
             solution: coinSpend.solution,
             offset: coinSpend.offset,
-            addressId: ''
+            addressId: addr
           });
         }
         this.emit(CoinIndexerEventNames.CoinStateUpdated, {
@@ -125,7 +125,7 @@ export class CoinIndexer
             coinSpend.coin.parentCoinInfo + coinSpend.coin.puzzleHash + coinSpend.coin.amount,
             'hex',
           ),
-          status: CoinStatus.SPENT,
+          coinStatus: CoinStatus.SPENT,
           syncedHeight: block.height,
         });
       }
@@ -148,12 +148,12 @@ export class CoinIndexer
           syncedHeight: block.height,
           coinStatus: CoinStatus.UNSPENT,
           assetId: 'xch',
-          addressId: ''
+          addressId: walletAddr
         });
         this.emit(CoinIndexerEventNames.CoinStateUpdated, {
           addressId: walletAddr,
           coinId: Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
-          status: CoinStatus.UNSPENT,
+          coinStatus: CoinStatus.UNSPENT,
           syncedHeight: block.height,
         });
       }

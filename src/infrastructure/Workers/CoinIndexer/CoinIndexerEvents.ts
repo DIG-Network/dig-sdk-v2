@@ -7,7 +7,7 @@ export enum CoinIndexerEventNames {
 export interface CoinStateUpdatedEvent {
   addressId: string;
   coinId: Buffer;
-  status: CoinStatus;
+  coinStatus: CoinStatus;
   syncedHeight: number;
 }
 

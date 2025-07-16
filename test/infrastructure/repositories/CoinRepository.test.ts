@@ -32,11 +32,13 @@ describe('CoinRepository', () => {
       puzzleHash: Buffer.from('112233', 'hex'),
       amount: BigInt(1000),
       syncedHeight: 10,
-      status: CoinStatus.UNSPENT,
+      coinStatus: CoinStatus.UNSPENT,
+      addressId: 'xch1234',
+      assetId: 'xch',
     };
     await coinRepo.upsertAddedCoin('xch1234', coin);
     const coins = await coinRepo.getAddedCoins('xch1234');
-    expect(coins.some((c: AddedCoinRow) => c.coinId.equals(coin.coinId) && c.amount === 1000n && c.status === CoinStatus.UNSPENT)).toBe(true);
+    expect(coins.some((c: AddedCoinRow) => c.coinId.equals(coin.coinId) && c.amount === 1000n && c.coinStatus === CoinStatus.UNSPENT)).toBe(true);
   });
 
   it('should update added coin status', async () => {
@@ -46,12 +48,14 @@ describe('CoinRepository', () => {
       puzzleHash: Buffer.from('112233', 'hex'),
       amount: BigInt(1000),
       syncedHeight: 10,
-      status: CoinStatus.PENDING,
+      coinStatus: CoinStatus.PENDING,
+      addressId: 'xch1234',
+      assetId: 'xch',
     };
     await coinRepo.upsertAddedCoin('xch1234', coin);
     await coinRepo.updateAddedCoinStatus('xch1234', coin.coinId, CoinStatus.SPENT, 11);
     const coins = await coinRepo.getAddedCoins('xch1234');
-    expect(coins[0].status).toBe(CoinStatus.SPENT);
+    expect(coins[0].coinStatus).toBe(CoinStatus.SPENT);
     expect(coins[0].syncedHeight).toBe(11);
   });
 
@@ -62,7 +66,9 @@ describe('CoinRepository', () => {
       puzzleHash: Buffer.from('112233', 'hex'),
       amount: BigInt(1000),
       syncedHeight: 10,
-      status: CoinStatus.PENDING,
+      coinStatus: CoinStatus.PENDING,
+      addressId: 'xch1234',
+      assetId: 'xch',
     };
     const coin2 = {
       coinId: Buffer.from('bbccdd', 'hex'),
@@ -70,13 +76,15 @@ describe('CoinRepository', () => {
       puzzleHash: Buffer.from('223344', 'hex'),
       amount: BigInt(2000),
       syncedHeight: 12,
-      status: CoinStatus.UNSPENT,
+      coinStatus: CoinStatus.UNSPENT,
+      addressId: 'xch1234',
+      assetId: 'xch',
     };
     await coinRepo.upsertAddedCoin('xch1234', coin1);
     await coinRepo.upsertAddedCoin('xch1234', coin2);
     const pending = await coinRepo.getPendingAddedCoins();
     expect(pending.length).toBe(1);
-    expect(pending[0].status).toBe(CoinStatus.PENDING);
+    expect(pending[0].coinStatus).toBe(CoinStatus.PENDING);
     expect(pending[0].coinId.equals(coin1.coinId)).toBe(true);
   });
 
@@ -87,7 +95,8 @@ describe('CoinRepository', () => {
       puzzleHash: Buffer.from('11223301', 'hex'),
       amount: BigInt(1000),
       syncedHeight: 10,
-      status: CoinStatus.UNSPENT,
+      coinStatus: CoinStatus.UNSPENT,
+      addressId: 'wallet1',
       assetId: 'xch',
     };
     const coin2 = {
@@ -96,7 +105,8 @@ describe('CoinRepository', () => {
       puzzleHash: Buffer.from('11223302', 'hex'),
       amount: BigInt(2000),
       syncedHeight: 11,
-      status: CoinStatus.UNSPENT,
+      coinStatus: CoinStatus.UNSPENT,
+      addressId: 'wallet1',
       assetId: 'cat1',
     };
     const coin3 = {
@@ -105,7 +115,8 @@ describe('CoinRepository', () => {
       puzzleHash: Buffer.from('11223303', 'hex'),
       amount: BigInt(3000),
       syncedHeight: 12,
-      status: CoinStatus.UNSPENT,
+      coinStatus: CoinStatus.UNSPENT,
+      addressId: 'wallet1',
       assetId: 'cat1',
     };
     await coinRepo.upsertAddedCoin('wallet1', coin1);
@@ -134,7 +145,8 @@ describe('CoinRepository', () => {
       puzzleHash: Buffer.from('facefeed', 'hex'),
       amount: BigInt(1234),
       syncedHeight: 42,
-      status: CoinStatus.SPENT,
+      coinStatus: CoinStatus.SPENT,
+      addressId: 'wallet2',
       assetId: 'xch',
       puzzleReveal: 'reveal',
       solution: 'solution',
