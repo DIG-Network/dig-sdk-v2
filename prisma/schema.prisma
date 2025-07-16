@@ -19,7 +19,7 @@ model Address {
   name            String  @unique
 }
 
-model Coin {
+model AddedCoin {
   addressId       String
   coinId         Bytes
   parentCoinInfo Bytes
@@ -28,6 +28,25 @@ model Coin {
   syncedHeight   Int
   status         String
   assetId        String  @default("xch")
+
+  @@id([addressId, coinId])
+  @@index([addressId])
+  @@index([status])
+  @@index([assetId])
+}
+
+model SpentCoin {
+  addressId       String
+  coinId         Bytes
+  parentCoinInfo Bytes
+  puzzleHash     Bytes
+  amount         String
+  syncedHeight   Int
+  status         String
+  assetId        String  @default("xch")
+  puzzleReveal   String
+  solution       String
+  offset         Int
 
   @@id([addressId, coinId])
   @@index([addressId])

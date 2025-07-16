@@ -1,5 +1,6 @@
 import { ColdWallet } from '../../../src/application/types/ColdWallet';
 import config from '../../../src/config';
+import { BlockchainNetwork } from '../../../src/config/types/BlockchainNetwork';
 
 const TEST_ADDRESS = 'xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8249j';
 const TEST_puzzleHash = Buffer.from('aabbcc', 'hex');
@@ -9,7 +10,7 @@ describe('ColdWallet', () => {
   let mockPeer: any;
 
   beforeEach(() => {
-    config.BLOCKCHAIN_NETWORK = 'testnet';
+    config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
     wallet = new ColdWallet(TEST_ADDRESS);
     // Mock the blockchain's getPuzzleHash method to avoid real address decoding
     (jest.spyOn(wallet["blockchain"], 'getPuzzleHash') as any).mockResolvedValue(TEST_puzzleHash);

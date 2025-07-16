@@ -61,7 +61,7 @@ export class CoinIndexer
       console.log(`Tracked addresses: ${Object.values(trackedPuzzleHashesToAddr)}`);
 
       await this.handleCoinCreations(block, trackedPuzzleHashesToAddr);
-      await this.handleCoinRemovals(block, trackedPuzzleHashesToAddr);
+      await this.handleCoinSpends(block, trackedPuzzleHashesToAddr);
     });
   }
 
@@ -96,7 +96,7 @@ export class CoinIndexer
     }
   }
 
-  private async handleCoinRemovals(
+  private async handleCoinSpends(
     block: BlockReceivedEvent,
     trackedPuzzleHashesToAddr: Record<string, string>,
   ) {
@@ -105,15 +105,21 @@ export class CoinIndexer
       const addr = trackedPuzzleHashesToAddr[coinSpend.coin.puzzleHash];
       if (addr) {
         console.log(`Coin spend for address ${addr}: ${coinSpend.coin.puzzleHash}`);
-        await this.coinRepo.updateCoinStatus(
-          addr,
-          Buffer.from(
-            coinSpend.coin.parentCoinInfo + coinSpend.coin.puzzleHash + coinSpend.coin.amount,
-            'hex',
-          ),
-          CoinStatus.SPENT,
-          block.height,
-        );
+        // Only add spent coin details to DB, do not update added coin status here
+        if (coinSpend.puzzleReveal && coinSpend.solution && typeof coinSpend.offset === 'number') {
+          await this.coinRepo.addSpentCoin(addr, {
+            coinId: Buffer.from(coinSpend.coin.parentCoinInfo + coinSpend.coin.puzzleHash + coinSpend.coin.amount, 'hex'),
+            parentCoinInfo: Buffer.from(coinSpend.coin.parentCoinInfo, 'hex'),
+            puzzleHash: Buffer.from(coinSpend.coin.puzzleHash, 'hex'),
+            amount: BigInt(coinSpend.coin.amount),
+            syncedHeight: block.height,
+            status: CoinStatus.SPENT,
+            assetId: 'xch',
+            puzzleReveal: coinSpend.puzzleReveal,
+            solution: coinSpend.solution,
+            offset: coinSpend.offset,
+          });
+        }
         this.emit(CoinIndexerEventNames.CoinStateUpdated, {
           addressId: addr,
           coinId: Buffer.from(
@@ -137,7 +143,7 @@ export class CoinIndexer
       console.log(`Processing coin creation for puzzle hash ${coin.puzzleHash}`);
       if (walletAddr) {
         console.log(`Coin creation for address ${walletAddr}: ${coin.puzzleHash}`);
-        await this.coinRepo.upsertCoin(walletAddr, {
+        await this.coinRepo.upsertAddedCoin(walletAddr, {
           coinId: Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
           parentCoinInfo: Buffer.from(coin.parentCoinInfo, 'hex'),
           puzzleHash: Buffer.from(coin.puzzleHash, 'hex'),

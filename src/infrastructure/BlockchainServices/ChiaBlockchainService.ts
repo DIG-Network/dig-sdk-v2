@@ -17,6 +17,7 @@ import { PrivateKey } from 'chia-bls';
 import { IL1ChiaPeer, L1ChiaPeer } from '../Peers/L1ChiaPeer';
 import config from '../../config';
 import { CoinRepository } from '../../infrastructure/Repositories/CoinRepository';
+import { CoinStatus } from '../../infrastructure/Repositories/CoinStatus';
 import { Wallet } from '../../application/types/Wallet';
 import { L1PeerService } from '../Peers/L1PeerService';
 import { BlockchainNetwork } from '../../config/types/BlockchainNetwork';
@@ -98,6 +99,12 @@ export class ChiaBlockchainService implements IBlockchainService {
     const unspentCoins = (await coinRepo.getCoins(addressId)).filter((c) => c.status === 'unspent');
 
     const selectedCoins = selectCoins(unspentCoins, amount);
+
+    // Update status of selected coins to pending
+    for (const coin of selectedCoins) {
+      await coinRepo.updateAddedCoinStatus(addressId, this.getCoinId(coin), CoinStatus.PENDING, 0);
+    }
+
     let fee = await this.calculateFeeForCoinSpends();
 
     const recipientOutput = {
