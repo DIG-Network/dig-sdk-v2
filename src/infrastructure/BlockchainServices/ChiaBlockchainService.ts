@@ -96,7 +96,7 @@ export class ChiaBlockchainService implements IBlockchainService {
     const publicSyntheticKey = await wallet.getPublicSyntheticKey();
     const addressId = await wallet.getOwnerPublicKey();
     const coinRepo = new CoinRepository();
-    const unspentCoins = (await coinRepo.getCoins(addressId)).filter((c) => c.status === 'unspent');
+    const unspentCoins = (await coinRepo.getCoins(addressId)).filter((c) => c.coinStatus === CoinStatus.UNSPENT);
 
     const selectedCoins = selectCoins(unspentCoins, amount);
 

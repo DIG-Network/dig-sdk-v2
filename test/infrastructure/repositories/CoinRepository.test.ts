@@ -7,18 +7,22 @@ describe('CoinRepository', () => {
   beforeEach(async () => {
     coinRepo = new CoinRepository();
     // Truncate AddedCoin and SpentCoin tables for test isolation
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
-    await prisma.addedCoin.deleteMany();
-    await prisma.spentCoin.deleteMany();
+    const { getDataSource } = require('../../../src/infrastructure/DatabaseProvider');
+    const { AddedCoin } = require('../../../src/infrastructure/entities/AddedCoin');
+    const { SpentCoin } = require('../../../src/infrastructure/entities/SpentCoin');
+    const ds = await getDataSource();
+    await ds.getRepository(AddedCoin).clear();
+    await ds.getRepository(SpentCoin).clear();
   });
 
   afterEach(async () => {
     // Truncate AddedCoin and SpentCoin tables for test isolation
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
-    await prisma.addedCoin.deleteMany();
-    await prisma.spentCoin.deleteMany();
+    const { getDataSource } = require('../../../src/infrastructure/DatabaseProvider');
+    const { AddedCoin } = require('../../../src/infrastructure/entities/AddedCoin');
+    const { SpentCoin } = require('../../../src/infrastructure/entities/SpentCoin');
+    const ds = await getDataSource();
+    await ds.getRepository(AddedCoin).clear();
+    await ds.getRepository(SpentCoin).clear();
   });
 
   it('should upsert and retrieve added coins', async () => {

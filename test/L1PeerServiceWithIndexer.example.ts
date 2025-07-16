@@ -58,13 +58,9 @@ async function main() {
   //   console.error('Error during execution:', e);
   // }
 
-  // let coinIndexer = new CoinIndexer();
-  // coinIndexer.start();
+  let coinIndexer = new CoinIndexer();
+  coinIndexer.start();
 
-  const chiaService = new ChiaBlockchainService();
-  //  var address = chiaService.puzzleHashToAddress(Buffer.from('63373530636262646161356532356631353166303838323866366533613139313530636233323939316338316436616330636130343037376630343738633332'), 'txch');
-  var hash = chiaService.getPuzzleHash('txch1qcf59ph8tsxaa58r2zfwhcse7f52etwcct33xwn9s6aa7v8ulj6qhque3x');
-  console.log(`Address from puzzle hash ${hash.toString('hex')}: ${chiaService.puzzleHashToAddress(hash, 'txch')}`);
-  }
+}
 
 main();

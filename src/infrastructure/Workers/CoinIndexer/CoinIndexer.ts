@@ -47,6 +47,8 @@ export class CoinIndexer
     if (this.started) return;
     this.started = true;
 
+    // await new MigrationService().migrate();
+
     this.listener.on('peerConnected', this.handlePeerConnected);
     this.listener.on('peerDisconnected', this.handlePeerDisconnected);
 
@@ -113,11 +115,12 @@ export class CoinIndexer
             puzzleHash: Buffer.from(coinSpend.coin.puzzleHash, 'hex'),
             amount: BigInt(coinSpend.coin.amount),
             syncedHeight: block.height,
-            status: CoinStatus.SPENT,
+            coinStatus: CoinStatus.SPENT,
             assetId: 'xch',
             puzzleReveal: coinSpend.puzzleReveal,
             solution: coinSpend.solution,
             offset: coinSpend.offset,
+            addressId: ''
           });
         }
         this.emit(CoinIndexerEventNames.CoinStateUpdated, {
@@ -149,8 +152,9 @@ export class CoinIndexer
           puzzleHash: Buffer.from(coin.puzzleHash, 'hex'),
           amount: BigInt(coin.amount),
           syncedHeight: block.height,
-          status: CoinStatus.UNSPENT,
+          coinStatus: CoinStatus.UNSPENT,
           assetId: 'xch',
+          addressId: ''
         });
         this.emit(CoinIndexerEventNames.CoinStateUpdated, {
           addressId: walletAddr,

@@ -1,5 +1,5 @@
-import { getDatabaseProvider } from '../../infrastructure/DatabaseProvider';
-const prisma = getDatabaseProvider().getPrismaClient();
+import { getDataSource } from '../../infrastructure/DatabaseProvider';
+import { Address } from '../../infrastructure/entities/Address';
 
 export interface AddressRow {
   address: string;
@@ -19,36 +19,35 @@ export interface IAddressRepository {
 
 export class AddressRepository implements IAddressRepository {
   async addAddress(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
-    // Prevent duplicate names
-    const exists = await prisma.address.findUnique({ where: { name } });
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Address);
+    const exists = await repo.findOne({ where: { name } });
     if (exists) throw new Error('Address with this name already exists');
-    await prisma.address.create({
-      data: {
-        address,
-        namespace,
-        name,
-        synced_to_height: synchedToHeight,
-        synced_to_hash: synchedToHash,
-      },
-    });
+    const addr = repo.create({ address, namespace, name, synced_to_height: synchedToHeight, synced_to_hash: synchedToHash });
+    await repo.save(addr);
   }
 
   async updateAddressSync(address: string, synced_to_height: number, synced_to_hash: string) {
-    await prisma.address.update({
-      where: { address },
-      data: { synced_to_height, synced_to_hash },
-    });
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Address);
+    await repo.update({ address }, { synced_to_height, synced_to_hash });
   }
 
   async removeAddress(address: string) {
-    await prisma.address.deleteMany({ where: { address } });
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Address);
+    await repo.delete({ address });
   }
 
   async removeAddressByName(name: string) {
-    await prisma.address.deleteMany({ where: { name } });
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Address);
+    await repo.delete({ name });
   }
 
   async getAddresses(): Promise<AddressRow[]> {
-    return prisma.address.findMany();
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Address);
+    return repo.find();
   }
 }

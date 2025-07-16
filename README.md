@@ -32,11 +32,6 @@ This example demonstrates how to use the CoinIndexer and L1PeerService to sync a
    - Ensure `ca.crt` and `ca.key` are present in your project root, or update the paths in the example file.
 
 4. **Run the example**
-
-   ```sh
-   npx prisma db push
-   ```
-
    ```sh
    npx ts-node ./test/L1PeerServiceWithIndexer.example.ts
    ```

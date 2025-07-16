@@ -2,7 +2,8 @@ import { WalletService } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
 import fs from 'fs-extra';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
+import { getDataSource } from '../../../src/infrastructure/DatabaseProvider';
+import { Address } from '../../../src/infrastructure/entities/Address';
 
 const ADDRESS_NAMES = ['address1', 'address2', 'address3'];
 
@@ -17,8 +18,8 @@ async function cleanupAddresses() {
 
 describe('AddressService Integration', () => {
   beforeEach(async () => {
-    const prisma = new PrismaClient();
-    await prisma.address.deleteMany();
+    const ds = await getDataSource();
+    await ds.getRepository(Address).clear();
     await cleanupAddresses();
     const keyringPath = path.resolve('.dig/keyring.json');
     if (await fs.pathExists(keyringPath)) {
@@ -27,8 +28,8 @@ describe('AddressService Integration', () => {
   });
 
   afterEach(async () => {
-    const prisma = new PrismaClient();
-    await prisma.address.deleteMany();
+    const ds = await getDataSource();
+    await ds.getRepository(Address).clear();
   });
 
   it('should create, load, and delete an address, and verify Wallet functionality', async () => {

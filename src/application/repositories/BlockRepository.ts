@@ -1,7 +1,5 @@
-import { getDatabaseProvider } from '../../infrastructure/DatabaseProvider';
-import { Block } from '../types/Block';
-
-const prisma = getDatabaseProvider().getPrismaClient();
+import { getDataSource } from '../../infrastructure/DatabaseProvider';
+import { Block } from '../../infrastructure/entities/Block';
 
 export interface IBlockRepository {
   addBlock(height: number, headerHash: string): Promise<void>;
@@ -11,18 +9,26 @@ export interface IBlockRepository {
 
 export class BlockRepository implements IBlockRepository {
   async addBlock(height: number, headerHash: string): Promise<void> {
-    await prisma.block.upsert({
-      where: { height },
-      update: { headerHash },
-      create: { height, headerHash },
-    });
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Block);
+    const existing = await repo.findOne({ where: { height } });
+    if (existing) {
+      await repo.update({ height }, { headerHash });
+    } else {
+      const block = repo.create({ height, headerHash });
+      await repo.save(block);
+    }
   }
 
   async getBlockById(height: number): Promise<Block | null> {
-    return await prisma.block.findUnique({ where: { height } });
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Block);
+    return await repo.findOne({ where: { height } });
   }
 
   async getBlocks(): Promise<Block[]> {
-    return await prisma.block.findMany({ orderBy: { height: 'asc' } });
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Block);
+    return await repo.find({ order: { height: 'ASC' } });
   }
 }
