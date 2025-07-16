@@ -4,6 +4,8 @@ import { Address } from './entities/Address';
 import { AddedCoin } from './entities/AddedCoin';
 import { SpentCoin } from './entities/SpentCoin';
 import { Block } from './entities/Block';
+import fs from 'fs';
+import path from 'path';
 
 let dataSource: DataSource | null = null;
 
@@ -31,5 +33,18 @@ export async function getDataSource(): Promise<DataSource> {
   }
   dataSource = new DataSource(options);
   await dataSource.initialize();
+
+  // Apply the correct view migration after DB is initialized
+  let migrationFile;
+  if (dbType === 'postgres') {
+    migrationFile = path.join(__dirname, 'migrations', 'postgres_unspent_coins_view.sql');
+  } else {
+    migrationFile = path.join(__dirname, 'migrations', 'sqlite_unspent_coins_view.sql');
+  }
+  if (fs.existsSync(migrationFile)) {
+    const sql = fs.readFileSync(migrationFile, 'utf8');
+    await dataSource.query(sql);
+  }
+
   return dataSource;
 }
