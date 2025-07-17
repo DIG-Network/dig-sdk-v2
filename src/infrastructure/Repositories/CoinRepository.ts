@@ -1,5 +1,3 @@
-
-
 import { getDataSource } from '../DatabaseProvider';
 import { Coin } from '../entities/Coin';
 import { Spend } from '../entities/Spend';
@@ -20,7 +18,6 @@ export interface ICoinRepository {
   getBalance(address: string, assetId: string): bigint | PromiseLike<bigint>;
 }
 
-
 export class CoinRepository implements ICoinRepository {
   async upsertCoin(coin: Coin): Promise<void> {
     const ds = await getDataSource();
@@ -29,8 +26,10 @@ export class CoinRepository implements ICoinRepository {
     if (existing) {
       await repo.update({ coinId: coin.coinId }, coin);
     } else {
-      const newCoin = repo.create(coin);
-      await repo.save(newCoin);
+      try {
+        const newCoin = repo.create(coin);
+        await repo.save(newCoin);
+      } catch {}
     }
   }
 
@@ -44,7 +43,7 @@ export class CoinRepository implements ICoinRepository {
   async getAllCoins(): Promise<Coin[]> {
     const ds = await getDataSource();
     const repo = ds.getRepository(Coin);
-    return (await repo.find()).map(c => ({ ...c }));
+    return (await repo.find()).map((c) => ({ ...c }));
   }
 
   async addSpend(spend: Spend): Promise<void> {
@@ -57,7 +56,7 @@ export class CoinRepository implements ICoinRepository {
   async getAllSpends(): Promise<Spend[]> {
     const ds = await getDataSource();
     const repo = ds.getRepository(Spend);
-    return (await repo.find()).map(s => ({ ...s }));
+    return (await repo.find()).map((s) => ({ ...s }));
   }
 
   async addPendingCoin(pending: PendingCoin): Promise<void> {
@@ -70,7 +69,7 @@ export class CoinRepository implements ICoinRepository {
   async getPendingCoins(): Promise<PendingCoin[]> {
     const ds = await getDataSource();
     const repo = ds.getRepository(PendingCoin);
-    return (await repo.find()).map(p => ({ ...p }));
+    return (await repo.find()).map((p) => ({ ...p }));
   }
 
   async getPendingCoin(coinId: string): Promise<PendingCoin | undefined> {
@@ -84,7 +83,7 @@ export class CoinRepository implements ICoinRepository {
     const ds = await getDataSource();
     const repo = ds.getRepository(UnspentCoin);
     const puzzleHash = ChiaBlockchainService.getPuzzleHash(address).toString('hex');
-    return (await repo.find({ where: { puzzleHash } })).map(c => ({ ...c }));
+    return (await repo.find({ where: { puzzleHash } })).map((c) => ({ ...c }));
   }
 
   async getBalance(address: string): Promise<bigint> {

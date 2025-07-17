@@ -8,7 +8,7 @@ export class PendingCoin {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @Column({ type: 'varchar', length: 255, name: 'coin_id' })
+  @Column({ type: 'text', name: 'coin_id' })
   coinId!: string;
 
   @Column({ type: getDateType(), name: 'expirey' })

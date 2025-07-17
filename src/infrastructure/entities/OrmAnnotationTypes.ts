@@ -5,5 +5,5 @@ export function getBinaryType() {
 }
 
 export function getDateType() {
-    return config.DATABASE_TYPE === 'postgres' ? 'timestamptz' : 'datetime';
+    return config.DATABASE_TYPE === 'postgres' ? 'timestamp with time zone' : 'datetime';
 }

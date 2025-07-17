@@ -5,7 +5,7 @@ import { Entity, PrimaryColumn, Column, Index } from "typeorm";
 @Index(["puzzleHash"])
 @Index(["amount"])
 export class Coin {
-  @PrimaryColumn({ type: 'varchar', length: 255, name: 'coin_id' })
+  @PrimaryColumn({ type: 'text', name: 'coin_id' })
   coinId!: string;
 
   @Column({ type: 'varchar', length: 255, name: 'parent_coin_info' })

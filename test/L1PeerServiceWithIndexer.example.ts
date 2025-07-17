@@ -1,20 +1,12 @@
-import { PeerType, Tls } from '@dignetwork/datalayer-driver';
 import { CoinIndexer } from '../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
-import { BlockChainType } from '../src/application/types/BlockChain';
 import config from '../src/config';
-import { Wallet } from '../src/application/types/Wallet';
-import { WalletService } from '../src/application/services/WalletService';
-import { L1PeerService } from '../src/infrastructure/Peers/L1PeerService';
-import { L1ChiaPeer } from '../src/infrastructure/Peers/L1ChiaPeer';
 import { BlockchainNetwork } from '../src/config/types/BlockchainNetwork';
-import { ChiaBlockchainService } from '../src/infrastructure/BlockchainServices/ChiaBlockchainService';
 
 async function main() {
   const testnetWalletAddress = 'dev';
   const testnetMnemonic =
     ''; // Replace with your actual mnemonic
   // You must have ca.crt and ca.key in your working directory or adjust the path
-  config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
   // try {
   //   const coinIndexer = new CoinIndexer();
 
@@ -58,6 +50,9 @@ async function main() {
   //   console.error('Error during execution:', e);
   // }
 
+  config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
+  config.DATABASE_TYPE = 'postgres';
+  config.DATABASE_URL = 'postgres://postgres:postgres@localhost:5432/postgres';
   let coinIndexer = new CoinIndexer();
   coinIndexer.start();
 }

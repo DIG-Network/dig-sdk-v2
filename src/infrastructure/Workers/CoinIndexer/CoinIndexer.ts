@@ -6,11 +6,9 @@ import {
 } from './CoinIndexerEvents';
 import { BlockReceivedEvent, ChiaBlockListener } from '@dignetwork/chia-block-listener';
 import { L1ChiaPeer } from '../../Peers/L1ChiaPeer';
-import { WalletService } from '../../../application/services/WalletService';
 import config from '../../../config';
-import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 import { CoinRepository } from '../../Repositories/CoinRepository';
-// Removed CoinStatus import
+
 import { BlockRepository } from '../../../application/repositories/BlockRepository';
 import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
 import { mapCoinSpendToSpend } from '../../Repositories/CoinMappers';
@@ -29,8 +27,6 @@ export class CoinIndexer
   private coinRepo: CoinRepository;
   private blockRepo: BlockRepository;
 
-  private chiaService: ChiaBlockchainService;
-
   private minConnections;
   private connectedPeers: Set<string>;
 
@@ -40,7 +36,6 @@ export class CoinIndexer
     this.listener = new ChiaBlockListener();
     this.coinRepo = new CoinRepository();
     this.blockRepo = new BlockRepository();
-    this.chiaService = new ChiaBlockchainService();
     this.connectedPeers = new Set();
   }
 
@@ -54,27 +49,12 @@ export class CoinIndexer
     await this.addPeersToListener();
 
     this.listener.on('blockReceived', async (block: BlockReceivedEvent) => {
+      console.log(`Block received: height=${block.height}, hash=${block.headerHash}`);
       await this.blockRepo.addBlock(block.height, block.headerHash);
 
-      const trackedPuzzleHashesToAddr: Record<string, string> =
-        await this.getTrackedAddressesAsPuzzleHashToAddressMap();
-
-      await this.handleCoinCreations(block, trackedPuzzleHashesToAddr);
-      await this.handleCoinSpends(block, trackedPuzzleHashesToAddr);
+      await this.handleCoinCreations(block);
+      await this.handleCoinSpends(block);
     });
-  }
-
-  private async getTrackedAddressesAsPuzzleHashToAddressMap(): Promise<Record<string, string>> {
-    const addressRows = await WalletService.getWallets();
-
-    const trackedPuzzleHashesToAddr: Record<string, string> = {};
-
-    for (const row of addressRows) {
-      const puzzleHash = ChiaBlockchainService.getPuzzleHash(row.address);
-      trackedPuzzleHashesToAddr[puzzleHash.toString('hex')] = row.address;
-    }
-
-    return trackedPuzzleHashesToAddr;
   }
 
   private async addPeersToListener() {
@@ -95,38 +75,24 @@ export class CoinIndexer
     }
   }
 
-  private async handleCoinSpends(
-    block: BlockReceivedEvent,
-    trackedPuzzleHashesToAddr: Record<string, string>,
-  ) {
+  private async handleCoinSpends(block: BlockReceivedEvent) {
     if (!block.coinSpends) return;
     for (const coinSpend of block.coinSpends) {
-      const addr = trackedPuzzleHashesToAddr[coinSpend.coin.puzzleHash];
-      if (addr) {
-        if (coinSpend.puzzleReveal && coinSpend.solution && typeof coinSpend.offset === 'number') {
-          await this.coinRepo.addSpend(mapCoinSpendToSpend(coinSpend));
-        }
-        // You may want to emit a new event here if needed, but CoinStatus is removed
+      if (coinSpend.puzzleReveal && coinSpend.solution && typeof coinSpend.offset === 'number') {
+        await this.coinRepo.addSpend(mapCoinSpendToSpend(coinSpend));
       }
     }
   }
 
-  private async handleCoinCreations(
-    block: BlockReceivedEvent,
-    trackedPuzzleHashesToAddr: Record<string, string>,
-  ) {
+  private async handleCoinCreations(block: BlockReceivedEvent) {
     if (!block.coinCreations) return;
     for (const coin of block.coinCreations) {
-      const walletAddr = trackedPuzzleHashesToAddr[coin.puzzleHash];
-      if (walletAddr) {
-        await this.coinRepo.upsertCoin({
-          coinId: coin.parentCoinInfo + coin.puzzleHash + coin.amount,
-          parentCoinInfo: coin.parentCoinInfo,
-          puzzleHash: coin.puzzleHash,
-          amount: coin.amount
-        });
-        // You may want to emit a new event here if needed, but CoinStatus is removed
-      }
+      await this.coinRepo.upsertCoin({
+        coinId: coin.parentCoinInfo + coin.puzzleHash + coin.amount,
+        parentCoinInfo: coin.parentCoinInfo,
+        puzzleHash: coin.puzzleHash,
+        amount: coin.amount,
+      });
     }
   }
 
