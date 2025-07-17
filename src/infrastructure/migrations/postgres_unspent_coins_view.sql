@@ -1,5 +1,5 @@
 CREATE MATERIALIZED VIEW IF NOT EXISTS unspent_coins AS
 SELECT ac.*
-FROM added_coin ac
-LEFT JOIN spent_coin sc ON ac."coinId" = sc."coinId"
-WHERE ac."coinStatus" = 'UNSPENT' AND sc."coinId" IS NULL;
+FROM coin ac
+LEFT JOIN spend sc ON ac."coin_id" = sc."coin_id"
+WHERE sc."coin_id" IS NULL;

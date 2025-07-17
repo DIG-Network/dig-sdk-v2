@@ -10,9 +10,10 @@ import { WalletService } from '../../../application/services/WalletService';
 import config from '../../../config';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 import { CoinRepository } from '../../Repositories/CoinRepository';
-import { CoinStatus } from '../../Repositories/CoinStatus';
+// Removed CoinStatus import
 import { BlockRepository } from '../../../application/repositories/BlockRepository';
 import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
+import { mapCoinSpendToSpend } from '../../Repositories/CoinMappers';
 
 interface ICoinIndexer {
   onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void;
@@ -47,8 +48,6 @@ export class CoinIndexer
     if (this.started) return;
     this.started = true;
 
-    // await new MigrationService().migrate();
-
     this.listener.on('peerConnected', this.handlePeerConnected);
     this.listener.on('peerDisconnected', this.handlePeerDisconnected);
 
@@ -71,7 +70,7 @@ export class CoinIndexer
     const trackedPuzzleHashesToAddr: Record<string, string> = {};
 
     for (const row of addressRows) {
-      const puzzleHash = this.chiaService.getPuzzleHash(row.address);
+      const puzzleHash = ChiaBlockchainService.getPuzzleHash(row.address);
       trackedPuzzleHashesToAddr[puzzleHash.toString('hex')] = row.address;
     }
 
@@ -105,29 +104,9 @@ export class CoinIndexer
       const addr = trackedPuzzleHashesToAddr[coinSpend.coin.puzzleHash];
       if (addr) {
         if (coinSpend.puzzleReveal && coinSpend.solution && typeof coinSpend.offset === 'number') {
-          await this.coinRepo.addSpentCoin(addr, {
-            coinId: Buffer.from(coinSpend.coin.parentCoinInfo + coinSpend.coin.puzzleHash + coinSpend.coin.amount, 'hex'),
-            parentCoinInfo: Buffer.from(coinSpend.coin.parentCoinInfo, 'hex'),
-            puzzleHash: Buffer.from(coinSpend.coin.puzzleHash, 'hex'),
-            amount: BigInt(coinSpend.coin.amount),
-            syncedHeight: block.height,
-            coinStatus: CoinStatus.SPENT,
-            assetId: 'xch',
-            puzzleReveal: coinSpend.puzzleReveal,
-            solution: coinSpend.solution,
-            offset: coinSpend.offset,
-            addressId: addr
-          });
+          await this.coinRepo.addSpend(mapCoinSpendToSpend(coinSpend));
         }
-        this.emit(CoinIndexerEventNames.CoinStateUpdated, {
-          addressId: addr,
-          coinId: Buffer.from(
-            coinSpend.coin.parentCoinInfo + coinSpend.coin.puzzleHash + coinSpend.coin.amount,
-            'hex',
-          ),
-          coinStatus: CoinStatus.SPENT,
-          syncedHeight: block.height,
-        });
+        // You may want to emit a new event here if needed, but CoinStatus is removed
       }
     }
   }
@@ -140,22 +119,13 @@ export class CoinIndexer
     for (const coin of block.coinCreations) {
       const walletAddr = trackedPuzzleHashesToAddr[coin.puzzleHash];
       if (walletAddr) {
-        await this.coinRepo.upsertAddedCoin(walletAddr, {
-          coinId: Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
-          parentCoinInfo: Buffer.from(coin.parentCoinInfo, 'hex'),
-          puzzleHash: Buffer.from(coin.puzzleHash, 'hex'),
-          amount: BigInt(coin.amount),
-          syncedHeight: block.height,
-          coinStatus: CoinStatus.UNSPENT,
-          assetId: 'xch',
-          addressId: walletAddr
+        await this.coinRepo.upsertCoin({
+          coinId: coin.parentCoinInfo + coin.puzzleHash + coin.amount,
+          parentCoinInfo: coin.parentCoinInfo,
+          puzzleHash: coin.puzzleHash,
+          amount: coin.amount
         });
-        this.emit(CoinIndexerEventNames.CoinStateUpdated, {
-          addressId: walletAddr,
-          coinId: Buffer.from(coin.parentCoinInfo + coin.puzzleHash + coin.amount, 'hex'),
-          coinStatus: CoinStatus.UNSPENT,
-          syncedHeight: block.height,
-        });
+        // You may want to emit a new event here if needed, but CoinStatus is removed
       }
     }
   }

@@ -8,14 +8,14 @@ export interface IBlockRepository {
 }
 
 export class BlockRepository implements IBlockRepository {
-  async addBlock(height: number, headerHash: string): Promise<void> {
+  async addBlock(height: number, headerHash: string, weight: number = 0): Promise<void> {
     const ds = await getDataSource();
     const repo = ds.getRepository(Block);
     const existing = await repo.findOne({ where: { height } });
     if (existing) {
-      await repo.update({ height }, { headerHash });
+      await repo.update({ height }, { headerHash, weight });
     } else {
-      const block = repo.create({ height, headerHash });
+      const block = repo.create({ height, headerHash, weight });
       await repo.save(block);
     }
   }

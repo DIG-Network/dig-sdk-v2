@@ -1,10 +1,14 @@
-import { Entity, PrimaryColumn, Column } from "typeorm";
+import { Entity, PrimaryColumn, Column, Index } from "typeorm";
 
 @Entity()
+@Index(["headerHash"])
 export class Block {
   @PrimaryColumn({ type: 'integer' })
   height!: number;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'integer' })
+  weight!: number;
+
+  @Column({ type: 'varchar', length: 255 })
   headerHash!: string;
 }

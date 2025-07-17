@@ -7,7 +7,6 @@ import { IAssetBalance } from './AssetBalance';
 
 export interface IColdWallet {
   getBalance(assetId: string): Promise<IAssetBalance>
-  getBalances(): Promise<IAssetBalance[]>
 
   getPuzzleHash(): Promise<Buffer>;
   masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer;
@@ -32,7 +31,7 @@ export class ColdWallet implements IColdWallet {
   }
 
   async getPuzzleHash(): Promise<Buffer> {
-    return await this.blockchain.getPuzzleHash(this.address);
+    return await ChiaBlockchainService.getPuzzleHash(this.address);
   }
 
   public masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer {
@@ -46,9 +45,5 @@ export class ColdWallet implements IColdWallet {
   public async getBalance(assetId: string): Promise<IAssetBalance> {
     const balance = await this.balanceRepository.getBalance(this.address, assetId);
     return { assetId, balance };
-  }
-
-  public async getBalances(): Promise<IAssetBalance[]> {
-    return this.balanceRepository.getBalancesByAsset(this.address);
   }
 }

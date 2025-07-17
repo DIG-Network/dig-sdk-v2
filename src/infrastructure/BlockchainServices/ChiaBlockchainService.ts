@@ -17,10 +17,10 @@ import { PrivateKey } from 'chia-bls';
 import { IL1ChiaPeer, L1ChiaPeer } from '../Peers/L1ChiaPeer';
 import config from '../../config';
 import { CoinRepository } from '../../infrastructure/Repositories/CoinRepository';
-import { CoinStatus } from '../../infrastructure/Repositories/CoinStatus';
 import { Wallet } from '../../application/types/Wallet';
 import { L1PeerService } from '../Peers/L1PeerService';
 import { BlockchainNetwork } from '../../config/types/BlockchainNetwork';
+import { mapCoinToPendingCoin, mapUnspentCoinToDatalayerCoin } from '../Repositories/CoinMappers';
 
 export class ChiaBlockchainService implements IBlockchainService {
   masterSecretKeyFromSeed(seed: Buffer): Buffer {
@@ -43,7 +43,7 @@ export class ChiaBlockchainService implements IBlockchainService {
     return masterPublicKeyToFirstPuzzleHash(publicKey);
   }
 
-  puzzleHashToAddress(puzzleHash: Buffer, prefix: string): string {
+  static puzzleHashToAddress(puzzleHash: Buffer, prefix: string): string {
     return puzzleHashToAddress(puzzleHash, prefix);
   }
 
@@ -55,7 +55,7 @@ export class ChiaBlockchainService implements IBlockchainService {
     return signMessage(message, privateKey);
   }
 
-  getCoinId(coin: Coin): Buffer {
+  static getCoinId(coin: Coin): Buffer {
     return getCoinId(coin);
   }
 
@@ -63,7 +63,7 @@ export class ChiaBlockchainService implements IBlockchainService {
     return selectCoins(coins, amount);
   }
 
-  getPuzzleHash(address: string): Buffer {
+  static getPuzzleHash(address: string): Buffer {
     return addressToPuzzleHash(address);
   }
 
@@ -96,13 +96,13 @@ export class ChiaBlockchainService implements IBlockchainService {
     const publicSyntheticKey = await wallet.getPublicSyntheticKey();
     const addressId = await wallet.getOwnerPublicKey();
     const coinRepo = new CoinRepository();
-    const unspentCoins = (await coinRepo.getCoins(addressId)).filter((c) => c.coinStatus === CoinStatus.UNSPENT);
+    const unspentCoins = (await coinRepo.getUnspentCoins(addressId));
 
-    const selectedCoins = selectCoins(unspentCoins, amount);
+    const selectedCoins = selectCoins(unspentCoins.map(mapUnspentCoinToDatalayerCoin), amount);
 
     // Update status of selected coins to pending
     for (const coin of selectedCoins) {
-      await coinRepo.updateAddedCoinStatus(addressId, this.getCoinId(coin), CoinStatus.PENDING, 0);
+      await coinRepo.addPendingCoin(mapCoinToPendingCoin(coin));
     }
 
     let fee = await this.calculateFeeForCoinSpends();

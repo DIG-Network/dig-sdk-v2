@@ -1,28 +1,21 @@
 import { ViewEntity, ViewColumn } from "typeorm";
 
-@ViewEntity({ name: "unspent_coins" })
+import { DataSource } from "typeorm";
+
+@ViewEntity({
+  name: "unspent_coins",
+  expression: (connection: DataSource) => connection.createQueryBuilder().select("*").from("unspent_coins", "unspent_coins")
+})
 export class UnspentCoin {
-  @ViewColumn()
-  addressId!: string;
+  @ViewColumn({ name: 'coin_id' })
+  coinId!: string;
 
-  @ViewColumn()
-  coinId!: Buffer;
+  @ViewColumn({ name: 'parent_coin_info' })
+  parentCoinInfo!: string;
 
-  @ViewColumn()
-  parentCoinInfo!: Buffer;
+  @ViewColumn({ name: 'puzzle_hash' })
+  puzzleHash!: string;
 
-  @ViewColumn()
-  puzzleHash!: Buffer;
-
-  @ViewColumn()
+  @ViewColumn({ name: 'amount' })
   amount!: string;
-
-  @ViewColumn()
-  syncedHeight!: number;
-
-  @ViewColumn()
-  coinStatus!: string;
-
-  @ViewColumn()
-  assetId!: string;
 }

@@ -60,7 +60,6 @@ async function main() {
 
   let coinIndexer = new CoinIndexer();
   coinIndexer.start();
-
 }
 
 main();

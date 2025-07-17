@@ -1,11 +1,13 @@
 import { DataSource } from 'typeorm';
 import config from '../config';
 import { Address } from './entities/Address';
-import { AddedCoin } from './entities/AddedCoin';
-import { SpentCoin } from './entities/SpentCoin';
+import { Spend } from './entities/Spend';
 import { Block } from './entities/Block';
 import fs from 'fs';
 import path from 'path';
+import { Coin } from './entities/Coin';
+import { PendingCoin } from './entities/PendingCoin';
+
 
 let dataSource: DataSource | null = null;
 
@@ -20,14 +22,16 @@ export async function getDataSource(): Promise<DataSource> {
     options = {
       type: 'postgres' as const,
       url: connectionString,
-      entities: [Address, AddedCoin, SpentCoin, Block],
+      entities: [Address, Coin, Spend, Block, PendingCoin],
+      migrations: [path.join(__dirname, 'migrations', 'postgres*.ts')],
       synchronize: true,
     };
   } else {
     options = {
       type: 'sqlite' as const,
       database: connectionString.replace('file:', ''),
-      entities: [Address, AddedCoin, SpentCoin, Block],
+      entities: [Address, Coin, Spend, Block, PendingCoin],
+      migrations: [path.join(__dirname, 'migrations', 'sqlite*.ts')],
       synchronize: true,
     };
   }

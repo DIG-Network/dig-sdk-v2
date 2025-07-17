@@ -10,14 +10,9 @@ export interface IBlockchainService {
   masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer;
   masterSecretKeyToWalletSyntheticSecretKey(secretKey: Buffer): Buffer;
   masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer;
-  puzzleHashToAddress(puzzleHash: Buffer, prefix: string): string;
   getAddressPrefix(): string;
   signMessage(message: Buffer, privateKey: Buffer): Buffer;
-  // Coin selection
-  getCoinId(coin: Coin): Buffer;
   selectCoins(coins: Coin[], amount: bigint): Coin[];
-  // ColdWallet/WalletService methods
-  getPuzzleHash(address: string): Buffer;
   listUnspentCoins(
     peer: IL1ChiaPeer,
     puzzleHash: Buffer,

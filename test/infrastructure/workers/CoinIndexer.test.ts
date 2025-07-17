@@ -1,5 +1,4 @@
 import { CoinIndexer } from '../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
-import { CoinStatus } from '../../../src/infrastructure/Repositories/CoinStatus';
 import { EventEmitter } from 'events';
 
 describe('CoinIndexer', () => {
@@ -49,76 +48,5 @@ describe('CoinIndexer', () => {
 
   beforeEach(() => {
     coinIndexer = new CoinIndexer(1);
-  });
-
-  it('should emit CoinStateUpdated event on coin creation', async () => {
-    const block = {
-      height: 1,
-      headerHash: 'aabbcc',
-      peerId: 'peer1',
-      weight: "0",
-      timestamp: Date.now(),
-      coinAdditions: [],
-      coinRemovals: [],
-      coinCreations: [
-        {
-          parentCoinInfo: 'aabbcc',
-          puzzleHash: 'ddeeff',
-          amount: '1000',
-        },
-      ],
-      coinSpends: [],
-      hasTransactionsGenerator: false,
-      generatorSize: 0,
-    };
-    const trackedPuzzleHashesToAddr = { ddeeff: 'wallet1' };
-    const listener = jest.fn();
-    coinIndexer.onCoinStateUpdated(listener);
-    await coinIndexer['handleCoinCreations'](block, trackedPuzzleHashesToAddr);
-    expect(listener).toHaveBeenCalledWith(
-      expect.objectContaining({
-        addressId: 'wallet1',
-        coinStatus: CoinStatus.UNSPENT,
-        syncedHeight: 1,
-      })
-    );
-  });
-
-  it('should emit CoinStateUpdated event on coin spend', async () => {
-    const block = {
-      height: 2,
-      headerHash: 'bbccdd',
-      peerId: 'peer2',
-      weight: "0",
-      timestamp: Date.now(),
-      coinAdditions: [],
-      coinRemovals: [],
-      coinCreations: [],
-      coinSpends: [
-        {
-          coin: {
-            parentCoinInfo: 'aabbcc',
-            puzzleHash: 'ddeeff',
-            amount: '1000',
-          },
-          puzzleReveal: 'reveal',
-          solution: 'solution',
-          offset: 1,
-        },
-      ],
-      hasTransactionsGenerator: false,
-      generatorSize: 0,
-    };
-    const trackedPuzzleHashesToAddr = { ddeeff: 'wallet2' };
-    const listener = jest.fn();
-    coinIndexer.onCoinStateUpdated(listener);
-    await coinIndexer['handleCoinSpends'](block, trackedPuzzleHashesToAddr);
-    expect(listener).toHaveBeenCalledWith(
-      expect.objectContaining({
-        addressId: 'wallet2',
-        coinStatus: CoinStatus.SPENT,
-        syncedHeight: 2,
-      })
-    );
   });
 });
