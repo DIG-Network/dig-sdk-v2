@@ -13,7 +13,9 @@ import { BlockRepository } from '../../../application/repositories/BlockReposito
 import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
 import { getDataSource } from '../../DatabaseProvider';
 import { EntityManager } from 'typeorm';
-import { mapCoinRecordToUnspentCoin, mapCoinSpendToSpend } from '../../Repositories/CoinMappers';
+import { mapCoinRecordToDatalayerCoin, mapCoinRecordToUnspentCoin, mapCoinSpendToSpend } from '../../Repositories/CoinMappers';
+import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
+import { Block } from '../../entities/Block';
 
 interface ICoinIndexer {
   onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void;
@@ -31,6 +33,9 @@ export class CoinIndexer
 
   private minConnections;
   private connectedPeers: Set<string>;
+
+  private blockQueue: BlockReceivedEvent[] = [];
+  private processingBlock = false;
 
   constructor(minConnections: number = 5) {
     super();
@@ -50,9 +55,34 @@ export class CoinIndexer
 
     await this.addPeersToListener();
 
-    this.listener.on('blockReceived', async (block: BlockReceivedEvent) => {
-      console.log(`Block received: height=${block.height}, hash=${block.headerHash}`);
+    this.listener.on('blockReceived', (block: BlockReceivedEvent) => {
+      this.enqueueBlock(block);
+    });
+  }
+
+  private enqueueBlock(block: BlockReceivedEvent) {
+    this.blockQueue.push(block);
+    this.processNextBlock();
+  }
+
+  private async processNextBlock() {
+    if (this.processingBlock || this.blockQueue.length === 0) return;
+    this.processingBlock = true;
+    const block = this.blockQueue.shift()!;
+    try {
       const ds = await getDataSource();
+      const existingBlock = await ds.getRepository(Block).findOne({ where: { height: block.height } });
+      
+      if (existingBlock && existingBlock.weight >= block.weight) {
+        this.processingBlock = false;
+        if (this.blockQueue.length > 0) {
+          this.processNextBlock();
+        }
+        return;
+      }
+      
+      console.log(`Block received and processing transaction: height=${block.height}, hash=${block.headerHash}`);
+
       await ds.transaction(async (manager) => {
         await this.blockRepo.addBlock(
           block.height,
@@ -65,7 +95,13 @@ export class CoinIndexer
         await this.handleCoinSpends(block, manager);
         await this.updateUnspentCoinsFromBlock(block, manager);
       });
-    });
+    } catch {
+    } finally {
+      this.processingBlock = false;
+      if (this.blockQueue.length > 0) {
+        this.processNextBlock();
+      }
+    }
   }
 
   async updateUnspentCoinsFromBlock(
@@ -83,8 +119,8 @@ export class CoinIndexer
 
     if (block.coinSpends) {
       for (const spend of block.coinSpends) {
-        const coinId = spend.coin.parentCoinInfo + spend.coin.puzzleHash + spend.coin.amount;
-        await this.coinRepo.deleteUnspentCoin(coinId, manager);
+        const coinId = ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(spend.coin));
+        await this.coinRepo.deleteUnspentCoin(coinId.toString('hex'), manager);
       }
     }
   }
@@ -110,18 +146,17 @@ export class CoinIndexer
   private async handleCoinSpends(block: BlockReceivedEvent, manager: EntityManager) {
     if (!block.coinSpends) return;
     for (const coinSpend of block.coinSpends) {
-      if (coinSpend.puzzleReveal && coinSpend.solution && typeof coinSpend.offset === 'number') {
-        await this.coinRepo.addSpend(mapCoinSpendToSpend(coinSpend), manager);
-      }
+      await this.coinRepo.addSpend(mapCoinSpendToSpend(coinSpend), manager);
     }
   }
 
   private async handleCoinCreations(block: BlockReceivedEvent, manager: EntityManager) {
     if (!block.coinCreations) return;
     for (const coin of block.coinCreations) {
+      const coinId = ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(coin))
       await this.coinRepo.addCoin(
         {
-          coinId: coin.parentCoinInfo + coin.puzzleHash + coin.amount,
+          coinId: coinId.toString('hex'),
           parentCoinInfo: coin.parentCoinInfo,
           puzzleHash: coin.puzzleHash,
           amount: coin.amount,
