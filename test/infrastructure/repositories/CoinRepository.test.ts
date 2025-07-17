@@ -36,7 +36,7 @@ describe('CoinRepository', () => {
       puzzleHash: '112233',
       amount: '1000',
     };
-    await coinRepo.upsertCoin(coin);
+    await coinRepo.addCoin(coin);
     const found = await coinRepo.getCoin('aabbcc');
     expect(found).toBeDefined();
     expect(found!.amount.toString()).toBe('1000');

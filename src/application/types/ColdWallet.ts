@@ -43,7 +43,7 @@ export class ColdWallet implements IColdWallet {
   }
 
   public async getBalance(assetId: string): Promise<IAssetBalance> {
-    const balance = await this.balanceRepository.getBalance(this.address, assetId);
+    const balance = await this.balanceRepository.getBalance(this.address);
     return { assetId, balance };
   }
 }

@@ -11,7 +11,9 @@ import { CoinRepository } from '../../Repositories/CoinRepository';
 
 import { BlockRepository } from '../../../application/repositories/BlockRepository';
 import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
-import { mapCoinSpendToSpend } from '../../Repositories/CoinMappers';
+import { getDataSource } from '../../DatabaseProvider';
+import { EntityManager } from 'typeorm';
+import { mapCoinRecordToUnspentCoin, mapCoinSpendToSpend } from '../../Repositories/CoinMappers';
 
 interface ICoinIndexer {
   onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void;
@@ -50,11 +52,41 @@ export class CoinIndexer
 
     this.listener.on('blockReceived', async (block: BlockReceivedEvent) => {
       console.log(`Block received: height=${block.height}, hash=${block.headerHash}`);
-      await this.blockRepo.addBlock(block.height, block.headerHash);
+      const ds = await getDataSource();
+      await ds.transaction(async (manager) => {
+        await this.blockRepo.addBlock(
+          block.height,
+          block.headerHash,
+          block.weight,
+          manager,
+        );
 
-      await this.handleCoinCreations(block);
-      await this.handleCoinSpends(block);
+        await this.handleCoinCreations(block, manager);
+        await this.handleCoinSpends(block, manager);
+        await this.updateUnspentCoinsFromBlock(block, manager);
+      });
     });
+  }
+
+  async updateUnspentCoinsFromBlock(
+    block: BlockReceivedEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    if (block.coinCreations) {
+      for (const coin of block.coinCreations) {
+        await this.coinRepo.addUnspentCoin(
+          mapCoinRecordToUnspentCoin(coin),
+          manager,
+        );
+      }
+    }
+
+    if (block.coinSpends) {
+      for (const spend of block.coinSpends) {
+        const coinId = spend.coin.parentCoinInfo + spend.coin.puzzleHash + spend.coin.amount;
+        await this.coinRepo.deleteUnspentCoin(coinId, manager);
+      }
+    }
   }
 
   private async addPeersToListener() {
@@ -75,24 +107,27 @@ export class CoinIndexer
     }
   }
 
-  private async handleCoinSpends(block: BlockReceivedEvent) {
+  private async handleCoinSpends(block: BlockReceivedEvent, manager: EntityManager) {
     if (!block.coinSpends) return;
     for (const coinSpend of block.coinSpends) {
       if (coinSpend.puzzleReveal && coinSpend.solution && typeof coinSpend.offset === 'number') {
-        await this.coinRepo.addSpend(mapCoinSpendToSpend(coinSpend));
+        await this.coinRepo.addSpend(mapCoinSpendToSpend(coinSpend), manager);
       }
     }
   }
 
-  private async handleCoinCreations(block: BlockReceivedEvent) {
+  private async handleCoinCreations(block: BlockReceivedEvent, manager: EntityManager) {
     if (!block.coinCreations) return;
     for (const coin of block.coinCreations) {
-      await this.coinRepo.upsertCoin({
-        coinId: coin.parentCoinInfo + coin.puzzleHash + coin.amount,
-        parentCoinInfo: coin.parentCoinInfo,
-        puzzleHash: coin.puzzleHash,
-        amount: coin.amount,
-      });
+      await this.coinRepo.addCoin(
+        {
+          coinId: coin.parentCoinInfo + coin.puzzleHash + coin.amount,
+          parentCoinInfo: coin.parentCoinInfo,
+          puzzleHash: coin.puzzleHash,
+          amount: coin.amount,
+        },
+        manager,
+      );
     }
   }
 

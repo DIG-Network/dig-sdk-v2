@@ -4,91 +4,104 @@ import { Spend } from '../entities/Spend';
 import { PendingCoin } from '../entities/PendingCoin';
 import { UnspentCoin } from '../entities/UnspentCoin';
 import { ChiaBlockchainService } from '../BlockchainServices/ChiaBlockchainService';
+import { EntityManager } from 'typeorm';
 
 export interface ICoinRepository {
-  upsertCoin(coin: Coin): Promise<void>;
-  getCoin(coinId: string): Promise<Coin | undefined>;
-  getAllCoins(): Promise<Coin[]>;
-  addSpend(spend: Spend): Promise<void>;
-  getAllSpends(): Promise<Spend[]>;
-  addPendingCoin(pending: PendingCoin): Promise<void>;
-  getPendingCoins(): Promise<PendingCoin[]>;
-  getPendingCoin(coinId: string): Promise<PendingCoin | undefined>;
-  getUnspentCoins(address: string): Promise<UnspentCoin[]>;
-  getBalance(address: string, assetId: string): bigint | PromiseLike<bigint>;
+  addCoin(coin: Coin, managerParam?: EntityManager): Promise<void>;
+  getCoin(coinId: string, managerParam?: EntityManager): Promise<Coin | undefined>;
+  getAllCoins(managerParam?: EntityManager): Promise<Coin[]>;
+  addSpend(spend: Spend, managerParam?: EntityManager): Promise<void>;
+  getAllSpends(managerParam?: EntityManager): Promise<Spend[]>;
+  addPendingCoin(pending: PendingCoin, managerParam?: EntityManager): Promise<void>;
+  getPendingCoins(managerParam?: EntityManager): Promise<PendingCoin[]>;
+  getPendingCoin(coinId: string, managerParam?: EntityManager): Promise<PendingCoin | undefined>;
+  getUnspentCoins(address: string, managerParam?: EntityManager): Promise<UnspentCoin[]>;
+  deleteUnspentCoin(coinId: string, managerParam?: EntityManager): Promise<void>;
+  addUnspentCoin(coin: UnspentCoin, managerParam?: EntityManager): Promise<void>;
+  getBalance(address: string, managerParam?: EntityManager): bigint | PromiseLike<bigint>;
 }
 
 export class CoinRepository implements ICoinRepository {
-  async upsertCoin(coin: Coin): Promise<void> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(Coin);
-    const existing = await repo.findOne({ where: { coinId: coin.coinId } });
-    if (existing) {
-      await repo.update({ coinId: coin.coinId }, coin);
-    } else {
-      try {
-        const newCoin = repo.create(coin);
-        await repo.save(newCoin);
-      } catch {}
-    }
+  async addCoin(coin: Coin, managerParam?: EntityManager): Promise<void> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(Coin);
+    try {
+      const newCoin = repo.create(coin);
+      await repo.save(newCoin);
+    } catch {}
   }
 
-  async getCoin(coinId: string): Promise<Coin | undefined> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(Coin);
+  async getCoin(coinId: string, managerParam?: EntityManager): Promise<Coin | undefined> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(Coin);
     const found = await repo.findOne({ where: { coinId } });
     return found ? { ...found } : undefined;
   }
 
-  async getAllCoins(): Promise<Coin[]> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(Coin);
+  async getAllCoins(managerParam?: EntityManager): Promise<Coin[]> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(Coin);
     return (await repo.find()).map((c) => ({ ...c }));
   }
 
-  async addSpend(spend: Spend): Promise<void> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(Spend);
+  async addSpend(spend: Spend, managerParam?: EntityManager): Promise<void> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(Spend);
     const newSpend = repo.create(spend);
     await repo.save(newSpend);
   }
 
-  async getAllSpends(): Promise<Spend[]> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(Spend);
+  async getAllSpends(managerParam?: EntityManager): Promise<Spend[]> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(Spend);
     return (await repo.find()).map((s) => ({ ...s }));
   }
 
-  async addPendingCoin(pending: PendingCoin): Promise<void> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(PendingCoin);
+  async addPendingCoin(pending: PendingCoin, managerParam?: EntityManager): Promise<void> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(PendingCoin);
     const newPending = repo.create(pending);
     await repo.save(newPending);
   }
 
-  async getPendingCoins(): Promise<PendingCoin[]> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(PendingCoin);
+  async getPendingCoins(managerParam?: EntityManager): Promise<PendingCoin[]> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(PendingCoin);
     return (await repo.find()).map((p) => ({ ...p }));
   }
 
-  async getPendingCoin(coinId: string): Promise<PendingCoin | undefined> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(PendingCoin);
+  async getPendingCoin(
+    coinId: string,
+    managerParam?: EntityManager,
+  ): Promise<PendingCoin | undefined> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(PendingCoin);
     const found = await repo.findOne({ where: { coinId } });
     return found ? { ...found } : undefined;
   }
 
-  async getUnspentCoins(address: string): Promise<UnspentCoin[]> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(UnspentCoin);
+  async addUnspentCoin(coin: UnspentCoin, managerParam?: EntityManager): Promise<void> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(UnspentCoin);
+    await repo.upsert(coin, ['coinId']);
+  }
+
+  async getUnspentCoins(address: string, managerParam?: EntityManager): Promise<UnspentCoin[]> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(UnspentCoin);
     const puzzleHash = ChiaBlockchainService.getPuzzleHash(address).toString('hex');
     return (await repo.find({ where: { puzzleHash } })).map((c) => ({ ...c }));
   }
 
-  async getBalance(address: string): Promise<bigint> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(UnspentCoin);
+  async deleteUnspentCoin(coinId: string, managerParam?: EntityManager) {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(UnspentCoin);
+    await repo.delete({ coinId });
+  }
+
+  async getBalance(address: string, managerParam?: EntityManager): Promise<bigint> {
+    const manager = managerParam || (await getDataSource());
+    const repo = manager.getRepository(UnspentCoin);
     const puzzleHash = ChiaBlockchainService.getPuzzleHash(address).toString('hex');
     const coins = await repo.find({ where: { puzzleHash } });
     return coins.reduce((sum, coin) => sum + BigInt(coin.amount), 0n);

@@ -8,10 +8,10 @@ export class Coin {
   @PrimaryColumn({ type: 'text', name: 'coin_id' })
   coinId!: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'parent_coin_info' })
+  @Column({ type: 'text', name: 'parent_coin_info' })
   parentCoinInfo!: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'puzzle_hash' })
+  @Column({ type: 'text', name: 'puzzle_hash' })
   puzzleHash!: string;
 
   @Column({ type: 'bigint', name: 'amount' })

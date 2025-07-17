@@ -3,32 +3,42 @@ import { Spend } from '../entities/Spend';
 import { ChiaBlockchainService } from '../BlockchainServices/ChiaBlockchainService';
 import { Coin } from '@dignetwork/datalayer-driver';
 import { PendingCoin } from '../entities/PendingCoin';
+import { UnspentCoin } from '../entities/UnspentCoin';
 
 export function mapCoinSpendToSpend(coinSpend: CoinSpend): Spend {
-    return {
+  return {
     coinId: ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(coinSpend.coin)).toString(
-        'hex',
+      'hex',
     ),
     puzzleReveal: coinSpend.puzzleReveal,
     solution: coinSpend.solution,
-};
+  };
 }
 
 export function mapCoinRecordToDatalayerCoin(coinRecord: CoinRecord): Coin {
-    return {
-        parentCoinInfo: Buffer.from(coinRecord.parentCoinInfo, 'hex'),
-        puzzleHash: Buffer.from(coinRecord.puzzleHash, 'hex'),
-        amount: BigInt(coinRecord.amount),
-    };
+  return {
+    parentCoinInfo: Buffer.from(coinRecord.parentCoinInfo, 'hex'),
+    puzzleHash: Buffer.from(coinRecord.puzzleHash, 'hex'),
+    amount: BigInt(coinRecord.amount),
+  };
+}
+
+export function mapCoinRecordToUnspentCoin(coinRecord: CoinRecord): UnspentCoin {
+  return {
+    coinId: ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(coinRecord)).toString('hex'),
+    parentCoinInfo: coinRecord.parentCoinInfo,
+    puzzleHash: coinRecord.puzzleHash,
+    amount: coinRecord.amount,
+  };
 }
 
 export function mapUnspentCoinToDatalayerCoin(unspentCoin: {
-    parentCoinInfo: string;
-    puzzleHash: string;
-    amount: string | number | bigint;
+  parentCoinInfo: string;
+  puzzleHash: string;
+  amount: string | number | bigint;
 }): Coin {
   return {
-      parentCoinInfo: Buffer.from(unspentCoin.parentCoinInfo, 'hex'),
+    parentCoinInfo: Buffer.from(unspentCoin.parentCoinInfo, 'hex'),
     puzzleHash: Buffer.from(unspentCoin.puzzleHash, 'hex'),
     amount:
       typeof unspentCoin.amount === 'bigint' ? unspentCoin.amount : BigInt(unspentCoin.amount),

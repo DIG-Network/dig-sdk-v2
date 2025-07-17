@@ -6,7 +6,7 @@ export class Spend {
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @Column({ type: 'varchar', length: 255, name: 'coin_id' })
+  @Column({ type: 'text', name: 'coin_id' })
   coinId!: string;
 
   @Column({ type: 'text', name: 'puzzle_reveal' })

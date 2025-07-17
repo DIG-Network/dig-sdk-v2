@@ -1,34 +1,38 @@
-import { getDataSource } from '../../infrastructure/DatabaseProvider';
+import { EntityManager } from 'typeorm';
 import { Block } from '../../infrastructure/entities/Block';
+import { getDataSource } from '../../infrastructure/DatabaseProvider';
 
 export interface IBlockRepository {
-  addBlock(height: number, headerHash: string): Promise<void>;
-  getBlockById(height: number): Promise<Block | null>;
-  getBlocks(): Promise<Block[]>;
+  addBlock(height: number, headerHash: string, weight: string, managerParam: EntityManager): Promise<void>;
+  getBlockById(height: number, managerParam?: EntityManager): Promise<Block | null>;
+  getBlocks(managerParam?: EntityManager): Promise<Block[]>;
 }
 
 export class BlockRepository implements IBlockRepository {
-  async addBlock(height: number, headerHash: string, weight: number = 0): Promise<void> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(Block);
+  async addBlock(height: number, headerHash: string, weight: string, managerParam: EntityManager): Promise<void> {
+    const manager = managerParam || (await getDataSource()).manager;
+    const repo = manager.getRepository(Block);
     const existing = await repo.findOne({ where: { height } });
     if (existing) {
       await repo.update({ height }, { headerHash, weight });
     } else {
-      const block = repo.create({ height, headerHash, weight });
-      await repo.save(block);
+      try{
+        const block = repo.create({ height, headerHash, weight });
+        await repo.save(block);
+      } catch{
+      }
     }
   }
 
-  async getBlockById(height: number): Promise<Block | null> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(Block);
+  async getBlockById(height: number, managerParam?: EntityManager): Promise<Block | null> {
+    const manager = managerParam || (await getDataSource()).manager;
+    const repo = manager.getRepository(Block);
     return await repo.findOne({ where: { height } });
   }
 
-  async getBlocks(): Promise<Block[]> {
-    const ds = await getDataSource();
-    const repo = ds.getRepository(Block);
+  async getBlocks(managerParam?: EntityManager): Promise<Block[]> {
+    const manager = managerParam || (await getDataSource()).manager;
+    const repo = manager.getRepository(Block);
     return await repo.find({ order: { height: 'ASC' } });
   }
 }

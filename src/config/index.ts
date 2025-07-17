@@ -12,8 +12,8 @@ const config: DigConfig = {
   DIG_FOLDER_PATH: '.dig',
   BLOCKCHAIN: 'chia',
   BLOCKCHAIN_NETWORK: BlockchainNetwork.TESTNET,
-  DATABASE_TYPE: 'sqlite',
-  DATABASE_URL: 'file:wallet.sqlite',
+  DATABASE_TYPE: 'postgres',
+  DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/postgres',
 };
 
 export default config;
