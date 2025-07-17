@@ -16,6 +16,7 @@ import { EntityManager } from 'typeorm';
 import { mapCoinRecordToDatalayerCoin, mapCoinRecordToUnspentCoin, mapCoinSpendToSpend } from '../../Repositories/CoinMappers';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 import { Block } from '../../entities/Block';
+import { CoinStatus } from '../../Repositories/CoinStatus';
 
 interface ICoinIndexer {
   onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void;
@@ -81,8 +82,6 @@ export class CoinIndexer
         return;
       }
       
-      console.log(`Block received and processing transaction: height=${block.height}, hash=${block.headerHash}`);
-
       await ds.transaction(async (manager) => {
         await this.blockRepo.addBlock(
           block.height,
@@ -146,7 +145,14 @@ export class CoinIndexer
   private async handleCoinSpends(block: BlockReceivedEvent, manager: EntityManager) {
     if (!block.coinSpends) return;
     for (const coinSpend of block.coinSpends) {
-      await this.coinRepo.addSpend(mapCoinSpendToSpend(coinSpend), manager);
+      const spend = mapCoinSpendToSpend(coinSpend);
+      await this.coinRepo.addSpend(spend, manager);
+
+      this.emit(CoinIndexerEventNames.CoinStateUpdated, {
+        coinId: spend.coinId,
+        coinStatus: CoinStatus.SPENT,
+        syncedHeight: block.height,
+      } as CoinStateUpdatedEvent);
     }
   }
 
@@ -163,6 +169,12 @@ export class CoinIndexer
         },
         manager,
       );
+
+      this.emit(CoinIndexerEventNames.CoinStateUpdated, {
+        coinId: coinId.toString('hex'),
+        coinStatus: CoinStatus.UNSPENT,
+        syncedHeight: block.height,
+      } as CoinStateUpdatedEvent);
     }
   }
 

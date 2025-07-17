@@ -55,6 +55,10 @@ async function main() {
   config.DATABASE_URL = 'postgres://postgres:postgres@localhost:5432/postgres';
   let coinIndexer = new CoinIndexer();
   coinIndexer.start();
+
+  coinIndexer.onCoinStateUpdated((coin) => {
+    console.log(`Coin state updated: ${coin.coinId} - ${coin.coinStatus}`);
+  });
 }
 
 main();
