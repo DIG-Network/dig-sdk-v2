@@ -75,9 +75,10 @@ export class L1ChiaPeer implements IL1ChiaPeer {
 
     for (const introducer of introducers) {
       try {
-        const addresses = await dns.resolve4(introducer);
+        const addressesv6 = await dns.resolve6(introducer);
+        const addressesv4 = await dns.resolve4(introducer);
         const port = config.BLOCKCHAIN_NETWORK === BlockchainNetwork.MAINNET ? 8444 : 58444;
-        const peers = addresses.map((ip) => ({
+        const peers = [...addressesv6, ...addressesv4].map((ip) => ({
           host: ip,
           port: port,
           source: introducer,
