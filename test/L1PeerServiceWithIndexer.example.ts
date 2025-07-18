@@ -51,8 +51,8 @@ async function main() {
   // }
 
   config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
-  config.DATABASE_TYPE = 'postgres';
-  config.DATABASE_URL = 'postgres://postgres:postgres@localhost:5432/postgres';
+  // config.DATABASE_TYPE = 'postgres';
+  // config.DATABASE_URL = 'postgres://postgres:postgres@localhost:5432/postgres';
   let coinIndexer = new CoinIndexer();
   coinIndexer.start();
 
