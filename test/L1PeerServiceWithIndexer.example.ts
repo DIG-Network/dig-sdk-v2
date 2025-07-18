@@ -56,8 +56,12 @@ async function main() {
   let coinIndexer = new CoinIndexer();
   coinIndexer.start();
 
-  coinIndexer.onCoinStateUpdated((coin) => {
-    console.log(`Coin state updated: ${coin.coinId} - ${coin.coinStatus}`);
+  coinIndexer.onCoinCreated((event) => {
+    console.log(`Coin created: ID ${event.coinId}, Amount ${event.amount}`);
+  });
+
+  coinIndexer.onSpendCreated((event) => {
+    console.log(`Coin spent: ID ${event.coinId}, Amount ${event.puzzleReveal}`);
   });
 
   coinIndexer.onNewBlockIngested((event) => {

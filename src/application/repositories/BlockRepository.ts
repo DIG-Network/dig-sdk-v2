@@ -3,24 +3,22 @@ import { getDataSource } from '../../infrastructure/DatabaseProvider';
 import { Block } from '../entities/Block';
 
 export interface IBlockRepository {
-  addBlock(height: string, headerHash: Buffer, weight: string, managerParam: EntityManager): Promise<void>;
+  addBlock(block: Block, managerParam: EntityManager): Promise<Block>;
   getBlockById(height: string, managerParam?: EntityManager): Promise<Block | null>;
   getBlocks(managerParam?: EntityManager): Promise<Block[]>;
 }
 
 export class BlockRepository implements IBlockRepository {
-  async addBlock(height: string, headerHash: Buffer, weight: string, managerParam: EntityManager): Promise<void> {
+  async addBlock(block: Block, managerParam: EntityManager): Promise<Block> {
     const manager = managerParam || (await getDataSource()).manager;
     const repo = manager.getRepository(Block);
-    const existing = await repo.findOne({ where: { height } });
-    if (existing) {
-      await repo.update({ height }, { headerHash, weight });
-    } else {
-      try{
-        const block = repo.create({ height, headerHash, weight });
-        await repo.save(block);
-      } catch{
-      }
+
+    try {
+      const dbBlock = repo.create(block);
+      const savedBlock = await repo.save(dbBlock);
+      return savedBlock;
+    } catch {
+      return block;
     }
   }
 
