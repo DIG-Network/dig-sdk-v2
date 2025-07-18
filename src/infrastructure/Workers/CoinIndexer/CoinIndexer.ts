@@ -5,7 +5,7 @@ import {
   CoinStateUpdatedEvent,
   NewBlockIngestedEvent,
 } from './CoinIndexerEvents';
-import { BlockReceivedEvent, ChiaBlockListener } from '@dignetwork/chia-block-listener';
+import { BlockReceivedEvent, ChiaBlockListener, PeerConnectedEvent, PeerDisconnectedEvent } from '@dignetwork/chia-block-listener';
 import { L1ChiaPeer } from '../../Peers/L1ChiaPeer';
 import config from '../../../config';
 import { CoinRepository } from '../../Repositories/CoinRepository';
@@ -39,7 +39,7 @@ export class CoinIndexer
   private blockRepo: BlockRepository;
 
   private minConnections;
-  private connectedPeers: Set<string>;
+  private connectedPeers: string[];
 
   private blockQueue: BlockReceivedEvent[] = [];
   private processingBlock = false;
@@ -50,7 +50,7 @@ export class CoinIndexer
     this.listener = new ChiaBlockListener();
     this.coinRepo = new CoinRepository();
     this.blockRepo = new BlockRepository();
-    this.connectedPeers = new Set();
+    this.connectedPeers = [];
   }
 
   onNewBlockIngested(listener: (event: NewBlockIngestedEvent) => void): void {
@@ -147,10 +147,10 @@ export class CoinIndexer
   private async addPeersToListener() {
     const peers = await L1ChiaPeer.discoverRawDataPeers();
     let peerIdx = 0;
-    while (this.connectedPeers.size < this.minConnections && peerIdx < peers.length) {
+    while (this.connectedPeers.length < this.minConnections && peerIdx < peers.length) {
       const peer = peers[peerIdx++];
       const key = `${peer.host}:${peer.port}`;
-      if (this.connectedPeers.has(key)) continue;
+      if (this.connectedPeers.includes(key)) continue;
       try {
         this.listener.addPeer(
           peer.host,
@@ -199,14 +199,13 @@ export class CoinIndexer
     }
   }
 
-  private handlePeerDisconnected = async (peer: { host: string; port: number }) => {
-    const key = `${peer.host}:${peer.port}`;
-    this.connectedPeers.delete(key);
-    while (this.connectedPeers.size < this.minConnections) {
+  private handlePeerDisconnected = async (peer: PeerDisconnectedEvent) => {
+    this.connectedPeers = this.connectedPeers.filter((id) => id !== peer.peerId);
+    while (this.connectedPeers.length < this.minConnections) {
       const peers = await L1ChiaPeer.discoverRawDataPeers();
       for (const candidate of peers) {
         const candidateKey = `${candidate.host}:${candidate.port}`;
-        if (!this.connectedPeers.has(candidateKey)) {
+        if (!this.connectedPeers.includes(candidateKey)) {
           try {
             this.listener.addPeer(
               candidate.host,
@@ -221,9 +220,8 @@ export class CoinIndexer
     }
   };
 
-  private handlePeerConnected = (peer: { host: string; port: number }) => {
-    const key = `${peer.host}:${peer.port}`;
-    this.connectedPeers.add(key);
+  private handlePeerConnected = (peer: PeerConnectedEvent) => {
+    this.connectedPeers.push(peer.peerId);
   };
 
   async stop(): Promise<void> {
