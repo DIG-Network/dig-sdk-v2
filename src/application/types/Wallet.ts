@@ -43,13 +43,8 @@ export class Wallet implements IWallet {
 
   public async getBalance(assetId: string): Promise<IAssetBalance> {
     let address = await this.getOwnerPublicKey();
-    const balance = await this.balanceRepository.getBalance(address, assetId);
+    const balance = await this.balanceRepository.getBalance(address);
     return { assetId, balance };
-  }
-
-  public async getBalances(): Promise<IAssetBalance[]> {
-    let address = await this.getOwnerPublicKey();
-    return this.balanceRepository.getBalancesByAsset(address);
   }
 
   public async getMasterSecretKey(): Promise<Buffer> {
@@ -77,7 +72,7 @@ export class Wallet implements IWallet {
   public async getOwnerPublicKey(): Promise<string> {
     const ownerPuzzleHash = await this.getPuzzleHash();
     let prefix = this.blockchain.getAddressPrefix();
-    return this.blockchain.puzzleHashToAddress(ownerPuzzleHash, prefix);
+    return ChiaBlockchainService.puzzleHashToAddress(ownerPuzzleHash, prefix);
   }
 
   public async createKeyOwnershipSignature(nonce: string): Promise<string> {

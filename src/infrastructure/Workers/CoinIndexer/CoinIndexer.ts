@@ -1,101 +1,227 @@
 import { EventEmitter } from 'events';
-import { spawn, Worker, Thread } from 'threads';
-import { PeerType } from '@dignetwork/datalayer-driver';
-import { IWorker } from '../IWorker';
-import { CoinIndexerEventNames, CoinIndexerEvents, CoinStateUpdatedEvent } from './CoinIndexerEvents';
+import { CoinIndexerEventNames, CoinIndexerEvents } from './CoinIndexerEvents';
+import { Coin } from '../../entities/Coin';
+import { Spend } from '../../entities/Spend';
+import { Block } from '../../../application/entities/Block';
+import {
+  BlockReceivedEvent,
+  ChiaBlockListener,
+  PeerConnectedEvent,
+  PeerDisconnectedEvent,
+} from '@dignetwork/chia-block-listener';
+import { L1ChiaPeer } from '../../Peers/L1ChiaPeer';
+import config from '../../../config';
+import { CoinRepository } from '../../Repositories/CoinRepository';
 
-export interface CoinIndexerWorkerApi {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: (...args: any[]) => any;
-}
+import { BlockRepository } from '../../../application/repositories/BlockRepository';
+import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
+import { getDataSource } from '../../DatabaseProvider';
+import { EntityManager } from 'typeorm';
+import {
+  mapCoinRecordToDatalayerCoin,
+  mapCoinRecordToUnspentCoin,
+  mapCoinSpendToSpend,
+} from '../../Repositories/CoinMappers';
+import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 
-interface ICoinIndexer extends IWorker {
-  onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void;
+interface ICoinIndexer {
+  onCoinCreated(listener: (event: Coin) => void): void;
+  onSpendCreated(listener: (event: Spend) => void): void;
+  onNewBlockIngested(listener: (event: Block) => void): void;
 }
 
 export class CoinIndexer
   extends (EventEmitter as { new (): CoinIndexerEvents })
   implements ICoinIndexer
 {
-  private worker: import('threads').ModuleThread<CoinIndexerWorkerApi> | null = null;
   private started = false;
-  private restartIntervalId: NodeJS.Timeout | null = null;
-  private restartIntervalMs: number | null = null;
+  private listener: ChiaBlockListener;
 
-  async start(
-    blockchainType: string,
-    restartIntervalHours?: number,
-    crtPath: string = 'ca.crt',
-    keyPath: string = 'ca.key',
-    peerType?: PeerType,
-  ): Promise<void> {
-    await this.startWorker(blockchainType, crtPath, keyPath, peerType);
+  private coinRepo: CoinRepository;
+  private blockRepo: BlockRepository;
 
-    if (restartIntervalHours && restartIntervalHours > 0) {
-      this.restartIntervalMs = restartIntervalHours * 60 * 60 * 1000;
-      this.restartIntervalId = setInterval(async () => {
-        await this.restartWorker(blockchainType, crtPath, keyPath, peerType);
-      }, this.restartIntervalMs);
-    }
+  private minConnections;
+  private connectedPeers: string[];
+
+  private blockQueue: BlockReceivedEvent[] = [];
+  private processingBlock = false;
+
+  constructor(minConnections: number = 5) {
+    super();
+    this.minConnections = minConnections;
+    this.listener = new ChiaBlockListener();
+    this.coinRepo = new CoinRepository();
+    this.blockRepo = new BlockRepository();
+    this.connectedPeers = [];
   }
 
-  private async startWorker(
-    blockchainType: string,
-    crtPath: string = 'ca.crt',
-    keyPath: string = 'ca.key',
-    peerType?: PeerType,
-  ) {
+  onCoinCreated(listener: (event: Coin) => void): void {
+    this.on(CoinIndexerEventNames.CoinCreated, listener);
+  }
+
+  onSpendCreated(listener: (event: Spend) => void): void {
+    this.on(CoinIndexerEventNames.SpendCreated, listener);
+  }
+
+  onNewBlockIngested(listener: (event: Block) => void): void {
+    this.on(CoinIndexerEventNames.NewBlockIngested, listener);
+  }
+
+  async start(): Promise<void> {
     if (this.started) return;
-    if (!this.worker) {
-      // Use src worker for tests/dev, dist worker for production
-      let workerPath = '../../../../dist/infrastructure/Workers/CoinIndexer/CoinIndexer.worker.js';
-
-      this.worker = (await spawn(
-        new Worker(workerPath),
-      )) as import('threads').ModuleThread<CoinIndexerWorkerApi>;
-    }
-
-    this.worker.onCoinStateUpdated().subscribe({
-      next: (coinState: CoinStateUpdatedEvent) => {
-        this.emit(CoinIndexerEventNames.CoinStateUpdated, coinState);
-      },
-    });
-
-    try {
-      await this.worker.start(blockchainType, crtPath, keyPath, peerType);
-    } catch {
-      await this.restartWorker(blockchainType, crtPath, keyPath, peerType);
-    }
-
     this.started = true;
+
+    this.listener.on('peerConnected', this.handlePeerConnected);
+    this.listener.on('peerDisconnected', this.handlePeerDisconnected);
+
+    await this.addPeersToListener();
+
+    this.listener.on('blockReceived', (block: BlockReceivedEvent) => {
+      this.enqueueBlock(block);
+    });
   }
 
-  private async restartWorker(
-    blockchainType: string,
-    crtPath: string = 'ca.crt',
-    keyPath: string = 'ca.key',
-    peerType?: PeerType,
-  ) {
-    if (this.worker) {
-      await this.worker.stop();
-      this.started = false;
-      await Thread.terminate(this.worker);
-      this.worker = null;
-    }
-    await this.startWorker(blockchainType, crtPath, keyPath, peerType);
+  private enqueueBlock(block: BlockReceivedEvent) {
+    this.blockQueue.push(block);
+    this.processNextBlock();
   }
+
+  private async processNextBlock() {
+    if (this.processingBlock || this.blockQueue.length === 0) return;
+    this.processingBlock = true;
+    const block = this.blockQueue.shift()!;
+    try {
+      const ds = await getDataSource();
+      const existingBlock = await ds
+        .getRepository(Block)
+        .findOne({ where: { height: block.height.toString() } });
+
+      if (existingBlock && existingBlock.weight >= block.weight) {
+        this.processingBlock = false;
+        if (this.blockQueue.length > 0) {
+          this.processNextBlock();
+        }
+        return;
+      }
+
+      console.log(block.timestamp);
+
+      const blockFromQueue = {
+        height: block.height.toString(),
+        headerHash: Buffer.from(block.headerHash, 'hex'),
+        weight: block.weight.toString(),
+        timestamp: new Date(block.timestamp),
+      };
+
+      await ds.transaction(async (manager) => {
+        await this.blockRepo.addBlock(blockFromQueue, manager);
+
+        await this.handleCoinCreations(block, manager);
+        await this.handleCoinSpends(block, manager);
+        await this.updateUnspentCoinsFromBlock(block, manager);
+      });
+
+      this.emit(CoinIndexerEventNames.NewBlockIngested, blockFromQueue);
+    } catch {
+    } finally {
+      this.processingBlock = false;
+      if (this.blockQueue.length > 0) {
+        this.processNextBlock();
+      }
+    }
+  }
+
+  async updateUnspentCoinsFromBlock(
+    block: BlockReceivedEvent,
+    manager: EntityManager,
+  ): Promise<void> {
+    if (block.coinCreations) {
+      for (const coin of block.coinCreations) {
+        await this.coinRepo.addUnspentCoin(mapCoinRecordToUnspentCoin(coin), manager);
+      }
+    }
+
+    if (block.coinSpends) {
+      for (const spend of block.coinSpends) {
+        const coinId = ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(spend.coin));
+        await this.coinRepo.deleteUnspentCoin(coinId.toString('hex'), manager);
+      }
+    }
+  }
+
+  private async addPeersToListener() {
+    const peers = await L1ChiaPeer.discoverRawDataPeers();
+    let peerIdx = 0;
+    while (this.connectedPeers.length < this.minConnections && peerIdx < peers.length) {
+      const peer = peers[peerIdx++];
+      const key = `${peer.host}:${peer.port}`;
+      if (this.connectedPeers.includes(key)) continue;
+      try {
+        this.listener.addPeer(
+          peer.host,
+          peer.port,
+          config.BLOCKCHAIN_NETWORK === BlockchainNetwork.MAINNET ? 'mainnet' : 'testnet11',
+        );
+      } catch {}
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+
+  private async handleCoinSpends(block: BlockReceivedEvent, manager: EntityManager) {
+    if (!block.coinSpends) return;
+    for (const coinSpend of block.coinSpends) {
+      const spend = mapCoinSpendToSpend(coinSpend);
+      await this.coinRepo.addSpend(spend, manager);
+
+      // Emit using Event<Spend>
+      this.emit(CoinIndexerEventNames.SpendCreated, spend);
+    }
+  }
+
+  private async handleCoinCreations(block: BlockReceivedEvent, manager: EntityManager) {
+    if (!block.coinCreations) return;
+    for (const coin of block.coinCreations) {
+      const mappedCoin = mapCoinRecordToDatalayerCoin(coin);
+      const coinId = ChiaBlockchainService.getCoinId(mappedCoin);
+      const newCoin = {
+        coinId: coinId.toString('hex'),
+        parentCoinInfo: mappedCoin.parentCoinInfo,
+        puzzleHash: mappedCoin.puzzleHash,
+        amount: mappedCoin.amount.toString(),
+      };
+      await this.coinRepo.addCoin(newCoin, manager);
+
+      // Emit using Event<Coin>
+      this.emit(CoinIndexerEventNames.CoinCreated, newCoin);
+    }
+  }
+
+  private handlePeerDisconnected = async (peer: PeerDisconnectedEvent) => {
+    this.connectedPeers = this.connectedPeers.filter((id) => id !== peer.peerId);
+    while (this.connectedPeers.length < this.minConnections) {
+      const peers = await L1ChiaPeer.discoverRawDataPeers();
+      for (const candidate of peers) {
+        const candidateKey = `${candidate.host}:${candidate.port}`;
+        if (!this.connectedPeers.includes(candidateKey)) {
+          try {
+            this.listener.addPeer(
+              candidate.host,
+              candidate.port,
+              config.BLOCKCHAIN_NETWORK === BlockchainNetwork.MAINNET ? 'mainnet' : 'testnet11',
+            );
+            break;
+          } catch {}
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  };
+
+  private handlePeerConnected = (peer: PeerConnectedEvent) => {
+    this.connectedPeers.push(peer.peerId);
+  };
 
   async stop(): Promise<void> {
-    if (this.started && this.worker) await this.worker.stop();
     this.started = false;
-    if (this.worker) await Thread.terminate(this.worker);
-    if (this.restartIntervalId) {
-      clearInterval(this.restartIntervalId);
-      this.restartIntervalId = null;
-    }
-  }
-
-  onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void {
-    this.on(CoinIndexerEventNames.CoinStateUpdated, listener);
   }
 }
