@@ -59,6 +59,13 @@ async function main() {
   coinIndexer.onCoinStateUpdated((coin) => {
     console.log(`Coin state updated: ${coin.coinId} - ${coin.coinStatus}`);
   });
+
+  coinIndexer.onNewBlockIngested((event) => {
+    console.log(`New block ingested: Height ${event.height}, Weight ${event.weight}, HeaderHash ${event.headerHash.toString('hex')}`);
+    if (event.timestamp) {
+      console.log(`Timestamp: ${event.timestamp}`);
+    }
+  });
 }
 
 main();

@@ -8,14 +8,14 @@ export function getDateType() {
     return config.DATABASE_TYPE === 'postgres' ? 'timestamp with time zone' : 'datetime';
 }
 
-export function getCurrentDate(offsetMinutes: number = 0) {
+export function getCurrentDate(offsetMinutes?: number) {
     if (config.DATABASE_TYPE === 'postgres') {
-        return offsetMinutes
+        return () => offsetMinutes
             ? `CURRENT_TIMESTAMP + INTERVAL '${offsetMinutes} minutes'`
-            : 'CURRENT_TIMESTAMP';
+            : "CURRENT_TIMESTAMP";
     } else {
-        return offsetMinutes
+        return () => offsetMinutes
             ? `DATETIME(CURRENT_TIMESTAMP, '+${offsetMinutes} minutes')`
-            : 'CURRENT_TIMESTAMP';
+            : "CURRENT_TIMESTAMP";
     }
 }
