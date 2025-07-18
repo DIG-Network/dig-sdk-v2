@@ -32,8 +32,8 @@ describe('CoinRepository', () => {
   it('should upsert and retrieve coins', async () => {
     const coin: Coin = {
       coinId: 'aabbcc',
-      parentCoinInfo: 'ddeeff',
-      puzzleHash: '112233',
+      parentCoinInfo: Buffer.from('ddeeff', 'hex'),
+      puzzleHash: Buffer.from('112233', 'hex'),
       amount: '1000',
     };
     await coinRepo.addCoin(coin);
@@ -47,8 +47,8 @@ describe('CoinRepository', () => {
   it('should add and retrieve pending coins', async () => {
     const pending: PendingCoin = {
       coinId: 'aabbcc',
-      expirey: new Date(Date.now() + 10000)
-    } as PendingCoin;
+      expiresAt: new Date(Date.now() + 10000)
+    };
     await coinRepo.addPendingCoin(pending);
     const found = await coinRepo.getPendingCoin('aabbcc');
     expect(found).toBeDefined();
@@ -59,15 +59,15 @@ describe('CoinRepository', () => {
   it('should add and retrieve spends', async () => {
     const spend: Spend = {
       coinId: 'deadbeef',
-      puzzleReveal: 'reveal',
-      solution: 'solution'
-    } as Spend;
+      puzzleReveal: Buffer.from('reveal'),
+      solution: Buffer.from('solution')
+    };
     await coinRepo.addSpend(spend);
     const spends = await coinRepo.getAllSpends();
     const found = spends.find(s => s.coinId === 'deadbeef');
     expect(found).toBeDefined();
     expect(found!.coinId).toBe('deadbeef');
-    expect(found!.puzzleReveal).toBe('reveal');
-    expect(found!.solution).toBe('solution');
+    expect(found!.puzzleReveal && found!.puzzleReveal.toString()).toBe('reveal');
+    expect(found!.solution && found!.solution.toString()).toBe('solution');
   });
 });

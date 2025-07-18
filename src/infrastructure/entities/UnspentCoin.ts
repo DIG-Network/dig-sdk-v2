@@ -1,16 +1,17 @@
 import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { getBinaryType } from './OrmAnnotationTypes';
 
-@Entity()
+@Entity({ name: 'unspent_coins' })
 export class UnspentCoin {
-  @PrimaryColumn()
-  coinId?: string;
+  @PrimaryColumn({ type: 'varchar', length: 255, name: 'coin_id' })
+  coinId!: string;
 
-  @Column()
-  parentCoinInfo!: string;
+  @Column({ type: getBinaryType(), name: 'parent_coin_info', nullable: false })
+  parentCoinInfo!: Buffer;
 
-  @Column()
-  puzzleHash!: string;
+  @Column({ type: getBinaryType(), name: 'puzzle_hash', nullable: false })
+  puzzleHash!: Buffer;
 
-  @Column('bigint')
+  @Column({ type: 'bigint', name: 'amount', nullable: false })
   amount!: string;
 }

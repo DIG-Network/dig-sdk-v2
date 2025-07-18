@@ -35,8 +35,8 @@ describe('addressRepository', () => {
     await addressRepo.addAddress('xch1234', 'name');
     await addressRepo.updateAddressSync('xch1234', 42, 'abc');
     const addresses = await addressRepo.getAddresses();
-    expect(addresses[0].synced_to_height).toBe(42);
-    expect(addresses[0].synced_to_hash).toBe('abc');
+    expect(addresses[0].syncedToHeight).toBe(42);
+    expect(addresses[0].syncedToHash).toBe('abc');
   });
 
   it('should not add duplicate addresses', async () => {

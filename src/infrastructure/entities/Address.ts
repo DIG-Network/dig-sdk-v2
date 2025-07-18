@@ -1,19 +1,19 @@
 import { Entity, PrimaryColumn, Column } from "typeorm";
 
-@Entity()
+@Entity({ name: 'addresses' })
 export class Address {
-  @PrimaryColumn('text')
+  @PrimaryColumn({ type: 'text', name: 'address' })
   address!: string;
 
-  @Column({ type: 'text', default: "default" })
+  @Column({ type: 'text', name: 'namespace', default: "default" })
   namespace!: string;
 
-  @Column('int')
-  synced_to_height!: number;
+  @Column({ type: 'bigint', name: 'synced_to_height' })
+  syncedToHeight!: number;
 
-  @Column('text')
-  synced_to_hash!: string;
+  @Column({ type: 'text', name: 'synced_to_hash' })
+  syncedToHash!: string;
 
-  @Column('text', { unique: true })
+  @Column({ type: 'text', name: 'name', unique: true })
   name!: string;
 }

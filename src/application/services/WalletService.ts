@@ -3,7 +3,8 @@ import { NconfService } from '../../infrastructure/ConfigurationServices/NconfSe
 import { EncryptionService } from './EncryptionService';
 import { EncryptedData } from '../types/EncryptedData';
 import { Wallet } from '../types/Wallet';
-import { AddressRow, AddressRepository } from '../repositories/AddressRepository';
+import { AddressRepository } from '../repositories/AddressRepository';
+import { Address } from '../../infrastructure/entities/Address';
 
 const KEYRING_FILE = 'keyring.json';
 
@@ -45,7 +46,7 @@ export class WalletService {
     return deleted;
   }
 
-  public static async getWallets(): Promise<AddressRow[]> {
+  public static async getWallets(): Promise<Address[]> {
     return WalletService.addressRepo.getAddresses();
   }
 

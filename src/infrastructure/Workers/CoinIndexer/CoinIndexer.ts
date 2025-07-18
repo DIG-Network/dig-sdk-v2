@@ -72,8 +72,8 @@ export class CoinIndexer
     const block = this.blockQueue.shift()!;
     try {
       const ds = await getDataSource();
-      const existingBlock = await ds.getRepository(Block).findOne({ where: { height: block.height } });
-      
+      const existingBlock = await ds.getRepository(Block).findOne({ where: { height: block.height.toString() } });
+
       if (existingBlock && existingBlock.weight >= block.weight) {
         this.processingBlock = false;
         if (this.blockQueue.length > 0) {
@@ -84,9 +84,9 @@ export class CoinIndexer
       
       await ds.transaction(async (manager) => {
         await this.blockRepo.addBlock(
-          block.height,
-          block.headerHash,
-          block.weight,
+          block.height.toString(),
+          Buffer.from(block.headerHash, 'hex'),
+          block.weight.toString(),
           manager,
         );
 
@@ -159,13 +159,14 @@ export class CoinIndexer
   private async handleCoinCreations(block: BlockReceivedEvent, manager: EntityManager) {
     if (!block.coinCreations) return;
     for (const coin of block.coinCreations) {
-      const coinId = ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(coin))
+      const mappedCoin = mapCoinRecordToDatalayerCoin(coin);
+      const coinId = ChiaBlockchainService.getCoinId(mappedCoin)
       await this.coinRepo.addCoin(
         {
           coinId: coinId.toString('hex'),
-          parentCoinInfo: coin.parentCoinInfo,
-          puzzleHash: coin.puzzleHash,
-          amount: coin.amount,
+          parentCoinInfo: mappedCoin.parentCoinInfo,
+          puzzleHash: mappedCoin.puzzleHash,
+          amount: mappedCoin.amount.toString(),
         },
         manager,
       );

@@ -10,8 +10,8 @@ export function mapCoinSpendToSpend(coinSpend: CoinSpend): Spend {
     coinId: ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(coinSpend.coin)).toString(
       'hex',
     ),
-    puzzleReveal: coinSpend.puzzleReveal,
-    solution: coinSpend.solution,
+    puzzleReveal: Buffer.from(coinSpend.puzzleReveal, 'hex'),
+    solution: Buffer.from(coinSpend.solution, 'hex'),
   };
 }
 
@@ -26,28 +26,24 @@ export function mapCoinRecordToDatalayerCoin(coinRecord: CoinRecord): Coin {
 export function mapCoinRecordToUnspentCoin(coinRecord: CoinRecord): UnspentCoin {
   return {
     coinId: ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(coinRecord)).toString('hex'),
-    parentCoinInfo: coinRecord.parentCoinInfo,
-    puzzleHash: coinRecord.puzzleHash,
+    parentCoinInfo: Buffer.from(coinRecord.parentCoinInfo, 'hex'),
+    puzzleHash: Buffer.from(coinRecord.puzzleHash, 'hex'),
     amount: coinRecord.amount,
   };
 }
 
-export function mapUnspentCoinToDatalayerCoin(unspentCoin: {
-  parentCoinInfo: string;
-  puzzleHash: string;
-  amount: string | number | bigint;
-}): Coin {
+export function mapUnspentCoinToDatalayerCoin(unspentCoin: UnspentCoin): Coin {
   return {
-    parentCoinInfo: Buffer.from(unspentCoin.parentCoinInfo, 'hex'),
-    puzzleHash: Buffer.from(unspentCoin.puzzleHash, 'hex'),
+    parentCoinInfo: unspentCoin.parentCoinInfo,
+    puzzleHash: unspentCoin.puzzleHash,
     amount:
       typeof unspentCoin.amount === 'bigint' ? unspentCoin.amount : BigInt(unspentCoin.amount),
   };
 }
 
-export function mapCoinToPendingCoin(coin: Coin, expirey: number = 0): PendingCoin {
+export function mapCoinToPendingCoin(coin: Coin, expiresAt: number = 0): PendingCoin {
   return {
     coinId: ChiaBlockchainService.getCoinId(coin).toString('hex'),
-    expirey: new Date(expirey),
+    expiresAt: new Date(expiresAt),
   };
 }

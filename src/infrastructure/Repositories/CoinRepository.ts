@@ -89,7 +89,7 @@ export class CoinRepository implements ICoinRepository {
   async getUnspentCoins(address: string, managerParam?: EntityManager): Promise<UnspentCoin[]> {
     const manager = managerParam || (await getDataSource());
     const repo = manager.getRepository(UnspentCoin);
-    const puzzleHash = ChiaBlockchainService.getPuzzleHash(address).toString('hex');
+    const puzzleHash = ChiaBlockchainService.getPuzzleHash(address);
     return (await repo.find({ where: { puzzleHash } })).map((c) => ({ ...c }));
   }
 
@@ -102,7 +102,7 @@ export class CoinRepository implements ICoinRepository {
   async getBalance(address: string, managerParam?: EntityManager): Promise<bigint> {
     const manager = managerParam || (await getDataSource());
     const repo = manager.getRepository(UnspentCoin);
-    const puzzleHash = ChiaBlockchainService.getPuzzleHash(address).toString('hex');
+    const puzzleHash = ChiaBlockchainService.getPuzzleHash(address);
     const coins = await repo.find({ where: { puzzleHash } });
     return coins.reduce((sum, coin) => sum + BigInt(coin.amount), 0n);
   }

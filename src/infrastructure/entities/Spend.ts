@@ -1,17 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index } from "typeorm";
+import { Entity, PrimaryColumn, Column, Index } from "typeorm";
+import { getBinaryType, getCurrentDate, getDateType } from "./OrmAnnotationTypes";
 
-@Entity()
-@Index(["coinId"])
+@Entity({ name: 'spends' })
+@Index(["spentBlock"])
 export class Spend {
-  @PrimaryGeneratedColumn()
-  id?: number;
-
-  @Column({ type: 'text', name: 'coin_id' })
+  @PrimaryColumn({ type: 'varchar', length: 255, name: 'coin_id' })
   coinId!: string;
 
-  @Column({ type: 'text', name: 'puzzle_reveal' })
-  puzzleReveal!: string;
+  @Column({ type: getBinaryType(), name: 'puzzle_reveal', nullable: true })
+  puzzleReveal?: Buffer;
 
-  @Column({ type: 'text', name: 'solution' })
-  solution!: string;
+  @Column({ type: getBinaryType(), name: 'solution', nullable: true })
+  solution?: Buffer;
+
+  @Column({ type: 'bigint', name: 'spent_block', nullable: true })
+  spentBlock?: string;
+
+  @Column({ type: getDateType(), default: getCurrentDate(), nullable: true })
+  createdAt?: Date;
 }

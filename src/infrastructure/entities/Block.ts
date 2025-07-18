@@ -1,14 +1,19 @@
 import { Entity, PrimaryColumn, Column, Index } from "typeorm";
+import { getBinaryType, getCurrentDate, getDateType } from "./OrmAnnotationTypes";
 
-@Entity()
+@Entity({ name: 'blocks' })
 @Index(["headerHash"])
+@Index(["timestamp"])
 export class Block {
-  @PrimaryColumn({ type: 'integer' })
-  height!: number;
+  @PrimaryColumn({ type: 'bigint' })
+  height!: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'bigint', nullable: false })
   weight!: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  headerHash!: string;
+  @Column({ type: getBinaryType(), unique: true, nullable: false, name: 'header_hash' })
+  headerHash!: Buffer;
+
+  @Column({ type: getDateType(), default: getCurrentDate(), nullable: true })
+  timestamp?: Date;
 }

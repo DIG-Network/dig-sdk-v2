@@ -3,13 +3,13 @@ import { Block } from '../../infrastructure/entities/Block';
 import { getDataSource } from '../../infrastructure/DatabaseProvider';
 
 export interface IBlockRepository {
-  addBlock(height: number, headerHash: string, weight: string, managerParam: EntityManager): Promise<void>;
-  getBlockById(height: number, managerParam?: EntityManager): Promise<Block | null>;
+  addBlock(height: string, headerHash: Buffer, weight: string, managerParam: EntityManager): Promise<void>;
+  getBlockById(height: string, managerParam?: EntityManager): Promise<Block | null>;
   getBlocks(managerParam?: EntityManager): Promise<Block[]>;
 }
 
 export class BlockRepository implements IBlockRepository {
-  async addBlock(height: number, headerHash: string, weight: string, managerParam: EntityManager): Promise<void> {
+  async addBlock(height: string, headerHash: Buffer, weight: string, managerParam: EntityManager): Promise<void> {
     const manager = managerParam || (await getDataSource()).manager;
     const repo = manager.getRepository(Block);
     const existing = await repo.findOne({ where: { height } });
@@ -24,7 +24,7 @@ export class BlockRepository implements IBlockRepository {
     }
   }
 
-  async getBlockById(height: number, managerParam?: EntityManager): Promise<Block | null> {
+  async getBlockById(height: string, managerParam?: EntityManager): Promise<Block | null> {
     const manager = managerParam || (await getDataSource()).manager;
     const repo = manager.getRepository(Block);
     return await repo.findOne({ where: { height } });

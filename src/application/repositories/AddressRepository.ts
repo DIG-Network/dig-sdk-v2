@@ -1,20 +1,12 @@
 import { getDataSource } from '../../infrastructure/DatabaseProvider';
 import { Address } from '../../infrastructure/entities/Address';
 
-export interface AddressRow {
-  address: string;
-  namespace: string;
-  synced_to_height: number;
-  synced_to_hash: string;
-  name?: string;
-}
-
 export interface IAddressRepository {
   addAddress(address: string, name: string, namespace?: string): Promise<void>;
-  updateAddressSync(address: string, synced_to_height: number, synced_to_hash: string): Promise<void>;
+  updateAddressSync(address: string, syncedToHeight: number, syncedToHash: string): Promise<void>;
   removeAddress(address: string): Promise<void>;
   removeAddressByName(name: string): Promise<void>;
-  getAddresses(): Promise<AddressRow[]>;
+  getAddresses(): Promise<Address[]>;
 }
 
 export class AddressRepository implements IAddressRepository {
@@ -23,14 +15,14 @@ export class AddressRepository implements IAddressRepository {
     const repo = ds.getRepository(Address);
     const exists = await repo.findOne({ where: { name } });
     if (exists) throw new Error('Address with this name already exists');
-    const addr = repo.create({ address, namespace, name, synced_to_height: synchedToHeight, synced_to_hash: synchedToHash });
+    const addr = repo.create({ address, namespace, name, syncedToHeight: synchedToHeight, syncedToHash: synchedToHash });
     await repo.save(addr);
   }
 
-  async updateAddressSync(address: string, synced_to_height: number, synced_to_hash: string) {
+  async updateAddressSync(address: string, syncedToHeight: number, syncedToHash: string) {
     const ds = await getDataSource();
     const repo = ds.getRepository(Address);
-    await repo.update({ address }, { synced_to_height, synced_to_hash });
+    await repo.update({ address }, { syncedToHeight, syncedToHash });
   }
 
   async removeAddress(address: string) {
@@ -45,7 +37,7 @@ export class AddressRepository implements IAddressRepository {
     await repo.delete({ name });
   }
 
-  async getAddresses(): Promise<AddressRow[]> {
+  async getAddresses(): Promise<Address[]> {
     const ds = await getDataSource();
     const repo = ds.getRepository(Address);
     return repo.find();
