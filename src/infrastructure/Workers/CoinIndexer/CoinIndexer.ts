@@ -3,6 +3,7 @@ import {
   CoinIndexerEventNames,
   CoinIndexerEvents,
   CoinStateUpdatedEvent,
+  NewBlockIngestedEvent,
 } from './CoinIndexerEvents';
 import { BlockReceivedEvent, ChiaBlockListener } from '@dignetwork/chia-block-listener';
 import { L1ChiaPeer } from '../../Peers/L1ChiaPeer';
@@ -13,13 +14,18 @@ import { BlockRepository } from '../../../application/repositories/BlockReposito
 import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
 import { getDataSource } from '../../DatabaseProvider';
 import { EntityManager } from 'typeorm';
-import { mapCoinRecordToDatalayerCoin, mapCoinRecordToUnspentCoin, mapCoinSpendToSpend } from '../../Repositories/CoinMappers';
+import {
+  mapCoinRecordToDatalayerCoin,
+  mapCoinRecordToUnspentCoin,
+  mapCoinSpendToSpend,
+} from '../../Repositories/CoinMappers';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
 import { CoinStatus } from '../../Repositories/CoinStatus';
 import { Block } from '../../../application/entities/Block';
 
 interface ICoinIndexer {
   onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void;
+  onNewBlockIngested(listener: (event: NewBlockIngestedEvent) => void): void;
 }
 
 export class CoinIndexer
@@ -47,6 +53,14 @@ export class CoinIndexer
     this.connectedPeers = new Set();
   }
 
+  onNewBlockIngested(listener: (event: NewBlockIngestedEvent) => void): void {
+    this.on(CoinIndexerEventNames.NewBlockIngested, listener);
+  }
+
+  onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void {
+    this.on(CoinIndexerEventNames.CoinStateUpdated, listener);
+  }
+
   async start(): Promise<void> {
     if (this.started) return;
     this.started = true;
@@ -72,7 +86,9 @@ export class CoinIndexer
     const block = this.blockQueue.shift()!;
     try {
       const ds = await getDataSource();
-      const existingBlock = await ds.getRepository(Block).findOne({ where: { height: block.height.toString() } });
+      const existingBlock = await ds
+        .getRepository(Block)
+        .findOne({ where: { height: block.height.toString() } });
 
       if (existingBlock && existingBlock.weight >= block.weight) {
         this.processingBlock = false;
@@ -81,7 +97,7 @@ export class CoinIndexer
         }
         return;
       }
-      
+
       await ds.transaction(async (manager) => {
         await this.blockRepo.addBlock(
           block.height.toString(),
@@ -94,6 +110,13 @@ export class CoinIndexer
         await this.handleCoinSpends(block, manager);
         await this.updateUnspentCoinsFromBlock(block, manager);
       });
+
+      this.emit(CoinIndexerEventNames.NewBlockIngested, {
+        height: block.height.toString(),
+        weight: block.weight.toString(),
+        headerHash: Buffer.from(block.headerHash, 'hex'),
+        timestamp: new Date(block.timestamp),
+      } as NewBlockIngestedEvent);
     } catch {
     } finally {
       this.processingBlock = false;
@@ -109,10 +132,7 @@ export class CoinIndexer
   ): Promise<void> {
     if (block.coinCreations) {
       for (const coin of block.coinCreations) {
-        await this.coinRepo.addUnspentCoin(
-          mapCoinRecordToUnspentCoin(coin),
-          manager,
-        );
+        await this.coinRepo.addUnspentCoin(mapCoinRecordToUnspentCoin(coin), manager);
       }
     }
 
@@ -160,7 +180,7 @@ export class CoinIndexer
     if (!block.coinCreations) return;
     for (const coin of block.coinCreations) {
       const mappedCoin = mapCoinRecordToDatalayerCoin(coin);
-      const coinId = ChiaBlockchainService.getCoinId(mappedCoin)
+      const coinId = ChiaBlockchainService.getCoinId(mappedCoin);
       await this.coinRepo.addCoin(
         {
           coinId: coinId.toString('hex'),
@@ -208,9 +228,5 @@ export class CoinIndexer
 
   async stop(): Promise<void> {
     this.started = false;
-  }
-
-  onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void {
-    this.on(CoinIndexerEventNames.CoinStateUpdated, listener);
   }
 }
