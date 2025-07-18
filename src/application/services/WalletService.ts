@@ -4,7 +4,7 @@ import { EncryptionService } from './EncryptionService';
 import { EncryptedData } from '../types/EncryptedData';
 import { Wallet } from '../types/Wallet';
 import { AddressRepository } from '../repositories/AddressRepository';
-import { Address } from '../../infrastructure/entities/Address';
+import { Address } from '../entities/Address';
 
 const KEYRING_FILE = 'keyring.json';
 

@@ -1,5 +1,5 @@
 import { getDataSource } from '../../infrastructure/DatabaseProvider';
-import { Address } from '../../infrastructure/entities/Address';
+import { Address } from '../entities/Address';
 
 export interface IAddressRepository {
   addAddress(address: string, name: string, namespace?: string): Promise<void>;

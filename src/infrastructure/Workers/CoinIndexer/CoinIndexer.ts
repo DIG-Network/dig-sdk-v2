@@ -15,8 +15,8 @@ import { getDataSource } from '../../DatabaseProvider';
 import { EntityManager } from 'typeorm';
 import { mapCoinRecordToDatalayerCoin, mapCoinRecordToUnspentCoin, mapCoinSpendToSpend } from '../../Repositories/CoinMappers';
 import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
-import { Block } from '../../entities/Block';
 import { CoinStatus } from '../../Repositories/CoinStatus';
+import { Block } from '../../../application/entities/Block';
 
 interface ICoinIndexer {
   onCoinStateUpdated(listener: (coinState: CoinStateUpdatedEvent) => void): void;

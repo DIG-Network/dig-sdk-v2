@@ -1,11 +1,11 @@
 import { DataSource } from 'typeorm';
 import config from '../config';
-import { Address } from './entities/Address';
 import { Spend } from './entities/Spend';
-import { Block } from './entities/Block';
 import { Coin } from './entities/Coin';
 import { PendingCoin } from './entities/PendingCoin';
 import { UnspentCoin } from './entities/UnspentCoin';
+import { Block } from '../application/entities/Block';
+import { Address } from '../application/entities/Address';
 
 
 let dataSource: DataSource | null = null;

@@ -3,7 +3,7 @@ import { Wallet } from '../../../src/application/types/Wallet';
 import fs from 'fs-extra';
 import path from 'path';
 import { getDataSource } from '../../../src/infrastructure/DatabaseProvider';
-import { Address } from '../../../src/infrastructure/entities/Address';
+import { Address } from '../../../src/application/entities/Address';
 
 const ADDRESS_NAMES = ['address1', 'address2', 'address3'];
 

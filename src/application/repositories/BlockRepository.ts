@@ -1,6 +1,6 @@
 import { EntityManager } from 'typeorm';
-import { Block } from '../../infrastructure/entities/Block';
 import { getDataSource } from '../../infrastructure/DatabaseProvider';
+import { Block } from '../entities/Block';
 
 export interface IBlockRepository {
   addBlock(height: string, headerHash: Buffer, weight: string, managerParam: EntityManager): Promise<void>;
