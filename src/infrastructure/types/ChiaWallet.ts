@@ -12,10 +12,10 @@ export class ChiaWallet extends Wallet {
     if (coinIndexer) {
       this.subscribeToChiaCoinIndexerEvents(coinIndexer);
     }
+    this.chiaPuzzleHash = this.getPuzzleHash();
   }
 
   private async subscribeToChiaCoinIndexerEvents(coinIndexer: CoinIndexer) {
-    this.chiaPuzzleHash = this.getPuzzleHash();
     coinIndexer.on(CoinIndexerEventNames.CoinCreated, (coin: Coin) => {
       if (coin.puzzleHash && this.chiaPuzzleHash && coin.puzzleHash.equals(this.chiaPuzzleHash)) {
         this.emit(ChiaWalletEventNames.CoinCreated, coin);

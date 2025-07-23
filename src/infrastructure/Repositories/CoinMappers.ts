@@ -7,9 +7,7 @@ import { UnspentCoin } from '../entities/UnspentCoin';
 
 export function mapCoinSpendToSpend(coinSpend: CoinSpend): Spend {
   return {
-    coinId: ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(coinSpend.coin)).toString(
-      'hex',
-    ),
+    coinId: ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(coinSpend.coin)).toString(),
     puzzleReveal: Buffer.from(coinSpend.puzzleReveal, 'hex'),
     solution: Buffer.from(coinSpend.solution, 'hex'),
   };

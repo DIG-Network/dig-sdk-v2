@@ -42,6 +42,7 @@ export class CoinIndexer
 
   private minConnections;
   private connectedPeers: string[];
+  private ignoredPeers: Set<string> = new Set();
 
   private blockQueue: BlockReceivedEvent[] = [];
   private processingBlock = false;
@@ -171,7 +172,6 @@ export class CoinIndexer
       const spend = mapCoinSpendToSpend(coinSpend);
       await this.coinRepo.addSpend(spend, manager);
 
-      // Emit using Event<Spend>
       this.emit(CoinIndexerEventNames.SpendCreated, spend);
     }
   }
@@ -195,8 +195,10 @@ export class CoinIndexer
 
   private handlePeerDisconnected = async (peer: PeerDisconnectedEvent) => {
     this.connectedPeers = this.connectedPeers.filter((id) => id !== peer.peerId);
+    this.ignoredPeers.add(`${peer.host}:${peer.port}`);
     while (this.connectedPeers.length < this.minConnections) {
-      const peers = await L1ChiaPeer.discoverRawDataPeers();
+      let peers = await L1ChiaPeer.discoverRawDataPeers();
+      peers = peers.filter((p) => !this.ignoredPeers.has(`${p.host}:${p.port}`));
       for (const candidate of peers) {
         const candidateKey = `${candidate.host}:${candidate.port}`;
         if (!this.connectedPeers.includes(candidateKey)) {
