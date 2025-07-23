@@ -104,8 +104,6 @@ export class CoinIndexer
         return;
       }
 
-      console.log(block.timestamp);
-
       const blockFromQueue = {
         height: block.height.toString(),
         headerHash: Buffer.from(block.headerHash, 'hex'),
@@ -191,7 +189,6 @@ export class CoinIndexer
       };
       await this.coinRepo.addCoin(newCoin, manager);
 
-      // Emit using Event<Coin>
       this.emit(CoinIndexerEventNames.CoinCreated, newCoin);
     }
   }
