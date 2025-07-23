@@ -4,23 +4,24 @@ import { ChiaBalanceRepository } from '../../infrastructure/Repositories/ChiaBal
 import type { IBlockchainService } from '../../infrastructure/BlockchainServices/IBlockChainService';
 import { IBalanceRepository } from '../repositories/Interfaces/IBalanceRepository';
 import { IAssetBalance } from './AssetBalance';
+import { EventEmitter } from 'events';
 
 export interface IColdWallet {
   getBalance(assetId: string): Promise<IAssetBalance>
 
-  getPuzzleHash(): Promise<Buffer>;
+  getPuzzleHash(): Buffer;
   masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer;
   masterPublicKeyToFirstPuzzleHash(publicKey: Buffer): Buffer;
 }
 
-export class ColdWallet implements IColdWallet {
+export class ColdWallet extends EventEmitter implements IColdWallet {
   private blockchain: IBlockchainService;
   private balanceRepository: IBalanceRepository;
   private address: string;
 
   constructor(address: string) {
+    super();
     this.address = address;
-
     switch (config.BLOCKCHAIN) {
       case 'chia':
       default:
@@ -30,8 +31,8 @@ export class ColdWallet implements IColdWallet {
     }
   }
 
-  async getPuzzleHash(): Promise<Buffer> {
-    return await ChiaBlockchainService.getPuzzleHash(this.address);
+  getPuzzleHash(): Buffer {
+    return ChiaBlockchainService.getPuzzleHash(this.address);
   }
 
   public masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer {

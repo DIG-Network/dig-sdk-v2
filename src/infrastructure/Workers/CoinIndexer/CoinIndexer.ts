@@ -222,3 +222,4 @@ export class CoinIndexer
     this.started = false;
   }
 }
+export { CoinIndexerEventNames };

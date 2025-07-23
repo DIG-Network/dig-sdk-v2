@@ -6,25 +6,26 @@ import { IBalanceRepository } from '../repositories/Interfaces/IBalanceRepositor
 import config from '../../config';
 import { ChiaBalanceRepository } from '../../infrastructure/Repositories/ChiaBalanceRepository';
 import { IColdWallet } from './ColdWallet';
+import { EventEmitter } from 'events';
 
 export interface IWallet extends IColdWallet {
   getMnemonic(): string;
-  getMasterSecretKey(): Promise<Buffer>;
-  getPublicSyntheticKey(): Promise<Buffer>;
-  getPrivateSyntheticKey(): Promise<Buffer>;
+  getMasterSecretKey(): Buffer;
+  getPublicSyntheticKey(): Buffer;
+  getPrivateSyntheticKey(): Buffer;
   getOwnerPublicKey(): Promise<string>;
   createKeyOwnershipSignature(nonce: string): Promise<string>;
   spendBalance(amount: bigint, recipientAddress: string): Promise<void>;
 }
 
-export class Wallet implements IWallet {
+export class Wallet extends EventEmitter implements IWallet {
   private mnemonic: string;
   private blockchain: IBlockchainService;
   private balanceRepository: IBalanceRepository;
 
   public constructor(mnemonic: string) {
+    super();
     this.mnemonic = mnemonic;
-
     switch (config.BLOCKCHAIN) {
       case 'chia':
       default:
@@ -47,24 +48,24 @@ export class Wallet implements IWallet {
     return { assetId, balance };
   }
 
-  public async getMasterSecretKey(): Promise<Buffer> {
+  public getMasterSecretKey(): Buffer {
     const seed = mnemonicToSeedSync(this.getMnemonic());
     return this.blockchain.masterSecretKeyFromSeed(seed);
   }
 
-  public async getPublicSyntheticKey(): Promise<Buffer> {
-    const master_sk = await this.getMasterSecretKey();
+  public getPublicSyntheticKey(): Buffer {
+    const master_sk = this.getMasterSecretKey();
     const master_pk = this.blockchain.secretKeyToPublicKey(master_sk);
     return this.blockchain.masterPublicKeyToWalletSyntheticKey(master_pk);
   }
 
-  public async getPrivateSyntheticKey(): Promise<Buffer> {
-    const master_sk = await this.getMasterSecretKey();
+  public getPrivateSyntheticKey(): Buffer {
+    const master_sk = this.getMasterSecretKey();
     return this.blockchain.masterSecretKeyToWalletSyntheticSecretKey(master_sk);
   }
 
-  public async getPuzzleHash(): Promise<Buffer> {
-    const master_sk = await this.getMasterSecretKey();
+  public getPuzzleHash(): Buffer {
+    const master_sk = this.getMasterSecretKey();
     const master_pk = this.blockchain.secretKeyToPublicKey(master_sk);
     return this.blockchain.masterPublicKeyToFirstPuzzleHash(master_pk);
   }
