@@ -1,4 +1,4 @@
-import { WalletService } from '../../../src/application/services/WalletService';
+import { WalletService, WalletType } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
 import fs from 'fs-extra';
 import path from 'path';
@@ -36,39 +36,39 @@ describe('AddressService Integration', () => {
     // Create a new wallet
     const address = await WalletService.createWallet(ADDRESS_NAMES[0]);
     expect(address).toBeInstanceOf(Wallet);
-    const mnemonic = address.getMnemonic();
+    const mnemonic = (address as Wallet).getMnemonic();
     expect(typeof mnemonic).toBe('string');
     expect(mnemonic.split(' ').length).toBeGreaterThanOrEqual(12);
 
     // Load the wallet
     const loadedAddress = await WalletService.loadWallet(ADDRESS_NAMES[0]);
     expect(loadedAddress).toBeInstanceOf(Wallet);
-    expect(loadedAddress.getMnemonic()).toBe(mnemonic);
+    expect((loadedAddress as Wallet).getMnemonic()).toBe(mnemonic);
 
     // Wallet class: getMasterSecretKey returns a Buffer
-    const masterSecretKey = await loadedAddress.getMasterSecretKey();
+    const masterSecretKey = await (loadedAddress as Wallet).getMasterSecretKey();
     expect(Buffer.isBuffer(masterSecretKey)).toBe(true);
     expect(masterSecretKey.length).toBeGreaterThan(0);
 
     // Wallet class: getPublicSyntheticKey returns a Buffer
-    const publicSyntheticKey = await loadedAddress.getPublicSyntheticKey();
+    const publicSyntheticKey = await (loadedAddress as Wallet).getPublicSyntheticKey();
     expect(Buffer.isBuffer(publicSyntheticKey)).toBe(true);
 
     // Wallet class: getPrivateSyntheticKey returns a Buffer
-    const privateSyntheticKey = await loadedAddress.getPrivateSyntheticKey();
+    const privateSyntheticKey = await (loadedAddress as Wallet).getPrivateSyntheticKey();
     expect(Buffer.isBuffer(privateSyntheticKey)).toBe(true);
 
     // Wallet class: getPuzzleHash returns a Buffer
-    const ownerPuzzleHash = await loadedAddress.getPuzzleHash();
+    const ownerPuzzleHash = await (loadedAddress as Wallet).getPuzzleHash();
     expect(Buffer.isBuffer(ownerPuzzleHash)).toBe(true);
 
     // Wallet class: getOwnerPublicKey returns a string
-    const ownerPublicKey = await loadedAddress.getOwnerPublicKey();
+    const ownerPublicKey = await (loadedAddress as Wallet).getOwnerPublicKey();
     expect(typeof ownerPublicKey).toBe('string');
     expect(ownerPublicKey.length).toBeGreaterThan(0);
 
     // Wallet class: createKeyOwnershipSignature returns a string
-    const signature = await loadedAddress.createKeyOwnershipSignature('nonce123');
+    const signature = await (loadedAddress as Wallet).createKeyOwnershipSignature('nonce123');
     expect(typeof signature).toBe('string');
     expect(signature.length).toBeGreaterThan(0);
 
@@ -86,8 +86,8 @@ describe('AddressService Integration', () => {
   it('should list addresses after multiple creates and deletes', async () => {
     const createdAddresses: string[] = [];
     for (const name of ADDRESS_NAMES) {
-      const address = await WalletService.createWallet(name);
-      createdAddresses.push(await address.getOwnerPublicKey());
+    const address = await WalletService.createWallet(name, 'xch_' + name);
+      createdAddresses.push(await (address as Wallet).getOwnerPublicKey());
     }
     let addresses = await WalletService.getWallets();
     let addressList = addresses.map((a: any) => a.address);
@@ -121,7 +121,7 @@ describe('AddressService Integration', () => {
   });
 
   it('should throw if a wallet with the same name already exists in the keyring', async () => {
-    await WalletService.createWallet('duplicate');
+    await WalletService.createWallet('duplicate', 'xch_duplicate');
     await expect(WalletService.createWallet('duplicate')).rejects.toThrow('Address with the same name already exists.');
   });
 
@@ -147,12 +147,12 @@ describe('AddressService Integration', () => {
     const mnemonic = 'test test test test test test test test test test test about';
     await WalletService.createWallet('mnemonicTest', mnemonic);
     const loaded = await WalletService.loadWallet('mnemonicTest');
-    expect(loaded.getMnemonic()).toBe(mnemonic);
+    expect((loaded as Wallet).getMnemonic()).toBe(mnemonic);
   });
 
   it('should return empty array after deleting all addresses', async () => {
-    await WalletService.createWallet('del1');
-    await WalletService.createWallet('del2');
+    await WalletService.createWallet('del1', 'xch_del1');
+    await WalletService.createWallet('del2', 'xch_del2');
     await WalletService.deleteWallet('del1');
     await WalletService.deleteWallet('del2');
     // Wait for deletions to propagate

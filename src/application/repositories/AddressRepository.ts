@@ -2,7 +2,7 @@ import { getDataSource } from '../../infrastructure/DatabaseProvider';
 import { Address } from '../entities/Address';
 
 export interface IAddressRepository {
-  addAddress(address: string, name: string, namespace?: string): Promise<void>;
+  addAddress(address: string, name: string, namespace?: string, type?: string): Promise<void>;
   updateAddressSync(address: string, syncedToHeight: number, syncedToHash: string): Promise<void>;
   removeAddress(address: string): Promise<void>;
   removeAddressByName(name: string): Promise<void>;
@@ -10,12 +10,12 @@ export interface IAddressRepository {
 }
 
 export class AddressRepository implements IAddressRepository {
-  async addAddress(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
+  async addAddress(address: string, name: string, namespace: string = 'default', type: string = 'wallet', synchedToHeight: number = 0, synchedToHash: string = '') {
     const ds = await getDataSource();
     const repo = ds.getRepository(Address);
     const exists = await repo.findOne({ where: { name } });
     if (exists) throw new Error('Address with this name already exists');
-    const addr = repo.create({ address, namespace, name, syncedToHeight: synchedToHeight, syncedToHash: synchedToHash });
+    const addr = repo.create({ address, namespace, name, type, syncedToHeight: synchedToHeight, syncedToHash: synchedToHash });
     await repo.save(addr);
   }
 

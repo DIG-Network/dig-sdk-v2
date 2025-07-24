@@ -16,4 +16,7 @@ export class Address {
 
   @Column({ type: 'text', name: 'name', unique: true })
   name!: string;
+
+  @Column({ type: 'text', name: 'type', default: 'wallet' })
+  type!: string;
 }

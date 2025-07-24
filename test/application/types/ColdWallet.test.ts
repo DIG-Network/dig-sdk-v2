@@ -17,9 +17,9 @@ describe('ColdWallet', () => {
     jest.spyOn(ChiaBlockchainService, 'getPuzzleHash').mockImplementation((...args: any[]) => {
       const address = args[0];
       if (address === 'invalidaddress') {
-        return Promise.reject(new Error('Invalid address'));
+        throw new Error('Invalid address');
       }
-      return Promise.resolve(TEST_puzzleHash);
+      return TEST_puzzleHash;
     });
     mockPeer = {
       getAllUnspentCoins: jest.fn().mockResolvedValue({ coins: [1, 2, 3], lastHeight: 1, lastHeaderHash: Buffer.alloc(32) }),
@@ -51,6 +51,6 @@ describe('ColdWallet', () => {
 
   it('should throw if getPuzzleHash is called with invalid address', async () => {
     const wallet = new ColdWallet('invalidaddress');
-    await expect(wallet.getPuzzleHash()).rejects.toThrow();
+    expect(() => wallet.getPuzzleHash()).toThrow('Invalid address');
   });
 });
