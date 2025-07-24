@@ -9,8 +9,8 @@ export interface IBlockRepository {
 }
 
 export class BlockRepository implements IBlockRepository {
-  async addBlock(block: Block, managerParam: EntityManager): Promise<Block> {
-    const manager = managerParam || (await getDataSource()).manager;
+  async addBlock(block: Block): Promise<Block> {
+    const manager = (await getDataSource()).manager;
     const repo = manager.getRepository(Block);
 
     try {

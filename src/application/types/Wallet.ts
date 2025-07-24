@@ -1,10 +1,7 @@
 import { mnemonicToSeedSync } from 'bip39';
 import type { IBlockchainService } from '../../infrastructure/BlockchainServices/IBlockChainService';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
-import { IAssetBalance } from './AssetBalance';
-import { IBalanceRepository } from '../repositories/Interfaces/IBalanceRepository';
 import config from '../../config';
-import { ChiaBalanceRepository } from '../../infrastructure/Repositories/ChiaBalanceRepository';
 import { IColdWallet } from './ColdWallet';
 import { EventEmitter } from 'events';
 
@@ -15,13 +12,11 @@ export interface IWallet extends IColdWallet {
   getPrivateSyntheticKey(): Buffer;
   getOwnerPublicKey(): Promise<string>;
   createKeyOwnershipSignature(nonce: string): Promise<string>;
-  spendBalance(amount: bigint, recipientAddress: string): Promise<void>;
 }
 
 export class Wallet extends EventEmitter implements IWallet {
   private mnemonic: string;
   private blockchain: IBlockchainService;
-  private balanceRepository: IBalanceRepository;
 
   public constructor(mnemonic: string) {
     super();
@@ -30,7 +25,6 @@ export class Wallet extends EventEmitter implements IWallet {
       case 'chia':
       default:
         this.blockchain = new ChiaBlockchainService();
-        this.balanceRepository = new ChiaBalanceRepository();
         break;
     }
   }
@@ -40,12 +34,6 @@ export class Wallet extends EventEmitter implements IWallet {
       throw new Error('Mnemonic seed phrase is not loaded.');
     }
     return this.mnemonic;
-  }
-
-  public async getBalance(assetId: string): Promise<IAssetBalance> {
-    let address = await this.getOwnerPublicKey();
-    const balance = await this.balanceRepository.getBalance(address);
-    return { assetId, balance };
   }
 
   public getMasterSecretKey(): Buffer {
@@ -84,10 +72,6 @@ export class Wallet extends EventEmitter implements IWallet {
       privateSyntheticKey,
     );
     return signature.toString('hex');
-  }
-
-  public async spendBalance(amount: bigint, recipientAddress: string): Promise<void> {
-    await this.blockchain.spendBalance(this, amount, recipientAddress);
   }
 
   public masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer {

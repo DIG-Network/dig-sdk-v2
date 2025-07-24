@@ -49,14 +49,6 @@ describe('ColdWallet', () => {
     expect(result).toEqual(expected);
   });
 
-  it('getBalance should delegate to balanceRepository and return expected balance', async () => {
-    const assetId = 'xch';
-    const expectedBalance = 42n;
-    jest.spyOn(wallet["balanceRepository"], 'getBalance').mockReturnValue(Promise.resolve(expectedBalance));
-    const result = await wallet.getBalance(assetId);
-    expect(result).toEqual({ assetId, balance: expectedBalance });
-  });
-
   it('should throw if getPuzzleHash is called with invalid address', async () => {
     const wallet = new ColdWallet('invalidaddress');
     await expect(wallet.getPuzzleHash()).rejects.toThrow();

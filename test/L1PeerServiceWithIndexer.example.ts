@@ -6,6 +6,7 @@ import { WalletService } from '../src/application/services/WalletService';
 import config from '../src/config';
 import { BlockchainNetwork } from '../src/config/types/BlockchainNetwork';
 import { Wallet } from '../src/application/types/Wallet';
+import { CoinRecord, CoinSpend } from '@dignetwork/chia-block-listener';
 
 async function main() {
   const testnetWalletAddressName = 'dev'; // Replace with your actual address
@@ -31,28 +32,28 @@ async function main() {
   const chiaWallet = new ChiaWallet(testnetMnemonic, coinIndexer);
 
   // Subscribe to ChiaWallet events
-  chiaWallet.on(ChiaWalletEventNames.CoinCreated, (coin) => {
-    console.log(`[ChiaWallet] Coin created: ID ${coin.coinId}, Amount ${coin.amount}`);
+  chiaWallet.on(ChiaWalletEventNames.CoinCreated, (coin: CoinRecord) => {
+    console.log(`[ChiaWallet] Coin created: hash ${coin.puzzleHash}, Amount ${coin.amount}`);
   });
-  chiaWallet.on(ChiaWalletEventNames.SpendCreated, (spend) => {
-    console.log(`[ChiaWallet] Coin spent: ID ${spend.coinId}, PuzzleReveal ${spend.puzzleReveal}`);
+  chiaWallet.on(ChiaWalletEventNames.SpendCreated, (spend: CoinSpend) => {
+    console.log(`[ChiaWallet] Coin spent: hash ${spend.coin.puzzleHash}, Amount ${spend.coin.amount}`);
   });
 
   // Subscribe to ChiaColdWallet events
-  coldWallet.on(ChiaColdWalletEventNames.CoinCreated, (coin) => {
-    console.log(`[ChiaColdWallet] Coin created: ID ${coin.coinId}, Amount ${coin.amount}`);
+  coldWallet.on(ChiaColdWalletEventNames.CoinCreated, (coin: CoinRecord) => {
+    console.log(`[ChiaColdWallet] Coin created: hash ${coin.puzzleHash}, Amount ${coin.amount}`);
   });
-  coldWallet.on(ChiaColdWalletEventNames.SpendCreated, (spend) => {
-    console.log(`[ChiaColdWallet] Coin spent: ID ${spend.coinId}, PuzzleReveal ${spend.puzzleReveal}`);
+  coldWallet.on(ChiaColdWalletEventNames.SpendCreated, (spend: CoinSpend) => {
+    console.log(`[ChiaColdWallet] Coin spent: hash ${spend.coin.puzzleHash}, Amount ${spend.coin.amount}`);
   });
 
   // Still log CoinIndexer events for reference
-  // coinIndexer.onCoinCreated((event) => {
-  //   console.log(`[CoinIndexer] Coin created: ID ${event.coinId}, Amount ${event.amount}`);
-  // });
-  // coinIndexer.onSpendCreated((event) => {
-  //   console.log(`[CoinIndexer] Coin spent: ID ${event.coinId}, Amount ${event.puzzleReveal}`);
-  // });
+  coinIndexer.onCoinCreated((coin: CoinRecord) => {
+    console.log(`[CoinIndexer] Coin created: hash ${coin.puzzleHash}, Amount ${coin.amount}`);
+  });
+  coinIndexer.onSpendCreated((event: CoinSpend) => {
+    console.log(`[CoinIndexer] Coin spent: hash ${event.coin.puzzleHash}, Amount ${event.coin.amount}`);
+  });
   coinIndexer.onNewBlockIngested((event) => {
     console.log(`[CoinIndexer] New block ingested: Height ${event.height}, Weight ${event.weight}, HeaderHash ${event.headerHash.toString('hex')}`);
     if (event.timestamp) {

@@ -9,18 +9,12 @@ import {
   getCoinId,
   selectCoins,
   addressToPuzzleHash,
-  sendXch,
-  signCoinSpends,
 } from '@dignetwork/datalayer-driver';
 import { Coin, Peer, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
 import { PrivateKey } from 'chia-bls';
 import { IL1ChiaPeer, L1ChiaPeer } from '../Peers/L1ChiaPeer';
 import config from '../../config';
-import { CoinRepository } from '../../infrastructure/Repositories/CoinRepository';
-import { Wallet } from '../../application/types/Wallet';
-import { L1PeerService } from '../Peers/L1PeerService';
 import { BlockchainNetwork } from '../../config/types/BlockchainNetwork';
-import { mapCoinToPendingCoin, mapUnspentCoinToDatalayerCoin } from '../Repositories/CoinMappers';
 
 export class ChiaBlockchainService implements IBlockchainService {
   masterSecretKeyFromSeed(seed: Buffer): Buffer {
@@ -89,39 +83,6 @@ export class ChiaBlockchainService implements IBlockchainService {
     const peer = await Peer.connectRandom(peerType, tls);
     if (!peer) throw new Error('Failed to connect to peer');
     return new L1ChiaPeer(peer);
-  }
-
-  async spendBalance(wallet: Wallet, amount: bigint, recipientAddress: string): Promise<void> {
-    // Fetch unspent coins from repository
-    const publicSyntheticKey = await wallet.getPublicSyntheticKey();
-    const addressId = await wallet.getOwnerPublicKey();
-    const coinRepo = new CoinRepository();
-    const unspentCoins = (await coinRepo.getUnspentCoins(addressId));
-
-    const selectedCoins = selectCoins(unspentCoins.map(mapUnspentCoinToDatalayerCoin), amount);
-
-    // Update status of selected coins to pending
-    for (const coin of selectedCoins) {
-      await coinRepo.addPendingCoin(mapCoinToPendingCoin(coin));
-    }
-
-    let fee = await this.calculateFeeForCoinSpends();
-
-    const recipientOutput = {
-      puzzleHash: addressToPuzzleHash(recipientAddress),
-      amount,
-      memos: [],
-    };
-
-    const coinSpends = await sendXch(publicSyntheticKey, selectedCoins, [recipientOutput], fee);
-
-    const privateSyntheticKey = await wallet.getPrivateSyntheticKey();
-    const signature = signCoinSpends(coinSpends, [privateSyntheticKey], config.BLOCKCHAIN_NETWORK === 'testnet');
-
-    await L1PeerService.withPeer(async (peer: IL1ChiaPeer) => {
-      const err = await peer.broadcastSpend(coinSpends, [signature]);
-      if (err) throw new Error(`Broadcast failed: ${err}`);
-    });
   }
 
   public async calculateFeeForCoinSpends(): Promise<bigint> {

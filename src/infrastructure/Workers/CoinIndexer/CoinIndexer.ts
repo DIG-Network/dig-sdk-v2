@@ -1,32 +1,24 @@
 import { EventEmitter } from 'events';
 import { CoinIndexerEventNames, CoinIndexerEvents } from './CoinIndexerEvents';
-import { Coin } from '../../entities/Coin';
-import { Spend } from '../../entities/Spend';
 import { Block } from '../../../application/entities/Block';
 import {
   BlockReceivedEvent,
   ChiaBlockListener,
+  CoinRecord,
+  CoinSpend,
   PeerConnectedEvent,
   PeerDisconnectedEvent,
 } from '@dignetwork/chia-block-listener';
 import { L1ChiaPeer } from '../../Peers/L1ChiaPeer';
 import config from '../../../config';
-import { CoinRepository } from '../../Repositories/CoinRepository';
 
-import { BlockRepository } from '../../../application/repositories/BlockRepository';
 import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
 import { getDataSource } from '../../DatabaseProvider';
-import { EntityManager } from 'typeorm';
-import {
-  mapCoinRecordToDatalayerCoin,
-  mapCoinRecordToUnspentCoin,
-  mapCoinSpendToSpend,
-} from '../../Repositories/CoinMappers';
-import { ChiaBlockchainService } from '../../BlockchainServices/ChiaBlockchainService';
+import { BlockRepository } from '../../../application/repositories/BlockRepository';
 
 interface ICoinIndexer {
-  onCoinCreated(listener: (event: Coin) => void): void;
-  onSpendCreated(listener: (event: Spend) => void): void;
+  onCoinCreated(listener: (event: CoinRecord) => void): void;
+  onSpendCreated(listener: (event: CoinSpend) => void): void;
   onNewBlockIngested(listener: (event: Block) => void): void;
 }
 
@@ -37,12 +29,11 @@ export class CoinIndexer
   private started = false;
   private listener: ChiaBlockListener;
 
-  private coinRepo: CoinRepository;
-  private blockRepo: BlockRepository;
-
   private minConnections;
   private connectedPeers: string[];
   private ignoredPeers: Set<string> = new Set();
+
+  private blockRepo: BlockRepository;
 
   private blockQueue: BlockReceivedEvent[] = [];
   private processingBlock = false;
@@ -51,16 +42,15 @@ export class CoinIndexer
     super();
     this.minConnections = minConnections;
     this.listener = new ChiaBlockListener();
-    this.coinRepo = new CoinRepository();
     this.blockRepo = new BlockRepository();
     this.connectedPeers = [];
   }
 
-  onCoinCreated(listener: (event: Coin) => void): void {
+  onCoinCreated(listener: (event: CoinRecord) => void): void {
     this.on(CoinIndexerEventNames.CoinCreated, listener);
   }
 
-  onSpendCreated(listener: (event: Spend) => void): void {
+  onSpendCreated(listener: (event: CoinSpend) => void): void {
     this.on(CoinIndexerEventNames.SpendCreated, listener);
   }
 
@@ -111,14 +101,11 @@ export class CoinIndexer
         weight: block.weight.toString(),
         timestamp: new Date(block.timestamp),
       };
+      
+      await this.blockRepo.addBlock(blockFromQueue);
 
-      await ds.transaction(async (manager) => {
-        await this.blockRepo.addBlock(blockFromQueue, manager);
-
-        await this.handleCoinCreations(block, manager);
-        await this.handleCoinSpends(block, manager);
-        await this.updateUnspentCoinsFromBlock(block, manager);
-      });
+      await this.handleCoinCreations(block);
+      await this.handleCoinSpends(block);
 
       this.emit(CoinIndexerEventNames.NewBlockIngested, blockFromQueue);
     } catch {
@@ -126,24 +113,6 @@ export class CoinIndexer
       this.processingBlock = false;
       if (this.blockQueue.length > 0) {
         this.processNextBlock();
-      }
-    }
-  }
-
-  async updateUnspentCoinsFromBlock(
-    block: BlockReceivedEvent,
-    manager: EntityManager,
-  ): Promise<void> {
-    if (block.coinCreations) {
-      for (const coin of block.coinCreations) {
-        await this.coinRepo.addUnspentCoin(mapCoinRecordToUnspentCoin(coin), manager);
-      }
-    }
-
-    if (block.coinSpends) {
-      for (const spend of block.coinSpends) {
-        const coinId = ChiaBlockchainService.getCoinId(mapCoinRecordToDatalayerCoin(spend.coin));
-        await this.coinRepo.deleteUnspentCoin(coinId.toString('hex'), manager);
       }
     }
   }
@@ -166,30 +135,17 @@ export class CoinIndexer
     }
   }
 
-  private async handleCoinSpends(block: BlockReceivedEvent, manager: EntityManager) {
+  private async handleCoinSpends(block: BlockReceivedEvent) {
     if (!block.coinSpends) return;
     for (const coinSpend of block.coinSpends) {
-      const spend = mapCoinSpendToSpend(coinSpend);
-      await this.coinRepo.addSpend(spend, manager);
-
-      this.emit(CoinIndexerEventNames.SpendCreated, spend);
+      this.emit(CoinIndexerEventNames.SpendCreated, coinSpend);
     }
   }
 
-  private async handleCoinCreations(block: BlockReceivedEvent, manager: EntityManager) {
+  private async handleCoinCreations(block: BlockReceivedEvent) {
     if (!block.coinCreations) return;
     for (const coin of block.coinCreations) {
-      const mappedCoin = mapCoinRecordToDatalayerCoin(coin);
-      const coinId = ChiaBlockchainService.getCoinId(mappedCoin);
-      const newCoin = {
-        coinId: coinId.toString('hex'),
-        parentCoinInfo: mappedCoin.parentCoinInfo,
-        puzzleHash: mappedCoin.puzzleHash,
-        amount: mappedCoin.amount.toString(),
-      };
-      await this.coinRepo.addCoin(newCoin, manager);
-
-      this.emit(CoinIndexerEventNames.CoinCreated, newCoin);
+      this.emit(CoinIndexerEventNames.CoinCreated, coin);
     }
   }
 
