@@ -1,5 +1,5 @@
 import { ChiaWallet } from '../../../src/infrastructure/types/ChiaWallet';
-import { CoinIndexer } from '../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
+import { CoinIndexer, CoinIndexerEventNames } from '../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
 import { CoinRecord, CoinSpend } from '@dignetwork/chia-block-listener';
 import { ChiaWalletEventNames } from '../../../src/infrastructure/types/ChiaWalletEvents';
 
@@ -27,7 +27,7 @@ describe('ChiaWallet', () => {
       expect(c).toEqual(coin);
       done();
     });
-    coinIndexer.emit(require('../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer').CoinIndexerEventNames.CoinCreated, coin);
+    coinIndexer.emit(CoinIndexerEventNames.CoinCreated, coin);
   });
 
   it('should emit SpendCreated when matching puzzleHash', (done) => {
@@ -45,6 +45,6 @@ describe('ChiaWallet', () => {
       expect(s).toEqual(spend);
       done();
     });
-    coinIndexer.emit(require('../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer').CoinIndexerEventNames.SpendCreated, spend);
+    coinIndexer.emit(CoinIndexerEventNames.SpendCreated, spend);
   });
 });

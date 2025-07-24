@@ -1,6 +1,7 @@
 import { ColdWallet } from '../../../src/application/types/ColdWallet';
 import config from '../../../src/config';
 import { BlockchainNetwork } from '../../../src/config/types/BlockchainNetwork';
+import { ChiaBlockchainService } from '../../../src/infrastructure/BlockchainServices/ChiaBlockchainService';
 
 const TEST_ADDRESS = 'xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8249j';
 const TEST_puzzleHash = Buffer.from('aabbcc', 'hex');
@@ -13,7 +14,6 @@ describe('ColdWallet', () => {
     config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
     wallet = new ColdWallet(TEST_ADDRESS);
     // Mock the static getPuzzleHash method to avoid real address decoding
-    const { ChiaBlockchainService } = require('../../../src/infrastructure/BlockchainServices/ChiaBlockchainService');
     jest.spyOn(ChiaBlockchainService, 'getPuzzleHash').mockImplementation((...args: any[]) => {
       const address = args[0];
       if (address === 'invalidaddress') {
