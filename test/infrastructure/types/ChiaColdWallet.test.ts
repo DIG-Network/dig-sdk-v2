@@ -1,3 +1,37 @@
+import { ColdWallet } from '../../../src/application/types/ColdWallet';
+import { WalletService } from '../../../src/application/services/WalletService';
+
+describe('ChiaColdWallet constructor overloads', () => {
+  let address: string;
+  beforeAll(async () => {
+    const wallet = await WalletService.createWallet('test_chiacoldwallet_overload');
+    address = await wallet.getOwnerPublicKey();
+  });
+
+  it('can be constructed from address', () => {
+    const chiaCold = new ChiaColdWallet(address);
+    expect(chiaCold.getAddress()).toBe(address);
+  });
+
+  it('can be constructed from ColdWallet', () => {
+    const base = new ColdWallet(address);
+    const chiaCold = new ChiaColdWallet(base);
+    expect(chiaCold.getAddress()).toBe(address);
+  });
+
+  it('can be constructed from address and CoinIndexer', () => {
+    const coinIndexer = new CoinIndexer();
+    const chiaCold = new ChiaColdWallet(address, coinIndexer);
+    expect(chiaCold.getAddress()).toBe(address);
+  });
+
+  it('can be constructed from ColdWallet and CoinIndexer', () => {
+    const base = new ColdWallet(address);
+    const coinIndexer = new CoinIndexer();
+    const chiaCold = new ChiaColdWallet(base, coinIndexer);
+    expect(chiaCold.getAddress()).toBe(address);
+  });
+});
 
 
 import { ChiaColdWallet } from '../../../src/infrastructure/types/ChiaColdWallet';

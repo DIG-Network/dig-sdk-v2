@@ -6,8 +6,16 @@ import { ChiaColdWalletEventNames } from './ChiaWalletEvents';
 export class ChiaColdWallet extends ColdWallet {
   private chiaPuzzleHash?: Buffer;
 
-  public constructor(address: string, coinIndexer?: CoinIndexer) {
-    super(address);
+  /**
+   * Construct from address (legacy) or from ColdWallet instance (preferred).
+   */
+  public constructor(addressOrWallet: string | ColdWallet, coinIndexer?: CoinIndexer);
+  public constructor(addressOrWallet: string | ColdWallet, coinIndexer?: CoinIndexer) {
+    if (typeof addressOrWallet === 'string') {
+      super(addressOrWallet);
+    } else {
+      super(addressOrWallet.getAddress());
+    }
     if (coinIndexer) {
       this.subscribeToChiaCoinIndexerEvents(coinIndexer);
     }

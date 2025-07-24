@@ -24,6 +24,10 @@ export class ColdWallet extends EventEmitter implements IColdWallet {
     }
   }
 
+  public getAddress(): string {
+    return this.address;
+  }
+
   getPuzzleHash(): Buffer {
     return ChiaBlockchainService.getPuzzleHash(this.address);
   }

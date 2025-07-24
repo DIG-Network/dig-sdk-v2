@@ -3,11 +3,19 @@ import { Wallet } from '../../application/types/Wallet';
 import { CoinIndexer, CoinIndexerEventNames } from '../Workers/CoinIndexer/CoinIndexer';
 import { ChiaWalletEventNames } from './ChiaWalletEvents';
 
+
 export class ChiaWallet extends Wallet {
   private chiaPuzzleHash?: Buffer;
 
-  public constructor(mnemonic: string, coinIndexer?: CoinIndexer) {
-    super(mnemonic);
+  /**
+   * Construct from mnemonic (legacy) or from Wallet instance (preferred).
+   */
+  public constructor(mnemonicOrWallet: string | Wallet, coinIndexer?: CoinIndexer) {
+    if (typeof mnemonicOrWallet === 'string') {
+      super(mnemonicOrWallet);
+    } else {
+      super(mnemonicOrWallet.getMnemonic());
+    }
     if (coinIndexer) {
       this.subscribeToChiaCoinIndexerEvents(coinIndexer);
     }

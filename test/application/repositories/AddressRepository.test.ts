@@ -3,9 +3,14 @@ import { AddressRepository, IAddressRepository } from "../../../src/application/
 describe('addressRepository', () => {
   let addressRepo: IAddressRepository;
 
-  beforeEach(() => {
-    addressRepo = new AddressRepository();
-  });
+beforeEach(async () => {
+  addressRepo = new AddressRepository();
+  // Clean up all addresses before each test
+  const addresses = await addressRepo.getAddresses();
+  for (const w of addresses) {
+    await addressRepo.removeAddress(w.address);
+  }
+});
 
   afterEach(async () => {
     // Clean up all addresses after each test
