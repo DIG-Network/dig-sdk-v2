@@ -1,59 +1,91 @@
-import { PeerType, Tls } from '@dignetwork/datalayer-driver';
 import { CoinIndexer } from '../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
-import { BlockChainType } from '../src/application/types/BlockChain';
-import config from '../src/config';
-import { Wallet } from '../src/application/types/Wallet';
+import { ChiaWallet } from '../src/infrastructure/types/ChiaWallet';
+import { ChiaColdWallet } from '../src/infrastructure/types/ChiaColdWallet';
+import { ChiaWalletEventNames, ChiaColdWalletEventNames } from '../src/infrastructure/types/ChiaWalletEvents';
 import { WalletService } from '../src/application/services/WalletService';
-import { L1PeerService } from '../src/infrastructure/Peers/L1PeerService';
+import config from '../src/config';
+import { BlockchainNetwork } from '../src/config/types/BlockchainNetwork';
+import { Wallet } from '../src/application/types/Wallet';
+import { ColdWallet } from '../src/application/types/ColdWallet';
+import { CoinRecord, CoinSpend } from '@dignetwork/chia-block-listener';
 
 async function main() {
-  const testnetWalletAddress = 'dev';
-  const testnetMnemonic =
-    ''; // Replace with your actual mnemonic
-  // You must have ca.crt and ca.key in your working directory or adjust the path
-  config.BLOCKCHAIN_NETWORK = 'testnet';
-  try {
-    const coinIndexer = new CoinIndexer();
+  const testnetWalletAddressName = 'dev'; // Replace with your actual address name
+  const testnetMnemonic = ''; // Replace with your actual mnemonic
+  const testnetWalletAddress = 'txch1fw0lql9h6n9e23yzq8ewg0hnjw2gcftayzrnj6rxlx0q6w7x6klsfy5z5f'; // Replace with your actual address
 
-    await coinIndexer.start(BlockChainType.Chia, 24, 'ca.crt', 'ca.key', PeerType.Testnet11);
+  config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
 
-    const addresses = await WalletService.getWallets();
+  const coinIndexer = new CoinIndexer();
+  coinIndexer.start();
 
-    let wallet: Wallet;
-    if (!addresses.map((address) => address.name).includes(testnetWalletAddress)) {
-      wallet = await WalletService.createWallet(testnetWalletAddress, testnetMnemonic);
-      console.log(`Address ${testnetWalletAddress} added to DB and keyring.`);
-    } else {
-      wallet = await WalletService.loadWallet(testnetWalletAddress);
-      console.log(`Address ${testnetWalletAddress} loading existing.`);
+  // Use WalletService to create or load a hot wallet
+  let wallet: Wallet | undefined;
+  let coldWallet: ColdWallet | undefined;
+  const addresses = await WalletService.getWallets();
+
+  // Hot wallet
+  if (!addresses.map((address) => address.name).includes(testnetWalletAddressName)) {
+    const created = await WalletService.createWallet(testnetWalletAddressName, testnetMnemonic);
+    if ('mnemonic' in created) {
+      wallet = created;
+      console.log(`Address ${testnetWalletAddressName} added to DB and keyring.`);
     }
-
-    const tls = new Tls('ca.crt', 'ca.key');
-    await L1PeerService.connect(5, 10, PeerType.Testnet11, tls);
-
-    // Send 0.01 xch every 1 minute to a recipient
-    const recipientAddress = 'txch1qcf59ph8tsxaa58r2zfwhcse7f52etwcct33xwn9s6aa7v8ulj6qhque3x'; // Set this variable as needed
-
-    try {
-      await wallet.spendBalance(BigInt(1500000000000), recipientAddress); // 0.01 xch = 10,000,000 mojos
-      console.log(`Sent 1.5 xch to ${recipientAddress}`);
-    } catch (e) {
-      console.error('Send failed:', e);
+  } else {
+    const loaded = await WalletService.loadWallet(testnetWalletAddressName);
+    if (loaded && 'mnemonic' in loaded) {
+      wallet = loaded;
+      console.log(`Address ${testnetWalletAddressName} loading existing.`);
     }
-
-    // do a while ininitely that waits for one second each time
-    while (true) {
-      console.log('-------------------------------------------------');
-      let balance = await wallet.getBalance('xch');
-      console.log(
-        `Balance for address ${testnetWalletAddress}: ${balance.balance} ${balance.assetId}`,
-      );
-      console.log('-------------------------------------------------');
-      await new Promise((resolve) => setTimeout(resolve, 60000)); // 1 minute
-    }
-  } catch (e) {
-    console.error('Error during execution:', e);
   }
+
+  // Cold wallet
+  const coldWalletName = 'dev-cold'; // Replace with your cold wallet name
+  if (!addresses.map((address) => address.name).includes(coldWalletName)) {
+    const created = await WalletService.createColdWallet(coldWalletName, testnetWalletAddress);
+    if ('address' in created) {
+      coldWallet = created;
+      console.log(`Cold wallet ${coldWalletName} added to DB.`);
+    }
+  } else {
+    const loaded = await WalletService.loadWallet(coldWalletName);
+    if (loaded && 'address' in loaded) {
+      coldWallet = loaded;
+      console.log(`Cold wallet ${coldWalletName} loading existing.`);
+    }
+  }
+
+  // Instantiate ChiaWallet and ChiaColdWallet using the loaded wallet entities and CoinIndexer
+  const chiaWallet = wallet ? new ChiaWallet(wallet, coinIndexer) : undefined;
+  const chiaColdWallet = coldWallet ? new ChiaColdWallet(coldWallet, coinIndexer) : undefined;
+
+
+  // Subscribe to ChiaWallet events
+  if (chiaWallet) {
+    chiaWallet.on(ChiaWalletEventNames.CoinCreated, (coin: CoinRecord) => {
+      console.log(`[ChiaWallet] Coin created: hash ${coin.puzzleHash}, Amount ${coin.amount}`);
+    });
+    chiaWallet.on(ChiaWalletEventNames.SpendCreated, (spend: CoinSpend) => {
+      console.log(`[ChiaWallet] Coin spent: hash ${spend.coin.puzzleHash}, Amount ${spend.coin.amount}`);
+    });
+  }
+
+  // Subscribe to ChiaColdWallet events
+  if (chiaColdWallet) {
+    chiaColdWallet.on(ChiaColdWalletEventNames.CoinCreated, (coin: CoinRecord) => {
+      console.log(`[ChiaColdWallet] Coin created: hash ${coin.puzzleHash}, Amount ${coin.amount}`);
+    });
+    chiaColdWallet.on(ChiaColdWalletEventNames.SpendCreated, (spend: CoinSpend) => {
+      console.log(`[ChiaColdWallet] Coin spent: hash ${spend.coin.puzzleHash}, Amount ${spend.coin.amount}`);
+    });
+  }
+
+  coinIndexer.onNewBlockIngested((event) => {
+    console.log(`[CoinIndexer] New block ingested: Height ${event.height}, Weight ${event.weight}, HeaderHash ${event.headerHash.toString('hex')}`);
+    if (event.timestamp) {
+      console.log(`[CoinIndexer] Timestamp: ${event.timestamp}`);
+    }
+  });
 }
 
 main();

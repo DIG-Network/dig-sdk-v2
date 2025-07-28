@@ -1,17 +1,37 @@
-import { AddressRepository, IAddressRepository } from "../../../src/application/repositories/AddressRepository";
+
+import { AddressRepository, IAddressRepository } from '../../../src/application/repositories/AddressRepository';
+import { DataSource } from 'typeorm';
+import { Address } from '../../../src/application/entities/Address';
+import * as DatabaseProvider from '../../../src/infrastructure/DatabaseProvider';
+import betterSqlite3 from 'better-sqlite3';
 
 describe('addressRepository', () => {
   let addressRepo: IAddressRepository;
+  let dataSource: DataSource;
+  let getDataSourceSpy: jest.SpyInstance;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Create a new in-memory TypeORM DataSource using better-sqlite3
+    dataSource = new DataSource({
+      type: 'better-sqlite3',
+      database: ':memory:',
+      entities: [Address],
+      synchronize: true,
+      // Use a unique name for each connection to avoid collisions
+      name: `test-${Math.random()}`,
+      // Use the already installed better-sqlite3 driver
+      driver: betterSqlite3,
+    } as any);
+    await dataSource.initialize();
+    // Mock getDataSource to always return this in-memory DataSource
+    getDataSourceSpy = jest.spyOn(DatabaseProvider, 'getDataSource').mockResolvedValue(dataSource);
     addressRepo = new AddressRepository();
   });
 
   afterEach(async () => {
-    // Clean up all addresses after each test
-    const addresses = await addressRepo.getAddresses();
-    for (const w of addresses) {
-      await addressRepo.removeAddress(w.address);
+    getDataSourceSpy.mockRestore();
+    if (dataSource && dataSource.isInitialized) {
+      await dataSource.destroy();
     }
   });
 
@@ -35,19 +55,21 @@ describe('addressRepository', () => {
     await addressRepo.addAddress('xch1234', 'name');
     await addressRepo.updateAddressSync('xch1234', 42, 'abc');
     const addresses = await addressRepo.getAddresses();
-    expect(addresses[0].synced_to_height).toBe(42);
-    expect(addresses[0].synced_to_hash).toBe('abc');
+    expect(addresses[0].syncedToHeight).toBe(42);
+    expect(addresses[0].syncedToHash).toBe('abc');
   });
 
   it('should not add duplicate addresses', async () => {
     await addressRepo.addAddress('xch1234', 'name');
-    await expect(addressRepo.addAddress('xch1234', 'name')).rejects.toThrow('Address with this name already exists');
+    await expect(addressRepo.addAddress('xch1234', 'name')).rejects.toThrow(
+      'Address with this name already exists',
+    );
   });
 
   it('should return undefined when getting a wallet that does not exist', async () => {
     const repo = new AddressRepository();
     const addresses = await repo.getAddresses();
-    expect(addresses.find(w => w.name === 'notfound')).toBeUndefined();
+    expect(addresses.find((w) => w.name === 'notfound')).toBeUndefined();
   });
 
   it('should not throw when removing a wallet that does not exist', async () => {

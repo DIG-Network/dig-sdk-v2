@@ -1,54 +1,45 @@
-import { getDatabaseProvider } from '../../infrastructure/DatabaseProvider';
-const prisma = getDatabaseProvider().getPrismaClient();
-
-export interface AddressRow {
-  address: string;
-  namespace: string;
-  synced_to_height: number;
-  synced_to_hash: string;
-  name?: string;
-}
+import { getDataSource } from '../../infrastructure/DatabaseProvider';
+import { Address } from '../entities/Address';
 
 export interface IAddressRepository {
-  addAddress(address: string, name: string, namespace?: string): Promise<void>;
-  updateAddressSync(address: string, synced_to_height: number, synced_to_hash: string): Promise<void>;
+  addAddress(address: string, name: string, namespace?: string, type?: string): Promise<void>;
+  updateAddressSync(address: string, syncedToHeight: number, syncedToHash: string): Promise<void>;
   removeAddress(address: string): Promise<void>;
   removeAddressByName(name: string): Promise<void>;
-  getAddresses(): Promise<AddressRow[]>;
+  getAddresses(): Promise<Address[]>;
 }
 
 export class AddressRepository implements IAddressRepository {
-  async addAddress(address: string, name: string, namespace: string = 'default', synchedToHeight: number = 0, synchedToHash: string = '') {
-    // Prevent duplicate names
-    const exists = await prisma.address.findUnique({ where: { name } });
+  async addAddress(address: string, name: string, namespace: string = 'default', type: string = 'wallet', synchedToHeight: number = 0, synchedToHash: string = '') {
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Address);
+    const exists = await repo.findOne({ where: { name } });
     if (exists) throw new Error('Address with this name already exists');
-    await prisma.address.create({
-      data: {
-        address,
-        namespace,
-        name,
-        synced_to_height: synchedToHeight,
-        synced_to_hash: synchedToHash,
-      },
-    });
+    const addr = repo.create({ address, namespace, name, type, syncedToHeight: synchedToHeight, syncedToHash: synchedToHash });
+    await repo.save(addr);
   }
 
-  async updateAddressSync(address: string, synced_to_height: number, synced_to_hash: string) {
-    await prisma.address.update({
-      where: { address },
-      data: { synced_to_height, synced_to_hash },
-    });
+  async updateAddressSync(address: string, syncedToHeight: number, syncedToHash: string) {
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Address);
+    await repo.update({ address }, { syncedToHeight, syncedToHash });
   }
 
   async removeAddress(address: string) {
-    await prisma.address.deleteMany({ where: { address } });
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Address);
+    await repo.delete({ address });
   }
 
   async removeAddressByName(name: string) {
-    await prisma.address.deleteMany({ where: { name } });
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Address);
+    await repo.delete({ name });
   }
 
-  async getAddresses(): Promise<AddressRow[]> {
-    return prisma.address.findMany();
+  async getAddresses(): Promise<Address[]> {
+    const ds = await getDataSource();
+    const repo = ds.getRepository(Address);
+    return repo.find();
   }
 }

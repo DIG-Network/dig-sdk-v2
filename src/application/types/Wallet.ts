@@ -1,35 +1,30 @@
 import { mnemonicToSeedSync } from 'bip39';
 import type { IBlockchainService } from '../../infrastructure/BlockchainServices/IBlockChainService';
 import { ChiaBlockchainService } from '../../infrastructure/BlockchainServices/ChiaBlockchainService';
-import { IAssetBalance } from './AssetBalance';
-import { IBalanceRepository } from '../repositories/Interfaces/IBalanceRepository';
 import config from '../../config';
-import { ChiaBalanceRepository } from '../../infrastructure/Repositories/ChiaBalanceRepository';
 import { IColdWallet } from './ColdWallet';
+import { EventEmitter } from 'events';
 
 export interface IWallet extends IColdWallet {
   getMnemonic(): string;
-  getMasterSecretKey(): Promise<Buffer>;
-  getPublicSyntheticKey(): Promise<Buffer>;
-  getPrivateSyntheticKey(): Promise<Buffer>;
+  getMasterSecretKey(): Buffer;
+  getPublicSyntheticKey(): Buffer;
+  getPrivateSyntheticKey(): Buffer;
   getOwnerPublicKey(): Promise<string>;
   createKeyOwnershipSignature(nonce: string): Promise<string>;
-  spendBalance(amount: bigint, recipientAddress: string): Promise<void>;
 }
 
-export class Wallet implements IWallet {
+export class Wallet extends EventEmitter implements IWallet {
   private mnemonic: string;
   private blockchain: IBlockchainService;
-  private balanceRepository: IBalanceRepository;
 
   public constructor(mnemonic: string) {
+    super();
     this.mnemonic = mnemonic;
-
     switch (config.BLOCKCHAIN) {
       case 'chia':
       default:
         this.blockchain = new ChiaBlockchainService();
-        this.balanceRepository = new ChiaBalanceRepository();
         break;
     }
   }
@@ -41,35 +36,24 @@ export class Wallet implements IWallet {
     return this.mnemonic;
   }
 
-  public async getBalance(assetId: string): Promise<IAssetBalance> {
-    let address = await this.getOwnerPublicKey();
-    const balance = await this.balanceRepository.getBalance(address, assetId);
-    return { assetId, balance };
-  }
-
-  public async getBalances(): Promise<IAssetBalance[]> {
-    let address = await this.getOwnerPublicKey();
-    return this.balanceRepository.getBalancesByAsset(address);
-  }
-
-  public async getMasterSecretKey(): Promise<Buffer> {
+  public getMasterSecretKey(): Buffer {
     const seed = mnemonicToSeedSync(this.getMnemonic());
     return this.blockchain.masterSecretKeyFromSeed(seed);
   }
 
-  public async getPublicSyntheticKey(): Promise<Buffer> {
-    const master_sk = await this.getMasterSecretKey();
+  public getPublicSyntheticKey(): Buffer {
+    const master_sk = this.getMasterSecretKey();
     const master_pk = this.blockchain.secretKeyToPublicKey(master_sk);
     return this.blockchain.masterPublicKeyToWalletSyntheticKey(master_pk);
   }
 
-  public async getPrivateSyntheticKey(): Promise<Buffer> {
-    const master_sk = await this.getMasterSecretKey();
+  public getPrivateSyntheticKey(): Buffer {
+    const master_sk = this.getMasterSecretKey();
     return this.blockchain.masterSecretKeyToWalletSyntheticSecretKey(master_sk);
   }
 
-  public async getPuzzleHash(): Promise<Buffer> {
-    const master_sk = await this.getMasterSecretKey();
+  public getPuzzleHash(): Buffer {
+    const master_sk = this.getMasterSecretKey();
     const master_pk = this.blockchain.secretKeyToPublicKey(master_sk);
     return this.blockchain.masterPublicKeyToFirstPuzzleHash(master_pk);
   }
@@ -77,7 +61,7 @@ export class Wallet implements IWallet {
   public async getOwnerPublicKey(): Promise<string> {
     const ownerPuzzleHash = await this.getPuzzleHash();
     let prefix = this.blockchain.getAddressPrefix();
-    return this.blockchain.puzzleHashToAddress(ownerPuzzleHash, prefix);
+    return ChiaBlockchainService.puzzleHashToAddress(ownerPuzzleHash, prefix);
   }
 
   public async createKeyOwnershipSignature(nonce: string): Promise<string> {
@@ -88,10 +72,6 @@ export class Wallet implements IWallet {
       privateSyntheticKey,
     );
     return signature.toString('hex');
-  }
-
-  public async spendBalance(amount: bigint, recipientAddress: string): Promise<void> {
-    await this.blockchain.spendBalance(this, amount, recipientAddress);
   }
 
   public masterPublicKeyToWalletSyntheticKey(publicKey: Buffer): Buffer {
