@@ -9,12 +9,19 @@ import {
   PeerConnectedEvent,
   PeerDisconnectedEvent,
 } from '@dignetwork/chia-block-listener';
+
 import { L1ChiaPeer } from '../../Peers/L1ChiaPeer';
 import config from '../../../config';
-
 import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
 import { getDataSource } from '../../DatabaseProvider';
 import { BlockRepository } from '../../../application/repositories/BlockRepository';
+import {
+  parseNftFromSpend,
+  parseCatFromSpend,
+  parseDidFromSpend,
+  parseClawbackFromSpend,
+  parseStreamedCatFromSpend,
+} from './NftCatParsers';
 
 interface ICoinIndexer {
   onCoinCreated(listener: (event: CoinRecord) => void): void;
@@ -56,6 +63,22 @@ export class CoinIndexer
 
   onNewBlockIngested(listener: (event: Block) => void): void {
     this.on(CoinIndexerEventNames.NewBlockIngested, listener);
+  }
+
+  onNftSpend(listener: (event: unknown) => void): void {
+    this.on(CoinIndexerEventNames.NftSpend, listener);
+  }
+  onCatSpend(listener: (event: unknown) => void): void {
+    this.on(CoinIndexerEventNames.CatSpend, listener);
+  }
+  onDidSpend(listener: (event: unknown) => void): void {
+    this.on(CoinIndexerEventNames.DidSpend, listener);
+  }
+  onStreamedCatSpend(listener: (event: unknown) => void): void {
+    this.on(CoinIndexerEventNames.StreamedCatSpend, listener);
+  }
+  onClawbackSpend(listener: (event: unknown) => void): void {
+    this.on(CoinIndexerEventNames.ClawbackSpend, listener);
   }
 
   async start(): Promise<void> {
@@ -139,6 +162,49 @@ export class CoinIndexer
     if (!block.coinSpends) return;
     for (const coinSpend of block.coinSpends) {
       this.emit(CoinIndexerEventNames.SpendCreated, coinSpend);
+
+      // NFT
+      try{
+        const nft = parseNftFromSpend(coinSpend);
+        if (nft) {
+          this.emit(CoinIndexerEventNames.NftSpend, nft);
+        }
+      } catch{
+      }
+
+      // CAT
+      try {
+        const cat = parseCatFromSpend(coinSpend);
+        if (cat) {
+          console.log(`CAT spend processing: ${JSON.stringify(cat)}`);
+          this.emit(CoinIndexerEventNames.CatSpend, cat);
+        }
+      } catch {
+      }
+      // DID
+      try {
+        const did = parseDidFromSpend(coinSpend);
+        if (did) {
+          this.emit(CoinIndexerEventNames.DidSpend, did);
+        }
+      } catch {
+      }
+      // StreamedCat
+      try {
+        const streamedCat = parseStreamedCatFromSpend(coinSpend);
+        if (streamedCat) {
+          this.emit(CoinIndexerEventNames.StreamedCatSpend, streamedCat);
+        }
+      } catch {
+      }
+      // Clawback
+      try {
+        const clawback = parseClawbackFromSpend(coinSpend);
+        if (clawback) {
+          this.emit(CoinIndexerEventNames.ClawbackSpend, clawback);
+        }
+      } catch {
+      }
     }
   }
 

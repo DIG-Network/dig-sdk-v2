@@ -1,4 +1,4 @@
-import { CoinIndexer } from '../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
+import { CoinIndexer, CoinIndexerEventNames } from '../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
 import { ChiaWallet } from '../src/infrastructure/types/ChiaWallet';
 import { ChiaColdWallet } from '../src/infrastructure/types/ChiaColdWallet';
 import { ChiaWalletEventNames, ChiaColdWalletEventNames } from '../src/infrastructure/types/ChiaWalletEvents';
@@ -14,7 +14,7 @@ async function main() {
   const testnetMnemonic = ''; // Replace with your actual mnemonic
   const testnetWalletAddress = 'txch1fw0lql9h6n9e23yzq8ewg0hnjw2gcftayzrnj6rxlx0q6w7x6klsfy5z5f'; // Replace with your actual address
 
-  config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
+  config.BLOCKCHAIN_NETWORK = BlockchainNetwork.MAINNET;
 
   const coinIndexer = new CoinIndexer();
   coinIndexer.start();
@@ -86,6 +86,18 @@ async function main() {
       console.log(`[CoinIndexer] Timestamp: ${event.timestamp}`);
     }
   });
+
+  coinIndexer.onCatSpend((coin) => {
+    console.log(`[CoinIndexer] CAT spend detected: coin ${coin}`);
+  });
+
+  // coinIndexer.onSpendCreated((coin: CoinSpend) => {
+  //   console.log(`[CoinIndexer] spend detected: hash ${coin.coin.puzzleHash}, Amount ${coin.coin.amount}`);
+  // });
+
+  // coinIndexer.on(CoinIndexerEventNames.CatSpend, (coin) => {
+  //   console.log(`[CoinIndexer] CAT spend detected: hash ${coin.puzzleHash}, Amount ${coin.amount}`);
+  // });
 }
 
 main();

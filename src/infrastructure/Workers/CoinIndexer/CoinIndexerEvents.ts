@@ -1,10 +1,16 @@
 import { CoinRecord, CoinSpend } from '@dignetwork/chia-block-listener';
 import { Block } from '../../../application/entities/Block';
 
+
 export enum CoinIndexerEventNames {
   CoinCreated = 'coinCreated',
   SpendCreated = 'spendCreated',
   NewBlockIngested = 'newBlockIngested',
+  NftSpend = 'nftSpend',
+  CatSpend = 'catSpend',
+  DidSpend = 'didSpend',
+  StreamedCatSpend = 'streamedCatSpend',
+  ClawbackSpend = 'clawbackSpend',
 }
 
 // Use generic Event<T> for all entity events
@@ -17,4 +23,19 @@ export interface CoinIndexerEvents {
 
   on(event: CoinIndexerEventNames.NewBlockIngested, listener: (event: Block) => void): this;
   emit(event: CoinIndexerEventNames.NewBlockIngested, eventData: Block): boolean;
+
+  on(event: CoinIndexerEventNames.NftSpend, listener: (event: any) => void): this;
+  emit(event: CoinIndexerEventNames.NftSpend, eventData: any): boolean;
+
+  on(event: CoinIndexerEventNames.CatSpend, listener: (event: any) => void): this;
+  emit(event: CoinIndexerEventNames.CatSpend, eventData: any): boolean;
+
+  on(event: CoinIndexerEventNames.DidSpend, listener: (event: any) => void): this;
+  emit(event: CoinIndexerEventNames.DidSpend, eventData: any): boolean;
+
+  on(event: CoinIndexerEventNames.StreamedCatSpend, listener: (event: any) => void): this;
+  emit(event: CoinIndexerEventNames.StreamedCatSpend, eventData: any): boolean;
+
+  on(event: CoinIndexerEventNames.ClawbackSpend, listener: (event: any) => void): this;
+  emit(event: CoinIndexerEventNames.ClawbackSpend, eventData: any): boolean;
 }
