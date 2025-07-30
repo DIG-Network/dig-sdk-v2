@@ -14,7 +14,7 @@ export class AddressRepository implements IAddressRepository {
     const ds = await getDataSource();
     const repo = ds.getRepository(Address);
     const exists = await repo.findOne({ where: { name } });
-    if (exists) throw new Error('Address with this name already exists');
+    if (exists) throw new Error('Address with the same name already exists.');
     const addr = repo.create({ address, namespace, name, type, syncedToHeight: synchedToHeight, syncedToHash: synchedToHash });
     await repo.save(addr);
   }

@@ -3,8 +3,18 @@ import { WalletService } from '../../../src/application/services/WalletService';
 
 describe('ChiaColdWallet constructor overloads', () => {
   let address: string;
-  beforeAll(async () => {
-    const wallet = await WalletService.createWallet('test_chiacoldwallet_overload');
+  let walletName: string;
+  beforeEach(async () => {
+    // Use a unique wallet name for each test
+    walletName = `test_chiacoldwallet_overload_${Date.now()}_${Math.floor(Math.random()*10000)}`;
+    // Remove keyring file if exists
+    const fs = require('fs-extra');
+    const path = require('path');
+    const keyringPath = path.resolve('.dig/keyring.json');
+    if (await fs.pathExists(keyringPath)) {
+      await fs.remove(keyringPath);
+    }
+    const wallet = await WalletService.createWallet(walletName);
     address = await wallet.getOwnerPublicKey();
   });
   beforeEach(() => {
@@ -58,13 +68,25 @@ import { ChiaBlockchainService } from '../../../src/infrastructure/BlockchainSer
 import { ChiaWalletEventNames } from '../../../src/infrastructure/types/ChiaWalletEvents';
 
 describe('ChiaColdWallet', () => {
-  const TEST_ADDRESS = 'txch1testaddress';
+  let TEST_ADDRESS: string;
   let coinIndexer: CoinIndexer;
   let wallet: ChiaColdWallet;
+  let walletName: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.restoreAllMocks();
     jest.spyOn(ChiaBlockchainService, 'getPuzzleHash').mockReturnValue(Buffer.from('aabbcc', 'hex'));
+    // Use a unique wallet name for each test
+    walletName = `test_chiacoldwallet_${Date.now()}_${Math.floor(Math.random()*10000)}`;
+    // Remove keyring file if exists
+    const fs = require('fs-extra');
+    const path = require('path');
+    const keyringPath = path.resolve('.dig/keyring.json');
+    if (await fs.pathExists(keyringPath)) {
+      await fs.remove(keyringPath);
+    }
+    const created = await WalletService.createWallet(walletName);
+    TEST_ADDRESS = await created.getOwnerPublicKey();
     coinIndexer = new CoinIndexer(1);
     wallet = new ChiaColdWallet(TEST_ADDRESS, coinIndexer);
   });

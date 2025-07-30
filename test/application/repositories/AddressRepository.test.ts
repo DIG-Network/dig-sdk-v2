@@ -62,7 +62,7 @@ describe('addressRepository', () => {
   it('should not add duplicate addresses', async () => {
     await addressRepo.addAddress('xch1234', 'name');
     await expect(addressRepo.addAddress('xch1234', 'name')).rejects.toThrow(
-      'Address with this name already exists',
+      'Address with the same name already exists.',
     );
   });
 
