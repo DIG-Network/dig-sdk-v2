@@ -1,19 +1,21 @@
-export function convertUint8ArrayObjectToHex(
-  obj: any,
-  toHex: (bytes: Uint8Array) => string
-): string | null {
-  if (!obj) return null;
+import { Cat as WalletCat } from 'chia-wallet-sdk';
+import { Cat } from './infrastructure/Workers/CoinIndexer/AssetCats';
 
-  // Check if it's an object with numeric keys (serialized Uint8Array)
+export function convertUint8ArrayObjectToHex(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  obj: any,
+  toHex: (bytes: Uint8Array) => string,
+): string | undefined {
+  if (!obj) return undefined;
+
   if (
-    typeof obj === "object" &&
+    typeof obj === 'object' &&
     obj !== null &&
     !Buffer.isBuffer(obj) &&
     !(obj instanceof Uint8Array)
   ) {
     const keys = Object.keys(obj);
     if (keys.length > 0 && keys.every((key) => /^\d+$/.test(key))) {
-      // Convert object with numeric keys back to Uint8Array
       const bytes = new Uint8Array(keys.length);
       for (let i = 0; i < keys.length; i++) {
         bytes[i] = obj[i];
@@ -27,24 +29,22 @@ export function convertUint8ArrayObjectToHex(
     return toHex(obj);
   }
 
-  return null;
+  return undefined;
 }
 
 export function parseNftToJson(nft: any, toHex: (bytes: Uint8Array) => string): any {
   if (!nft) {
-    return null;
+    return undefined;
   }
 
   try {
     const result: any = {};
-    let metadata: any = null;
+    let metadata: any = undefined;
 
     // Parse coin object
     if (nft.coin) {
       result.coin = {
-        parentCoinInfo: nft.coin.parentCoinInfo
-          ? toHex(nft.coin.parentCoinInfo)
-          : null,
+        parentCoinInfo: nft.coin.parentCoinInfo ? toHex(nft.coin.parentCoinInfo) : null,
         puzzleHash: nft.coin.puzzleHash ? toHex(nft.coin.puzzleHash) : null,
         amount: nft.coin.amount ? nft.coin.amount.toString() : null,
       };
@@ -55,15 +55,13 @@ export function parseNftToJson(nft: any, toHex: (bytes: Uint8Array) => string): 
       result.proof = {
         parent_parent_coin_info: convertUint8ArrayObjectToHex(
           nft.proof.parentParentCoinInfo,
-          toHex
+          toHex,
         ),
         parent_inner_puzzle_hash: convertUint8ArrayObjectToHex(
           nft.proof.parentInnerPuzzleHash,
-          toHex
+          toHex,
         ),
-        parent_amount: nft.proof.parentAmount
-          ? nft.proof.parentAmount.toString()
-          : null,
+        parent_amount: nft.proof.parentAmount ? nft.proof.parentAmount.toString() : null,
       };
     }
 
@@ -79,13 +77,9 @@ export function parseNftToJson(nft: any, toHex: (bytes: Uint8Array) => string): 
           dataUris: nftMetadata.dataUris || [],
           dataHash: nftMetadata.dataHash ? toHex(nftMetadata.dataHash) : null,
           metadataUris: nftMetadata.metadataUris || [],
-          metadataHash: nftMetadata.metadataHash
-            ? toHex(nftMetadata.metadataHash)
-            : null,
+          metadataHash: nftMetadata.metadataHash ? toHex(nftMetadata.metadataHash) : null,
           licenseUris: nftMetadata.licenseUris || [],
-          licenseHash: nftMetadata.licenseHash
-            ? toHex(nftMetadata.licenseHash)
-            : null,
+          licenseHash: nftMetadata.licenseHash ? toHex(nftMetadata.licenseHash) : null,
         };
       } catch (error) {
         metadata = null;
@@ -97,48 +91,46 @@ export function parseNftToJson(nft: any, toHex: (bytes: Uint8Array) => string): 
         metadataUpdaterPuzzleHash: nft.info.metadataUpdaterPuzzleHash
           ? toHex(nft.info.metadataUpdaterPuzzleHash)
           : null,
-        currentOwner: nft.info.currentOwner
-          ? toHex(nft.info.currentOwner)
-          : null,
-        royaltyPuzzleHash: nft.info.royaltyPuzzleHash
-          ? toHex(nft.info.royaltyPuzzleHash)
-          : null,
+        currentOwner: nft.info.currentOwner ? toHex(nft.info.currentOwner) : null,
+        royaltyPuzzleHash: nft.info.royaltyPuzzleHash ? toHex(nft.info.royaltyPuzzleHash) : null,
         royaltyBasisPoints: nft.info.royaltyBasisPoints
           ? nft.info.royaltyBasisPoints.toString()
           : null,
-        p2PuzzleHash: nft.info.p2PuzzleHash
-          ? toHex(nft.info.p2PuzzleHash)
-          : null,
+        p2PuzzleHash: nft.info.p2PuzzleHash ? toHex(nft.info.p2PuzzleHash) : null,
       };
     }
 
     return result;
   } catch (error: any) {
     return {
-      type: "parseNftToJson",
+      type: 'parseNftToJson',
       data: null,
       error: error instanceof Error ? error.message : String(error),
     };
   }
 }
 
-/* Helper function to parse CAT object and its subclasses to JSON */
-export function parseCatToJson(cat: any, toHex: (bytes: Uint8Array) => string): any {
+export function parseWalletCatToCat(
+  cat: WalletCat,
+  toHex: (bytes: Uint8Array) => string,
+): Cat | null {
   if (!cat) {
     return null;
   }
 
   try {
-    const result: any = {};
+    let result: Cat = {
+      coin: undefined,
+      lineageProof: undefined,
+      info: undefined,
+    };
 
     // Parse coin object
     if (cat.coin) {
       result.coin = {
-        parentCoinInfo: cat.coin.parentCoinInfo
-          ? toHex(cat.coin.parentCoinInfo)
-          : null,
-        puzzleHash: cat.coin.puzzleHash ? toHex(cat.coin.puzzleHash) : null,
-        amount: cat.coin.amount ? Number(cat.coin.amount.toString()) : null,
+        parentCoinInfo: cat.coin.parentCoinInfo ? toHex(cat.coin.parentCoinInfo) : undefined,
+        puzzleHash: cat.coin.puzzleHash ? toHex(cat.coin.puzzleHash) : undefined,
+        amount: cat.coin.amount ? Number(cat.coin.amount.toString()) : undefined,
       };
     }
 
@@ -147,38 +139,29 @@ export function parseCatToJson(cat: any, toHex: (bytes: Uint8Array) => string): 
       result.lineageProof = {
         parent_parent_coin_info: convertUint8ArrayObjectToHex(
           cat.lineageProof.parentParentCoinInfo,
-          toHex
+          toHex,
         ),
         parent_inner_puzzle_hash: convertUint8ArrayObjectToHex(
           cat.lineageProof.parentInnerPuzzleHash,
-          toHex
+          toHex,
         ),
         parent_amount: cat.lineageProof.parentAmount
           ? Number(cat.lineageProof.parentAmount.toString())
-          : null,
+          : undefined,
       };
     }
 
     // Parse info object (CatInfo)
     if (cat.info) {
       result.info = {
-        assetId: cat.info.assetId ? toHex(cat.info.assetId) : null,
-        p2PuzzleHash: cat.info.p2PuzzleHash
-          ? toHex(cat.info.p2PuzzleHash)
-          : null,
-        innerPuzzleHash: cat.info.innerPuzzleHash()
-          ? toHex(cat.info.innerPuzzleHash())
-          : null,
+        assetId: cat.info.assetId ? toHex(cat.info.assetId) : undefined,
+        p2PuzzleHash: cat.info.p2PuzzleHash ? toHex(cat.info.p2PuzzleHash) : undefined,
+        innerPuzzleHash: cat.info.innerPuzzleHash() ? toHex(cat.info.innerPuzzleHash()) : undefined,
       };
     }
 
     return result;
-  } catch (error: any) {
-    return {
-      type: "parseCatToJson",
-      data: null,
-      error: error instanceof Error ? error.message : String(error),
-      classType: cat.constructor.name,
-    };
+  } catch {
+    return null;
   }
 }

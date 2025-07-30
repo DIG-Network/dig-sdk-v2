@@ -1,7 +1,8 @@
 import { parseNftToJson, parseCatToJson } from '../../../coin-utils';
-import { Clvm, Program, Puzzle, CoinSpend as WalletCoinSpend, toHex } from 'chia-wallet-sdk';
+import { Cat, Clvm, Program, Puzzle, CoinSpend as WalletCoinSpend, toHex } from 'chia-wallet-sdk';
 import { CoinSpend as ListenerCoinSpend } from '@dignetwork/chia-block-listener';
 import { mapListenerCoinSpendToWalletCoinSpend } from './CoinSpendMapper';
+import { AssetCats } from './AssetCats';
 
 export function parseNftFromSpend(coinSpend: ListenerCoinSpend): unknown {
   try {
@@ -16,6 +17,8 @@ export function parseNftFromSpend(coinSpend: ListenerCoinSpend): unknown {
     try {
       const nftInfo = puzzle.parseChildNft(walletCoinSpend.coin.clone(), solutionProgram.clone());
       if (nftInfo) {
+          console.log(`Parsed NFT with nftInfo: ${nftInfo}`);
+          console.log(`returned data of the method: ${JSON.stringify(parseNftToJson(nftInfo, toHex))}`);
         return parseNftToJson(nftInfo, toHex);
       }
     } catch {
@@ -25,7 +28,7 @@ export function parseNftFromSpend(coinSpend: ListenerCoinSpend): unknown {
   return null;
 }
 
-export function parseCatFromSpend(coinSpend: ListenerCoinSpend): unknown {
+export function parseCatsFromSpend(coinSpend: ListenerCoinSpend): AssetCats | null {
   try {
     const {
       puzzle,
@@ -38,7 +41,7 @@ export function parseCatFromSpend(coinSpend: ListenerCoinSpend): unknown {
     try {
       const catInfo = puzzle.parseChildCats(walletCoinSpend.coin.clone(), solutionProgram.clone());
       if (catInfo && catInfo.length > 0) {
-        const cats = catInfo.map((cat: any) => parseCatToJson(cat, toHex));
+        const cats = catInfo.map((cat: Cat) => parseCatToJson(cat, toHex));
         const assetId = cats[0]?.info?.assetId;
         if (assetId) {
           return { assetId, cats };

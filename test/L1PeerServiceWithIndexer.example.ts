@@ -80,24 +80,22 @@ async function main() {
     });
   }
 
-  coinIndexer.onNewBlockIngested((event) => {
+
+  coinIndexer.on(CoinIndexerEventNames.NewBlockIngested, (event) => {
     console.log(`[CoinIndexer] New block ingested: Height ${event.height}, Weight ${event.weight}, HeaderHash ${event.headerHash.toString('hex')}`);
     if (event.timestamp) {
       console.log(`[CoinIndexer] Timestamp: ${event.timestamp}`);
     }
   });
 
-  coinIndexer.onCatSpend((coin) => {
-    console.log(`[CoinIndexer] CAT spend detected: coin ${coin}`);
-  });
-
-  // coinIndexer.onSpendCreated((coin: CoinSpend) => {
-  //   console.log(`[CoinIndexer] spend detected: hash ${coin.coin.puzzleHash}, Amount ${coin.coin.amount}`);
-  // });
-
   // coinIndexer.on(CoinIndexerEventNames.CatSpend, (coin) => {
-  //   console.log(`[CoinIndexer] CAT spend detected: hash ${coin.puzzleHash}, Amount ${coin.amount}`);
+  //   console.log(`[CoinIndexer] CAT spend detected: coin`, coin);
   // });
+
+  // coinIndexer.on(CoinIndexerEventNames.NftSpend, (coin) => {
+  //   console.log(`[CoinIndexer] NFT spend detected: coin`, coin);
+  // });
+
 }
 
 main();

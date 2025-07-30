@@ -4,8 +4,6 @@ import { Block } from '../../../application/entities/Block';
 import {
   BlockReceivedEvent,
   ChiaBlockListener,
-  CoinRecord,
-  CoinSpend,
   PeerConnectedEvent,
   PeerDisconnectedEvent,
 } from '@dignetwork/chia-block-listener';
@@ -17,22 +15,14 @@ import { getDataSource } from '../../DatabaseProvider';
 import { BlockRepository } from '../../../application/repositories/BlockRepository';
 import {
   parseNftFromSpend,
-  parseCatFromSpend,
+  parseCatsFromSpend,
   parseDidFromSpend,
   parseClawbackFromSpend,
   parseStreamedCatFromSpend,
 } from './NftCatParsers';
 
-interface ICoinIndexer {
-  onCoinCreated(listener: (event: CoinRecord) => void): void;
-  onSpendCreated(listener: (event: CoinSpend) => void): void;
-  onNewBlockIngested(listener: (event: Block) => void): void;
-}
 
-export class CoinIndexer
-  extends (EventEmitter as { new (): CoinIndexerEvents })
-  implements ICoinIndexer
-{
+export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents }) {
   private started = false;
   private listener: ChiaBlockListener;
 
@@ -51,34 +41,6 @@ export class CoinIndexer
     this.listener = new ChiaBlockListener();
     this.blockRepo = new BlockRepository();
     this.connectedPeers = [];
-  }
-
-  onCoinCreated(listener: (event: CoinRecord) => void): void {
-    this.on(CoinIndexerEventNames.CoinCreated, listener);
-  }
-
-  onSpendCreated(listener: (event: CoinSpend) => void): void {
-    this.on(CoinIndexerEventNames.SpendCreated, listener);
-  }
-
-  onNewBlockIngested(listener: (event: Block) => void): void {
-    this.on(CoinIndexerEventNames.NewBlockIngested, listener);
-  }
-
-  onNftSpend(listener: (event: unknown) => void): void {
-    this.on(CoinIndexerEventNames.NftSpend, listener);
-  }
-  onCatSpend(listener: (event: unknown) => void): void {
-    this.on(CoinIndexerEventNames.CatSpend, listener);
-  }
-  onDidSpend(listener: (event: unknown) => void): void {
-    this.on(CoinIndexerEventNames.DidSpend, listener);
-  }
-  onStreamedCatSpend(listener: (event: unknown) => void): void {
-    this.on(CoinIndexerEventNames.StreamedCatSpend, listener);
-  }
-  onClawbackSpend(listener: (event: unknown) => void): void {
-    this.on(CoinIndexerEventNames.ClawbackSpend, listener);
   }
 
   async start(): Promise<void> {
@@ -174,7 +136,7 @@ export class CoinIndexer
 
       // CAT
       try {
-        const cat = parseCatFromSpend(coinSpend);
+        const cat = parseCatsFromSpend(coinSpend);
         if (cat) {
           this.emit(CoinIndexerEventNames.CatSpend, cat);
         }
