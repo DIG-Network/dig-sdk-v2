@@ -8,11 +8,8 @@ export enum CoinIndexerEventNames {
   CoinCreated = 'coinCreated',
   SpendCreated = 'spendCreated',
   NewBlockIngested = 'newBlockIngested',
-  NftSpend = 'nftSpend',
-  CatSpend = 'catSpend',
-  DidSpend = 'didSpend',
-  StreamedCatSpend = 'streamedCatSpend',
-  ClawbackSpend = 'clawbackSpend',
+  NftCreated = 'nftCreated',
+  CatCreated = 'catCreated',
 }
 
 // Use generic Event<T> for all entity events
@@ -26,9 +23,9 @@ export interface CoinIndexerEvents {
   on(event: CoinIndexerEventNames.NewBlockIngested, listener: (event: Block) => void): this;
   emit(event: CoinIndexerEventNames.NewBlockIngested, eventData: Block): boolean;
 
-  on(event: CoinIndexerEventNames.NftSpend, listener: (event: Nft) => void): this;
-  emit(event: CoinIndexerEventNames.NftSpend, eventData: Nft): boolean;
+  on(event: CoinIndexerEventNames.NftCreated, listener: (event: Nft) => void): this;
+  emit(event: CoinIndexerEventNames.NftCreated, eventData: Nft): boolean;
 
-  on(event: CoinIndexerEventNames.CatSpend, listener: (event: Cat) => void): this;
-  emit(event: CoinIndexerEventNames.CatSpend, eventData: Cat): boolean;
+  on(event: CoinIndexerEventNames.CatCreated, listener: (event: Cat) => void): this;
+  emit(event: CoinIndexerEventNames.CatCreated, eventData: Cat): boolean;
 }

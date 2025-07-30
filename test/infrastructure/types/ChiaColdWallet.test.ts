@@ -37,8 +37,8 @@ describe('ChiaColdWallet constructor overloads', () => {
 import { ChiaColdWallet } from '../../../src/infrastructure/types/ChiaColdWallet';
 import { CoinIndexer, CoinIndexerEventNames } from '../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
 import { CoinRecord, CoinSpend } from '@dignetwork/chia-block-listener';
-import { ChiaColdWalletEventNames } from '../../../src/infrastructure/types/ChiaWalletEvents';
 import { ChiaBlockchainService } from '../../../src/infrastructure/BlockchainServices/ChiaBlockchainService';
+import { ChiaWalletEventNames } from '../../../src/infrastructure/types/ChiaWalletEvents';
 
 describe('ChiaColdWallet', () => {
   const TEST_ADDRESS = 'txch1testaddress';
@@ -62,7 +62,7 @@ describe('ChiaColdWallet', () => {
       puzzleHash: wallet['chiaPuzzleHash']?.toString('hex') || '',
       amount: '123',
     };
-    wallet.on(ChiaColdWalletEventNames.CoinCreated, (c) => {
+    wallet.on(ChiaWalletEventNames.CoinCreated, (c) => {
       expect(c).toEqual(coin);
       done();
     });
@@ -80,7 +80,7 @@ describe('ChiaColdWallet', () => {
       solution: '',
       offset: 0,
     };
-    wallet.on(ChiaColdWalletEventNames.SpendCreated, (s) => {
+    wallet.on(ChiaWalletEventNames.SpendCreated, (s) => {
       expect(s).toEqual(spend);
       done();
     });

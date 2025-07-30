@@ -1,13 +1,15 @@
 import { CoinIndexer, CoinIndexerEventNames } from '../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
 import { ChiaWallet } from '../src/infrastructure/types/ChiaWallet';
 import { ChiaColdWallet } from '../src/infrastructure/types/ChiaColdWallet';
-import { ChiaWalletEventNames, ChiaColdWalletEventNames } from '../src/infrastructure/types/ChiaWalletEvents';
+import { ChiaWalletEventNames } from '../src/infrastructure/types/ChiaWalletEvents';
 import { WalletService } from '../src/application/services/WalletService';
 import config from '../src/config';
 import { BlockchainNetwork } from '../src/config/types/BlockchainNetwork';
 import { Wallet } from '../src/application/types/Wallet';
 import { ColdWallet } from '../src/application/types/ColdWallet';
 import { CoinRecord, CoinSpend } from '@dignetwork/chia-block-listener';
+import { Cat } from '../src/infrastructure/Workers/CoinIndexer/AssetCats';
+import { Nft } from '../src/infrastructure/Workers/CoinIndexer/Nft';
 
 async function main() {
   const testnetWalletAddressName = 'dev'; // Replace with your actual address name
@@ -68,15 +70,27 @@ async function main() {
     chiaWallet.on(ChiaWalletEventNames.SpendCreated, (spend: CoinSpend) => {
       console.log(`[ChiaWallet] Coin spent: hash ${spend.coin.puzzleHash}, Amount ${spend.coin.amount}`);
     });
+    chiaWallet.on(ChiaWalletEventNames.CatCreated, (cat: Cat) => {
+      console.log(`[ChiaWallet] CAT created: coin`, cat);
+    });
+    chiaWallet.on(ChiaWalletEventNames.NftCreated, (nft: Nft) => {
+      console.log(`[ChiaWallet] NFT created: coin`, nft);
+    });
   }
 
   // Subscribe to ChiaColdWallet events
   if (chiaColdWallet) {
-    chiaColdWallet.on(ChiaColdWalletEventNames.CoinCreated, (coin: CoinRecord) => {
+    chiaColdWallet.on(ChiaWalletEventNames.CoinCreated, (coin: CoinRecord) => {
       console.log(`[ChiaColdWallet] Coin created: hash ${coin.puzzleHash}, Amount ${coin.amount}`);
     });
-    chiaColdWallet.on(ChiaColdWalletEventNames.SpendCreated, (spend: CoinSpend) => {
+    chiaColdWallet.on(ChiaWalletEventNames.SpendCreated, (spend: CoinSpend) => {
       console.log(`[ChiaColdWallet] Coin spent: hash ${spend.coin.puzzleHash}, Amount ${spend.coin.amount}`);
+    });
+    chiaColdWallet.on(ChiaWalletEventNames.CatCreated, (cat: Cat) => {
+      console.log(`[ChiaColdWallet] CAT created: coin`, cat);
+    });
+    chiaColdWallet.on(ChiaWalletEventNames.NftCreated, (nft: Nft) => {
+      console.log(`[ChiaColdWallet] NFT created: coin`, nft);
     });
   }
 
@@ -88,12 +102,12 @@ async function main() {
     }
   });
 
-  coinIndexer.on(CoinIndexerEventNames.CatSpend, (coin) => {
-    console.log(`[CoinIndexer] CAT spend detected: coin`, coin);
+  coinIndexer.on(CoinIndexerEventNames.CatCreated, (coin) => {
+    console.log(`[CoinIndexer] CAT created: coin`, coin);
   });
 
-  coinIndexer.on(CoinIndexerEventNames.NftSpend, (coin) => {
-    console.log(`[CoinIndexer] NFT spend detected: coin`, coin);
+  coinIndexer.on(CoinIndexerEventNames.NftCreated, (coin) => {
+    console.log(`[CoinIndexer] NFT created: coin`, coin);
   });
 }
 

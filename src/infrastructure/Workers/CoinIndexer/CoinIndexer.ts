@@ -126,7 +126,7 @@ export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents })
       try{
         const nft = parseNftsFromSpend(coinSpend);
         if (nft) {
-          this.emit(CoinIndexerEventNames.NftSpend, nft);
+          this.emit(CoinIndexerEventNames.NftCreated, nft);
         }
       } catch{
       }
@@ -136,7 +136,7 @@ export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents })
         const cats = parseAssetCatsFromSpend(coinSpend);
         if (cats) {
           cats.cats.forEach((cat) => {
-            this.emit(CoinIndexerEventNames.CatSpend, cat);
+            this.emit(CoinIndexerEventNames.CatCreated, cat);
           });
         }
       } catch {

@@ -2,13 +2,14 @@ import { CoinRecord, CoinSpend } from '@dignetwork/chia-block-listener';
 import { Wallet } from '../../application/types/Wallet';
 import { CoinIndexer, CoinIndexerEventNames } from '../Workers/CoinIndexer/CoinIndexer';
 import { ChiaWalletEventNames } from './ChiaWalletEvents';
-
+import { Cat } from '../Workers/CoinIndexer/AssetCats';
+import { Nft } from '../Workers/CoinIndexer/Nft';
 
 export class ChiaWallet extends Wallet {
   private chiaPuzzleHash?: Buffer;
 
   /**
-   * Construct from mnemonic (legacy) or from Wallet instance (preferred).
+   * Construct from mnemonic or from Wallet instance (preferred).
    */
   public constructor(mnemonicOrWallet: string | Wallet, coinIndexer?: CoinIndexer) {
     if (typeof mnemonicOrWallet === 'string') {
@@ -41,6 +42,26 @@ export class ChiaWallet extends Wallet {
         spend.coin.puzzleHash === this.chiaPuzzleHash.toString('hex')
       ) {
         this.emit(ChiaWalletEventNames.SpendCreated, spend);
+      }
+    });
+    coinIndexer.on(CoinIndexerEventNames.CatCreated, (cat: Cat) => {
+      if (
+        cat.info &&
+        cat.info.p2PuzzleHash &&
+        this.chiaPuzzleHash &&
+        cat.info.p2PuzzleHash === this.chiaPuzzleHash.toString('hex')
+      ) {
+        this.emit(ChiaWalletEventNames.CatCreated, cat);
+      }
+    });
+    coinIndexer.on(CoinIndexerEventNames.NftCreated, (nft: Nft) => {
+      if (
+        nft.info &&
+        nft.info.p2PuzzleHash &&
+        this.chiaPuzzleHash &&
+        nft.info.p2PuzzleHash === this.chiaPuzzleHash.toString('hex')
+      ) {
+        this.emit(ChiaWalletEventNames.NftCreated, nft);
       }
     });
   }
