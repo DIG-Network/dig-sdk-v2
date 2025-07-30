@@ -45,17 +45,17 @@ describe('CoinIndexer', () => {
   });
 
   it('should emit NFT and CAT events if parsers return values', async () => {
-    jest.doMock('../../../src/infrastructure/Workers/CoinIndexer/Parsers', () => ({
-      parseNftsFromSpend: () => ({ id: 'nft1' }),
-      parseCatsFromSpend: () => ({ assetId: 'cat-asset', cats: [{ id: 'cat1' }, { id: 'cat2' }] })
-    }));
+    const parsers = require('../../../src/infrastructure/Workers/CoinIndexer/Parsers');
+    jest.spyOn(parsers, 'parseNftsFromSpend').mockReturnValue({ id: 'nft1' });
+    jest.spyOn(parsers, 'parseCatsFromSpend').mockReturnValue({ assetId: 'cat-asset', cats: [{ id: 'cat1' }, { id: 'cat2' }] });
+
     const { CoinIndexer: PatchedCoinIndexer, CoinIndexerEventNames } = require('../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer');
     const patchedIndexer = new PatchedCoinIndexer(1);
 
     const events: Record<string, any[]> = { nft: [], cat: [] };
 
-    patchedIndexer.on(CoinIndexerEventNames.NftSpend, (e: any) => { events.nft.push(e); });
-    patchedIndexer.on(CoinIndexerEventNames.CatSpend, (e: any) => { events.cat.push(e); });
+    patchedIndexer.on(CoinIndexerEventNames.NftCreated, (e: any) => { events.nft.push(e); });
+    patchedIndexer.on(CoinIndexerEventNames.CatCreated, (e: any) => { events.cat.push(e); });
 
     await (patchedIndexer as any).handleCoinSpends({ coinSpends: [{ fake: true }] });
 

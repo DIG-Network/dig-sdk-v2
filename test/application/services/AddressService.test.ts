@@ -9,10 +9,16 @@ const ADDRESS_NAMES = ['address1', 'address2', 'address3'];
 
 // Helper to clean up all addresses before each test
 async function cleanupAddresses() {
-  const addresses = await WalletService.getWallets();
-  for (const a of addresses) {
-    if (a.name) await WalletService.deleteWallet(a.name);
-    if (a.address) await WalletService.deleteWallet(a.address);
+  let attempts = 0;
+  while (attempts < 5) {
+    const addresses = await WalletService.getWallets();
+    if (addresses.length === 0) break;
+    for (const a of addresses) {
+      if (a.name) await WalletService.deleteWallet(a.name);
+      if (a.address) await WalletService.deleteWallet(a.address);
+    }
+    await new Promise(res => setTimeout(res, 100));
+    attempts++;
   }
 }
 
@@ -92,6 +98,11 @@ describe('AddressService Integration', () => {
     let addresses = await WalletService.getWallets();
     let addressList = addresses.map((a: any) => a.address);
     // All created addresses should be present (by count)
+    if (addressList.length !== createdAddresses.length) {
+      // Print debug info if test fails
+      // eslint-disable-next-line no-console
+      console.error('Address list:', addressList, 'Created:', createdAddresses);
+    }
     expect(addressList.length).toBe(createdAddresses.length);
     // Delete one wallet
     await WalletService.deleteWallet(ADDRESS_NAMES[1]);

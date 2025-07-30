@@ -7,6 +7,23 @@ describe('ChiaColdWallet constructor overloads', () => {
     const wallet = await WalletService.createWallet('test_chiacoldwallet_overload');
     address = await wallet.getOwnerPublicKey();
   });
+  beforeEach(() => {
+    jest.resetModules();
+    jest.spyOn(require('fs-extra'), 'readFileSync').mockImplementation((...args: unknown[]) => {
+      const filePath = args[0] as string;
+      if (filePath && filePath.toString().includes('keyring.json')) {
+        return JSON.stringify({ wallets: [] });
+      }
+      return '';
+    });
+    jest.spyOn(require('fs-extra'), 'readJsonSync').mockImplementation((...args: unknown[]) => {
+      const filePath = args[0] as string;
+      if (filePath && filePath.toString().includes('keyring.json')) {
+        return { wallets: [] };
+      }
+      return {};
+    });
+  });
 
   it('can be constructed from address', () => {
     const chiaCold = new ChiaColdWallet(address);
