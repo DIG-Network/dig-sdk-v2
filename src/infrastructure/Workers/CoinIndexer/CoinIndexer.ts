@@ -14,12 +14,12 @@ import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
 import { getDataSource } from '../../DatabaseProvider';
 import { BlockRepository } from '../../../application/repositories/BlockRepository';
 import {
-  parseNftFromSpend,
-  parseCatsFromSpend,
+  parseNftsFromSpend,
+  parseCatsFromSpend as parseAssetCatsFromSpend,
   parseDidFromSpend,
   parseClawbackFromSpend,
   parseStreamedCatFromSpend,
-} from './NftCatParsers';
+} from './Parsers';
 
 
 export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents }) {
@@ -127,7 +127,7 @@ export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents })
 
       // NFT
       try{
-        const nft = parseNftFromSpend(coinSpend);
+        const nft = parseNftsFromSpend(coinSpend);
         if (nft) {
           this.emit(CoinIndexerEventNames.NftSpend, nft);
         }
@@ -136,9 +136,11 @@ export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents })
 
       // CAT
       try {
-        const cat = parseCatsFromSpend(coinSpend);
-        if (cat) {
-          this.emit(CoinIndexerEventNames.CatSpend, cat);
+        const cats = parseAssetCatsFromSpend(coinSpend);
+        if (cats) {
+          cats.cats.forEach((cat) => {
+            this.emit(CoinIndexerEventNames.CatSpend, cat);
+          });
         }
       } catch {
       }

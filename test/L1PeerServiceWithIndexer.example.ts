@@ -88,13 +88,13 @@ async function main() {
     }
   });
 
-  // coinIndexer.on(CoinIndexerEventNames.CatSpend, (coin) => {
-  //   console.log(`[CoinIndexer] CAT spend detected: coin`, coin);
-  // });
+  coinIndexer.on(CoinIndexerEventNames.CatSpend, (coin) => {
+    console.log(`[CoinIndexer] CAT spend detected: coin`, coin);
+  });
 
-  // coinIndexer.on(CoinIndexerEventNames.NftSpend, (coin) => {
-  //   console.log(`[CoinIndexer] NFT spend detected: coin`, coin);
-  // });
+  coinIndexer.on(CoinIndexerEventNames.NftSpend, (coin) => {
+    console.log(`[CoinIndexer] NFT spend detected: coin`, coin);
+  });
 
 }
 
