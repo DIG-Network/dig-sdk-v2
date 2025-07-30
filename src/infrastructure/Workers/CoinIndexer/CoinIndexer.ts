@@ -176,7 +176,6 @@ export class CoinIndexer
       try {
         const cat = parseCatFromSpend(coinSpend);
         if (cat) {
-          console.log(`CAT spend processing: ${JSON.stringify(cat)}`);
           this.emit(CoinIndexerEventNames.CatSpend, cat);
         }
       } catch {

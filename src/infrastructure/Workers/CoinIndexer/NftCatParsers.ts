@@ -14,7 +14,7 @@ export function parseNftFromSpend(coinSpend: ListenerCoinSpend): unknown {
 
     // Try NFT parsing
     try {
-      const nftInfo = puzzle.parseChildNft(walletCoinSpend.coin, solutionProgram);
+      const nftInfo = puzzle.parseChildNft(walletCoinSpend.coin.clone(), solutionProgram.clone());
       if (nftInfo) {
         return parseNftToJson(nftInfo, toHex);
       }
@@ -36,10 +36,8 @@ export function parseCatFromSpend(coinSpend: ListenerCoinSpend): unknown {
 
     // Try CAT parsing
     try {
-      const catInfo = puzzle.parseChildCats(walletCoinSpend.coin, solutionProgram);
+      const catInfo = puzzle.parseChildCats(walletCoinSpend.coin.clone(), solutionProgram.clone());
       if (catInfo && catInfo.length > 0) {
-        console.log('CAT info found:', catInfo);
-        console.log(`CAT spend processing: ${JSON.stringify(catInfo[0])}`);
         const cats = catInfo.map((cat: any) => parseCatToJson(cat, toHex));
         const assetId = cats[0]?.info?.assetId;
         if (assetId) {

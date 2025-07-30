@@ -35,7 +35,7 @@
     "better-sqlite3": "^11.10.0",
     "bip39": "^3.1.0",
     "chia-bls": "^1.0.3",
-    "chia-wallet-sdk": "^0.24.0",
+    "chia-wallet-sdk": "^0.27.2",
     "fs-extra": "^11.3.0",
     "nconf": "^0.13.0",
     "pg": "^8.16.3",

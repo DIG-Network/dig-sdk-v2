@@ -69,8 +69,6 @@ export function parseNftToJson(nft: any, toHex: (bytes: Uint8Array) => string): 
 
     // Parse info object (NftInfo)
     if (nft.info) {
-      console.log(`NFT processing: ${JSON.stringify(nft)}`);
-      console.log(`NFT info processing: ${JSON.stringify(nft.info)}`);
       const metadataProgram = nft.info.metadata?.clone();
 
       try {
@@ -116,7 +114,6 @@ export function parseNftToJson(nft: any, toHex: (bytes: Uint8Array) => string): 
 
     return result;
   } catch (error: any) {
-    console.error("Error parsing NFT to JSON:", error.message);
     return {
       type: "parseNftToJson",
       data: null,
@@ -128,7 +125,6 @@ export function parseNftToJson(nft: any, toHex: (bytes: Uint8Array) => string): 
 /* Helper function to parse CAT object and its subclasses to JSON */
 export function parseCatToJson(cat: any, toHex: (bytes: Uint8Array) => string): any {
   if (!cat) {
-    console.log("parseCatToJson: CAT object is null or undefined or empty");
     return null;
   }
 
@@ -137,7 +133,6 @@ export function parseCatToJson(cat: any, toHex: (bytes: Uint8Array) => string): 
 
     // Parse coin object
     if (cat.coin) {
-      console.log(`CAT coin processing: ${JSON.stringify(cat.coin)}`);
       result.coin = {
         parentCoinInfo: cat.coin.parentCoinInfo
           ? toHex(cat.coin.parentCoinInfo)
@@ -149,7 +144,6 @@ export function parseCatToJson(cat: any, toHex: (bytes: Uint8Array) => string): 
 
     // Parse lineageProof object
     if (cat.lineageProof) {
-      console.log(`CAT lineageProof processing: ${JSON.stringify(cat.lineageProof)}`);
       result.lineageProof = {
         parent_parent_coin_info: convertUint8ArrayObjectToHex(
           cat.lineageProof.parentParentCoinInfo,
@@ -167,7 +161,6 @@ export function parseCatToJson(cat: any, toHex: (bytes: Uint8Array) => string): 
 
     // Parse info object (CatInfo)
     if (cat.info) {
-      console.log(`CAT info processing: ${JSON.stringify(cat.info)}`);
       result.info = {
         assetId: cat.info.assetId ? toHex(cat.info.assetId) : null,
         p2PuzzleHash: cat.info.p2PuzzleHash
@@ -181,7 +174,6 @@ export function parseCatToJson(cat: any, toHex: (bytes: Uint8Array) => string): 
 
     return result;
   } catch (error: any) {
-    console.error("Error parsing CAT to JSON:", error.message);
     return {
       type: "parseCatToJson",
       data: null,
