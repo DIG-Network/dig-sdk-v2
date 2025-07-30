@@ -14,7 +14,7 @@ async function main() {
   const testnetMnemonic = ''; // Replace with your actual mnemonic
   const testnetWalletAddress = 'txch1fw0lql9h6n9e23yzq8ewg0hnjw2gcftayzrnj6rxlx0q6w7x6klsfy5z5f'; // Replace with your actual address
 
-  config.BLOCKCHAIN_NETWORK = BlockchainNetwork.MAINNET;
+  config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
 
   const coinIndexer = new CoinIndexer();
   coinIndexer.start();
@@ -95,7 +95,6 @@ async function main() {
   coinIndexer.on(CoinIndexerEventNames.NftSpend, (coin) => {
     console.log(`[CoinIndexer] NFT spend detected: coin`, coin);
   });
-
 }
 
 main();

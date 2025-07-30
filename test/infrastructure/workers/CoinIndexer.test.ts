@@ -44,33 +44,25 @@ describe('CoinIndexer', () => {
     expect(handleCoinSpendsSpy).toHaveBeenCalledWith(block, expect.any(Object));
   });
 
-  it('should emit NFT, CAT, DID, StreamedCat, and Clawback events if parsers return values', async () => {
-    // Patch the parser stubs to return dummy data
-    jest.doMock('../../../src/infrastructure/Workers/CoinIndexer/NftCatParsers', () => ({
-      parseNftFromSpend: () => ({ type: 'nft', data: { id: 'nft1' } }),
-      parseCatFromSpend: () => ({ type: 'cat', data: { id: 'cat1' } }),
-      parseDidFromSpend: () => ({ type: 'did', data: { id: 'did1' } }),
-      parseClawbackFromSpend: () => ({ type: 'clawback', data: { id: 'claw1' } }),
-      parseStreamedCatFromSpend: () => ({ type: 'streamedcat', data: { id: 'scat1' } }),
+  it('should emit NFT and CAT events if parsers return values', async () => {
+    jest.doMock('../../../src/infrastructure/Workers/CoinIndexer/Parsers', () => ({
+      parseNftsFromSpend: () => ({ id: 'nft1' }),
+      parseCatsFromSpend: () => ({ assetId: 'cat-asset', cats: [{ id: 'cat1' }, { id: 'cat2' }] })
     }));
-    // Re-import CoinIndexer to get patched version
     const { CoinIndexer: PatchedCoinIndexer, CoinIndexerEventNames } = require('../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer');
     const patchedIndexer = new PatchedCoinIndexer(1);
 
-    const events: Record<string, any> = {};
-    patchedIndexer.onNftSpend((e: any) => { events.nft = e; });
-    patchedIndexer.onCatSpend((e: any) => { events.cat = e; });
-    patchedIndexer.onDidSpend((e: any) => { events.did = e; });
-    patchedIndexer.onClawbackSpend((e: any) => { events.clawback = e; });
-    patchedIndexer.onStreamedCatSpend((e: any) => { events.streamedcat = e; });
+    const events: Record<string, any[]> = { nft: [], cat: [] };
 
-    // Call handleCoinSpends with a dummy spend
+    patchedIndexer.on(CoinIndexerEventNames.NftSpend, (e: any) => { events.nft.push(e); });
+    patchedIndexer.on(CoinIndexerEventNames.CatSpend, (e: any) => { events.cat.push(e); });
+
     await (patchedIndexer as any).handleCoinSpends({ coinSpends: [{ fake: true }] });
 
-    expect(events.nft).toBeTruthy();
-    expect(events.cat).toBeTruthy();
-    expect(events.did).toBeTruthy();
-    expect(events.clawback).toBeTruthy();
-    expect(events.streamedcat).toBeTruthy();
+    expect(events.nft.length).toBe(1);
+    expect(events.nft[0]).toEqual({ id: 'nft1' });
+    expect(events.cat.length).toBe(2);
+    expect(events.cat[0]).toEqual({ id: 'cat1' });
+    expect(events.cat[1]).toEqual({ id: 'cat2' });
   });
 });

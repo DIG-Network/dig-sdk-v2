@@ -16,9 +16,6 @@ import { BlockRepository } from '../../../application/repositories/BlockReposito
 import {
   parseNftsFromSpend,
   parseCatsFromSpend as parseAssetCatsFromSpend,
-  parseDidFromSpend,
-  parseClawbackFromSpend,
-  parseStreamedCatFromSpend,
 } from './Parsers';
 
 
@@ -141,30 +138,6 @@ export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents })
           cats.cats.forEach((cat) => {
             this.emit(CoinIndexerEventNames.CatSpend, cat);
           });
-        }
-      } catch {
-      }
-      // DID
-      try {
-        const did = parseDidFromSpend(coinSpend);
-        if (did) {
-          this.emit(CoinIndexerEventNames.DidSpend, did);
-        }
-      } catch {
-      }
-      // StreamedCat
-      try {
-        const streamedCat = parseStreamedCatFromSpend(coinSpend);
-        if (streamedCat) {
-          this.emit(CoinIndexerEventNames.StreamedCatSpend, streamedCat);
-        }
-      } catch {
-      }
-      // Clawback
-      try {
-        const clawback = parseClawbackFromSpend(coinSpend);
-        if (clawback) {
-          this.emit(CoinIndexerEventNames.ClawbackSpend, clawback);
         }
       } catch {
       }

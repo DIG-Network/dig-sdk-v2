@@ -31,13 +31,4 @@ export interface CoinIndexerEvents {
 
   on(event: CoinIndexerEventNames.CatSpend, listener: (event: Cat) => void): this;
   emit(event: CoinIndexerEventNames.CatSpend, eventData: Cat): boolean;
-
-  on(event: CoinIndexerEventNames.DidSpend, listener: (event: any) => void): this;
-  emit(event: CoinIndexerEventNames.DidSpend, eventData: any): boolean;
-
-  on(event: CoinIndexerEventNames.StreamedCatSpend, listener: (event: any) => void): this;
-  emit(event: CoinIndexerEventNames.StreamedCatSpend, eventData: any): boolean;
-
-  on(event: CoinIndexerEventNames.ClawbackSpend, listener: (event: any) => void): this;
-  emit(event: CoinIndexerEventNames.ClawbackSpend, eventData: any): boolean;
 }
