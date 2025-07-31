@@ -1,5 +1,3 @@
-
-
 import { WalletService, WalletType } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
 import { ColdWallet } from '../../../src/application/types/ColdWallet';
@@ -10,9 +8,15 @@ jest.mock('../../../src/infrastructure/ConfigurationServices/NconfService', () =
   class InMemoryNconfService {
     static store: Record<string, any> = {};
     constructor(configFilePath: string) {}
-    async configExists() { return Object.keys(InMemoryNconfService.store).length > 0; }
-    async getConfigValue(key: string) { return InMemoryNconfService.store[key] ?? null; }
-    async setConfigValue(key: string, value: any) { InMemoryNconfService.store[key] = value; }
+    async configExists() {
+      return Object.keys(InMemoryNconfService.store).length > 0;
+    }
+    async getConfigValue(key: string) {
+      return InMemoryNconfService.store[key] ?? null;
+    }
+    async setConfigValue(key: string, value: any) {
+      InMemoryNconfService.store[key] = value;
+    }
     async deleteConfigValue(key: string) {
       const existed = Object.prototype.hasOwnProperty.call(InMemoryNconfService.store, key);
       if (existed) delete InMemoryNconfService.store[key];
@@ -31,7 +35,10 @@ jest.mock('../../../src/infrastructure/DatabaseProvider', () => {
       dataSource = new DataSource({
         type: 'sqlite',
         database: ':memory:',
-        entities: [require('../../../src/application/entities/Address').Address, require('../../../src/application/entities/Block').Block],
+        entities: [
+          require('../../../src/application/entities/Address').Address,
+          require('../../../src/application/entities/Block').Block,
+        ],
         synchronize: true,
       });
       await dataSource.initialize();
@@ -42,17 +49,24 @@ jest.mock('../../../src/infrastructure/DatabaseProvider', () => {
 
 describe('WalletService wallet type selection', () => {
   const TEST_MNEMONIC = 'test test test test test test test test test test test ball';
-  const TEST_ADDRESS = 'xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8249j';
-  const TEST_COLD_ADDRESS = 'xch1coldaddressxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
-
+  const TEST_ADDRESS =
+    'xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8249j';
+  const TEST_COLD_ADDRESS =
+    'xch1coldaddressxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
 
   beforeEach(async () => {
     // Reset in-memory NconfService store
-    const { NconfService } = await import('../../../src/infrastructure/ConfigurationServices/NconfService');
+    const { NconfService } = await import(
+      '../../../src/infrastructure/ConfigurationServices/NconfService'
+    );
     (NconfService as any).store = {};
     // Clean up any test wallets
-    try { await WalletService.deleteWallet('test_wallet'); } catch {}
-    try { await WalletService.deleteWallet('test_cold'); } catch {}
+    try {
+      await WalletService.deleteWallet('test_wallet');
+    } catch {}
+    try {
+      await WalletService.deleteWallet('test_cold');
+    } catch {}
   });
 
   it('should create and load a Wallet instance', async () => {
@@ -76,6 +90,8 @@ describe('WalletService wallet type selection', () => {
 
   it('should throw when creating a duplicate wallet', async () => {
     await WalletService.createWallet('test_wallet', TEST_MNEMONIC);
-    await expect(WalletService.createWallet('test_wallet', TEST_MNEMONIC)).rejects.toThrow('Address with the same name already exists.');
+    await expect(WalletService.createWallet('test_wallet', TEST_MNEMONIC)).rejects.toThrow(
+      'Address with the same name already exists.',
+    );
   });
 });

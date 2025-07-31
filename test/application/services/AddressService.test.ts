@@ -3,9 +3,15 @@ jest.mock('../../../src/infrastructure/ConfigurationServices/NconfService', () =
   class InMemoryNconfService {
     static store: Record<string, any> = {};
     constructor(configFilePath: string) {}
-    async configExists() { return Object.keys(InMemoryNconfService.store).length > 0; }
-    async getConfigValue(key: string) { return InMemoryNconfService.store[key] ?? null; }
-    async setConfigValue(key: string, value: any) { InMemoryNconfService.store[key] = value; }
+    async configExists() {
+      return Object.keys(InMemoryNconfService.store).length > 0;
+    }
+    async getConfigValue(key: string) {
+      return InMemoryNconfService.store[key] ?? null;
+    }
+    async setConfigValue(key: string, value: any) {
+      InMemoryNconfService.store[key] = value;
+    }
     async deleteConfigValue(key: string) {
       const existed = Object.prototype.hasOwnProperty.call(InMemoryNconfService.store, key);
       if (existed) delete InMemoryNconfService.store[key];
@@ -32,7 +38,10 @@ jest.mock('../../../src/infrastructure/DatabaseProvider', () => {
       dataSource = new DataSource({
         type: 'sqlite',
         database: ':memory:',
-        entities: [require('../../../src/application/entities/Address').Address, require('../../../src/application/entities/Block').Block],
+        entities: [
+          require('../../../src/application/entities/Address').Address,
+          require('../../../src/application/entities/Block').Block,
+        ],
         synchronize: true,
       });
       await dataSource.initialize();
@@ -59,27 +68,30 @@ async function cleanupAddresses() {
 }
 
 describe('AddressService Integration', () => {
-
   let ds: DataSource;
 
-beforeEach(async () => {
-  require('../../../src/application/entities/Address');
-  const { getDataSource } = await import('../../../src/infrastructure/DatabaseProvider');
-  ds = await getDataSource();
-  await ds.getRepository((await import('../../../src/application/entities/Address')).Address).clear();
-  await cleanupAddresses();
-  const keyringPath = path.resolve('.dig/keyring.json');
-  if (await fs.pathExists(keyringPath)) {
-    await fs.remove(keyringPath);
-  }
-});
+  beforeEach(async () => {
+    require('../../../src/application/entities/Address');
+    const { getDataSource } = await import('../../../src/infrastructure/DatabaseProvider');
+    ds = await getDataSource();
+    await ds
+      .getRepository((await import('../../../src/application/entities/Address')).Address)
+      .clear();
+    await cleanupAddresses();
+    const keyringPath = path.resolve('.dig/keyring.json');
+    if (await fs.pathExists(keyringPath)) {
+      await fs.remove(keyringPath);
+    }
+  });
 
   afterEach(async () => {
     // Ensure Address entity is imported before DataSource is initialized
     require('../../../src/application/entities/Address');
     const { getDataSource } = await import('../../../src/infrastructure/DatabaseProvider');
     ds = await getDataSource();
-    await ds.getRepository((await import('../../../src/application/entities/Address')).Address).clear();
+    await ds
+      .getRepository((await import('../../../src/application/entities/Address')).Address)
+      .clear();
     const keyringPath = path.resolve('.dig/keyring.json');
     if (await fs.pathExists(keyringPath)) {
       await fs.remove(keyringPath);

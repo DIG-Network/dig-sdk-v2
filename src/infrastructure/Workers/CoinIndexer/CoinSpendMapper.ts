@@ -12,11 +12,13 @@ function mapCoinRecordToCoin(record: CoinRecord): Coin {
   return new Coin(
     hexToUint8Array(record.parentCoinInfo),
     hexToUint8Array(record.puzzleHash),
-    BigInt(record.amount)
+    BigInt(record.amount),
   );
 }
 
-export function mapListenerCoinSpendToWalletCoinSpend(listenerSpend: ListenerCoinSpend): WalletCoinSpend {
+export function mapListenerCoinSpendToWalletCoinSpend(
+  listenerSpend: ListenerCoinSpend,
+): WalletCoinSpend {
   const coin = mapCoinRecordToCoin(listenerSpend.coin);
   const puzzleReveal = hexToUint8Array(listenerSpend.puzzleReveal);
   const solution = hexToUint8Array(listenerSpend.solution);

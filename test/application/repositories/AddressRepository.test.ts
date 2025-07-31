@@ -1,5 +1,7 @@
-
-import { AddressRepository, IAddressRepository } from '../../../src/application/repositories/AddressRepository';
+import {
+  AddressRepository,
+  IAddressRepository,
+} from '../../../src/application/repositories/AddressRepository';
 import { DataSource } from 'typeorm';
 import { Address } from '../../../src/application/entities/Address';
 import * as DatabaseProvider from '../../../src/infrastructure/DatabaseProvider';

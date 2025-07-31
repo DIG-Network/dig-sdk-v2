@@ -6,7 +6,7 @@ import {
   parseStreamedCatFromSpend,
   parseWalletNftToNft,
   parseWalletCatToCat,
-  convertUint8ArrayObjectToHex
+  convertUint8ArrayObjectToHex,
 } from '../../../../src/infrastructure/Workers/CoinIndexer/Parsers';
 
 describe('Parsers', () => {
@@ -44,18 +44,17 @@ describe('Parsers', () => {
     expect(parseStreamedCatFromSpend(mockCoinSpend as any)).toBeNull();
   });
 
-
   it('parseWalletNftToNft returns parsed Nft object for valid input', () => {
     const mockNft = {
       coin: {
         parentCoinInfo: new Uint8Array([1, 2, 3]),
         puzzleHash: new Uint8Array([4, 5, 6]),
-        amount: 123n
+        amount: 123n,
       },
       proof: {
         parentParentCoinInfo: new Uint8Array([7, 8, 9]),
         parentInnerPuzzleHash: new Uint8Array([10, 11, 12]),
-        parentAmount: 456n
+        parentAmount: 456n,
       },
       info: {
         launcherId: new Uint8Array([13, 14, 15]),
@@ -74,11 +73,11 @@ describe('Parsers', () => {
               metadataUris: ['metaUri1'],
               metadataHash: new Uint8Array([30, 31]),
               licenseUris: ['licenseUri1'],
-              licenseHash: new Uint8Array([32, 33])
-            })
-          })
-        }
-      }
+              licenseHash: new Uint8Array([32, 33]),
+            }),
+          }),
+        },
+      },
     };
     const toHex = (bytes: Uint8Array) => Array.from(bytes).join('-');
     const result = parseWalletNftToNft(mockNft as any, toHex);
@@ -101,11 +100,19 @@ describe('Parsers', () => {
     const md = result?.info?.metadata;
     expect(md?.editionNumber === '1' || md?.editionNumber === undefined).toBe(true);
     expect(md?.editionTotal === '10' || md?.editionTotal === undefined).toBe(true);
-    expect(md?.dataUris === undefined || JSON.stringify(md?.dataUris) === JSON.stringify(['uri1'])).toBe(true);
+    expect(
+      md?.dataUris === undefined || JSON.stringify(md?.dataUris) === JSON.stringify(['uri1']),
+    ).toBe(true);
     expect(md?.dataHash === '28-29' || md?.dataHash === undefined).toBe(true);
-    expect(md?.metadataUris === undefined || JSON.stringify(md?.metadataUris) === JSON.stringify(['metaUri1'])).toBe(true);
+    expect(
+      md?.metadataUris === undefined ||
+        JSON.stringify(md?.metadataUris) === JSON.stringify(['metaUri1']),
+    ).toBe(true);
     expect(md?.metadataHash === '30-31' || md?.metadataHash === undefined).toBe(true);
-    expect(md?.licenseUris === undefined || JSON.stringify(md?.licenseUris) === JSON.stringify(['licenseUri1'])).toBe(true);
+    expect(
+      md?.licenseUris === undefined ||
+        JSON.stringify(md?.licenseUris) === JSON.stringify(['licenseUri1']),
+    ).toBe(true);
     expect(md?.licenseHash === '32-33' || md?.licenseHash === undefined).toBe(true);
   });
 
@@ -114,18 +121,18 @@ describe('Parsers', () => {
       coin: {
         parentCoinInfo: new Uint8Array([1, 2]),
         puzzleHash: new Uint8Array([3, 4]),
-        amount: 99n
+        amount: 99n,
       },
       lineageProof: {
         parentParentCoinInfo: new Uint8Array([5, 6]),
         parentInnerPuzzleHash: new Uint8Array([7, 8]),
-        parentAmount: 100n
+        parentAmount: 100n,
       },
       info: {
         assetId: new Uint8Array([9, 10]),
         p2PuzzleHash: new Uint8Array([11, 12]),
-        innerPuzzleHash: () => new Uint8Array([13, 14])
-      }
+        innerPuzzleHash: () => new Uint8Array([13, 14]),
+      },
     };
     const toHex = (bytes: Uint8Array) => Array.from(bytes).join('-');
     const result = parseWalletCatToCat(mockCat as any, toHex);

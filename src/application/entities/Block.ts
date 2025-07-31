@@ -1,9 +1,13 @@
-import { Entity, PrimaryColumn, Column, Index } from "typeorm";
-import { getBinaryType, getCurrentDate, getDateType } from "../../infrastructure/entities/OrmAnnotationTypes";
+import { Entity, PrimaryColumn, Column, Index } from 'typeorm';
+import {
+  getBinaryType,
+  getCurrentDate,
+  getDateType,
+} from '../../infrastructure/entities/OrmAnnotationTypes';
 
 @Entity({ name: 'blocks' })
-@Index(["headerHash"])
-@Index(["timestamp"])
+@Index(['headerHash'])
+@Index(['timestamp'])
 export class Block {
   @PrimaryColumn({ type: 'bigint' })
   height!: string;

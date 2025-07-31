@@ -3,7 +3,6 @@ import config from '../config';
 import { Block } from '../application/entities/Block';
 import { Address } from '../application/entities/Address';
 
-
 let dataSource: DataSource | null = null;
 
 export async function getDataSource(): Promise<DataSource> {

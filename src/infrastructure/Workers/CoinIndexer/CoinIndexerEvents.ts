@@ -3,7 +3,6 @@ import { Block } from '../../../application/entities/Block';
 import { Nft } from './Nft';
 import { Cat } from './AssetCats';
 
-
 export enum CoinIndexerEventNames {
   CoinCreated = 'coinCreated',
   SpendCreated = 'spendCreated',
@@ -14,8 +13,8 @@ export enum CoinIndexerEventNames {
 
 // Use generic Event<T> for all entity events
 export interface CoinIndexerEvents {
-  on(event: CoinIndexerEventNames.CoinCreated, listener: (event: CoinRecord ) => void): this;
-  emit(event: CoinIndexerEventNames.CoinCreated, eventData: CoinRecord ): boolean;
+  on(event: CoinIndexerEventNames.CoinCreated, listener: (event: CoinRecord) => void): this;
+  emit(event: CoinIndexerEventNames.CoinCreated, eventData: CoinRecord): boolean;
 
   on(event: CoinIndexerEventNames.SpendCreated, listener: (event: CoinSpend) => void): this;
   emit(event: CoinIndexerEventNames.SpendCreated, eventData: CoinSpend): boolean;

@@ -1,5 +1,8 @@
 import { ChiaWallet } from '../../../src/infrastructure/types/ChiaWallet';
-import { CoinIndexer, CoinIndexerEventNames } from '../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
+import {
+  CoinIndexer,
+  CoinIndexerEventNames,
+} from '../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
 import { CoinRecord, CoinSpend } from '@dignetwork/chia-block-listener';
 import { ChiaWalletEventNames } from '../../../src/infrastructure/types/ChiaWalletEvents';
 

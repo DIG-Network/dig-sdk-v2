@@ -1,4 +1,3 @@
-
 export interface AssetCats {
   assetId: string;
   cats: Cat[];

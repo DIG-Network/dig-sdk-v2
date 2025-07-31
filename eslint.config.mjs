@@ -3,12 +3,7 @@ import parserTs from '@typescript-eslint/parser';
 
 export default [
   {
-    ignores: [
-      '**/test/*',
-      '**/dist/*',
-      '**/coverage/*',
-      'tsconfig.json',
-    ]
+    ignores: ['**/test/*', '**/dist/*', '**/coverage/*', 'tsconfig.json'],
   },
   {
     files: ['**/*.ts'],
@@ -16,15 +11,15 @@ export default [
       parser: parserTs,
       parserOptions: {
         ecmaVersion: 2020,
-        sourceType: 'module'
-      }
+        sourceType: 'module',
+      },
     },
     plugins: {
-      '@typescript-eslint': eslintPluginTs
+      '@typescript-eslint': eslintPluginTs,
     },
     rules: {
       ...eslintPluginTs.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
-    }
-  }
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
 ];

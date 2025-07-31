@@ -9,15 +9,21 @@ describe('CoinIndexer', () => {
   });
 
   it('should initialize and handle blockReceived event on start', async () => {
-    const addPeersSpy = jest.spyOn(coinIndexer as any, 'addPeersToListener').mockResolvedValue(undefined);
-    const handleCoinCreationsSpy = jest.spyOn(coinIndexer as any, 'handleCoinCreations').mockResolvedValue(undefined);
-    const handleCoinSpendsSpy = jest.spyOn(coinIndexer as any, 'handleCoinSpends').mockResolvedValue(undefined);
+    const addPeersSpy = jest
+      .spyOn(coinIndexer as any, 'addPeersToListener')
+      .mockResolvedValue(undefined);
+    const handleCoinCreationsSpy = jest
+      .spyOn(coinIndexer as any, 'handleCoinCreations')
+      .mockResolvedValue(undefined);
+    const handleCoinSpendsSpy = jest
+      .spyOn(coinIndexer as any, 'handleCoinSpends')
+      .mockResolvedValue(undefined);
 
     const block = {
       height: 3,
       headerHash: 'abc123',
       peerId: 'peer3',
-      weight: "0",
+      weight: '0',
       timestamp: Date.now(),
       coinAdditions: [],
       coinRemovals: [],
@@ -39,7 +45,7 @@ describe('CoinIndexer', () => {
     });
 
     mockListener.emit('blockReceived', block);
-    await new Promise(res => setTimeout(res, 10));
+    await new Promise((res) => setTimeout(res, 10));
     expect(handleCoinCreationsSpy).toHaveBeenCalledWith(block, expect.any(Object));
     expect(handleCoinSpendsSpy).toHaveBeenCalledWith(block, expect.any(Object));
   });
@@ -47,15 +53,24 @@ describe('CoinIndexer', () => {
   it('should emit NFT and CAT events if parsers return values', async () => {
     const parsers = require('../../../src/infrastructure/Workers/CoinIndexer/Parsers');
     jest.spyOn(parsers, 'parseNftsFromSpend').mockReturnValue({ id: 'nft1' });
-    jest.spyOn(parsers, 'parseCatsFromSpend').mockReturnValue({ assetId: 'cat-asset', cats: [{ id: 'cat1' }, { id: 'cat2' }] });
+    jest
+      .spyOn(parsers, 'parseCatsFromSpend')
+      .mockReturnValue({ assetId: 'cat-asset', cats: [{ id: 'cat1' }, { id: 'cat2' }] });
 
-    const { CoinIndexer: PatchedCoinIndexer, CoinIndexerEventNames } = require('../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer');
+    const {
+      CoinIndexer: PatchedCoinIndexer,
+      CoinIndexerEventNames,
+    } = require('../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer');
     const patchedIndexer = new PatchedCoinIndexer(1);
 
     const events: Record<string, any[]> = { nft: [], cat: [] };
 
-    patchedIndexer.on(CoinIndexerEventNames.NftCreated, (e: any) => { events.nft.push(e); });
-    patchedIndexer.on(CoinIndexerEventNames.CatCreated, (e: any) => { events.cat.push(e); });
+    patchedIndexer.on(CoinIndexerEventNames.NftCreated, (e: any) => {
+      events.nft.push(e);
+    });
+    patchedIndexer.on(CoinIndexerEventNames.CatCreated, (e: any) => {
+      events.cat.push(e);
+    });
 
     await (patchedIndexer as any).handleCoinSpends({ coinSpends: [{ fake: true }] });
 
@@ -98,12 +113,16 @@ describe('CoinIndexer', () => {
   it('should handle error in processNextBlock and continue', async () => {
     jest.resetModules();
     jest.doMock('../../../src/infrastructure/DatabaseProvider', () => ({
-      getDataSource: () => { throw new Error('fail'); }
+      getDataSource: () => {
+        throw new Error('fail');
+      },
     }));
     const { CoinIndexer } = require('../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer');
     const coinIndexer = new CoinIndexer(1);
     (coinIndexer as any).processingBlock = false;
-    (coinIndexer as any).blockQueue = [{ height: 1, headerHash: '00', weight: '1', timestamp: Date.now() }];
+    (coinIndexer as any).blockQueue = [
+      { height: 1, headerHash: '00', weight: '1', timestamp: Date.now() },
+    ];
     await (coinIndexer as any).processNextBlock();
     expect((coinIndexer as any).processingBlock).toBe(false);
     jest.dontMock('../../../src/infrastructure/DatabaseProvider');
@@ -116,7 +135,9 @@ describe('CoinIndexer', () => {
     const orig = L1ChiaPeer.discoverRawDataPeers;
     L1ChiaPeer.discoverRawDataPeers = jest.fn().mockResolvedValue([{ host: 'h', port: 1 }]);
     await (coinIndexer as any).addPeersToListener();
-    expect((coinIndexer as any).connectedPeers.length).toBeGreaterThanOrEqual((coinIndexer as any).minConnections);
+    expect((coinIndexer as any).connectedPeers.length).toBeGreaterThanOrEqual(
+      (coinIndexer as any).minConnections,
+    );
     L1ChiaPeer.discoverRawDataPeers = orig;
   });
 
@@ -147,14 +168,16 @@ describe('CoinIndexer', () => {
     jest.doMock('../../../src/infrastructure/DatabaseProvider', () => ({
       getDataSource: () => ({
         getRepository: () => ({
-          findOne: () => ({ weight: '3' })
-        })
-      })
+          findOne: () => ({ weight: '3' }),
+        }),
+      }),
     }));
     const { CoinIndexer } = require('../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer');
     const coinIndexer = new CoinIndexer(1);
     (coinIndexer as any).processingBlock = false;
-    (coinIndexer as any).blockQueue = [{ height: 1, headerHash: '00', weight: '2', timestamp: Date.now() }];
+    (coinIndexer as any).blockQueue = [
+      { height: 1, headerHash: '00', weight: '2', timestamp: Date.now() },
+    ];
     const handleCoinCreationsSpy = jest.spyOn(coinIndexer as any, 'handleCoinCreations');
     await (coinIndexer as any).processNextBlock();
     expect(handleCoinCreationsSpy).not.toHaveBeenCalled();
@@ -166,19 +189,22 @@ describe('CoinIndexer', () => {
     jest.doMock('../../../src/infrastructure/DatabaseProvider', () => ({
       getDataSource: () => ({
         getRepository: () => ({
-          findOne: () => null
-        })
-      })
+          findOne: () => null,
+        }),
+      }),
     }));
     const { CoinIndexer } = require('../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer');
     const coinIndexer = new CoinIndexer(1);
     (coinIndexer as any).processingBlock = false;
     (coinIndexer as any).blockQueue = [
       { height: 1, headerHash: '00', weight: '1', timestamp: Date.now() },
-      { height: 2, headerHash: '01', weight: '2', timestamp: Date.now() }
+      { height: 2, headerHash: '01', weight: '2', timestamp: Date.now() },
     ];
     let addBlockCount = 0;
-    (coinIndexer as any).blockRepo.addBlock = jest.fn(() => { addBlockCount++; return Promise.resolve(); });
+    (coinIndexer as any).blockRepo.addBlock = jest.fn(() => {
+      addBlockCount++;
+      return Promise.resolve();
+    });
     jest.spyOn(coinIndexer as any, 'handleCoinCreations').mockImplementation(() => {});
     jest.spyOn(coinIndexer as any, 'handleCoinSpends').mockImplementation(() => {});
     await (coinIndexer as any).processNextBlock();
@@ -199,12 +225,24 @@ describe('CoinIndexer', () => {
 
   it('should handleCoinSpends and handleCoinCreations with undefined/null/empty arrays', async () => {
     // Should not throw, but must pass an object with coinSpends/coinCreations or skip
-    await expect((coinIndexer as any).handleCoinSpends({ coinSpends: undefined })).resolves.toBeUndefined();
-    await expect((coinIndexer as any).handleCoinSpends({ coinSpends: null })).resolves.toBeUndefined();
-    await expect((coinIndexer as any).handleCoinSpends({ coinSpends: [] })).resolves.toBeUndefined();
-    await expect((coinIndexer as any).handleCoinCreations({ coinCreations: undefined })).resolves.toBeUndefined();
-    await expect((coinIndexer as any).handleCoinCreations({ coinCreations: null })).resolves.toBeUndefined();
-    await expect((coinIndexer as any).handleCoinCreations({ coinCreations: [] })).resolves.toBeUndefined();
+    await expect(
+      (coinIndexer as any).handleCoinSpends({ coinSpends: undefined }),
+    ).resolves.toBeUndefined();
+    await expect(
+      (coinIndexer as any).handleCoinSpends({ coinSpends: null }),
+    ).resolves.toBeUndefined();
+    await expect(
+      (coinIndexer as any).handleCoinSpends({ coinSpends: [] }),
+    ).resolves.toBeUndefined();
+    await expect(
+      (coinIndexer as any).handleCoinCreations({ coinCreations: undefined }),
+    ).resolves.toBeUndefined();
+    await expect(
+      (coinIndexer as any).handleCoinCreations({ coinCreations: null }),
+    ).resolves.toBeUndefined();
+    await expect(
+      (coinIndexer as any).handleCoinCreations({ coinCreations: [] }),
+    ).resolves.toBeUndefined();
     // No error should be thrown
   });
 

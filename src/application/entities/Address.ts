@@ -1,11 +1,11 @@
-import { Entity, PrimaryColumn, Column } from "typeorm";
+import { Entity, PrimaryColumn, Column } from 'typeorm';
 
 @Entity({ name: 'addresses' })
 export class Address {
   @PrimaryColumn({ type: 'text', name: 'address' })
   address!: string;
 
-  @Column({ type: 'text', name: 'namespace', default: "default" })
+  @Column({ type: 'text', name: 'namespace', default: 'default' })
   namespace!: string;
 
   @Column({ type: 'bigint', name: 'synced_to_height' })

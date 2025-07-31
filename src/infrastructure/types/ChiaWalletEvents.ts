@@ -4,4 +4,3 @@ export enum ChiaWalletEventNames {
   NftCreated = 'chiaNftCreated',
   CatCreated = 'chiaCatCreated',
 }
-

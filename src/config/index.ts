@@ -1,4 +1,4 @@
-import { BlockchainNetwork } from "./types/BlockchainNetwork";
+import { BlockchainNetwork } from './types/BlockchainNetwork';
 
 interface DigConfig {
   DIG_FOLDER_PATH: string;
