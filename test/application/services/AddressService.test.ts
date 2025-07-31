@@ -1,35 +1,90 @@
+// Mock NconfService to use in-memory storage (same as WalletService.test.ts)
+jest.mock('../../../src/infrastructure/ConfigurationServices/NconfService', () => {
+  class InMemoryNconfService {
+    static store: Record<string, any> = {};
+    constructor(configFilePath: string) {}
+    async configExists() { return Object.keys(InMemoryNconfService.store).length > 0; }
+    async getConfigValue(key: string) { return InMemoryNconfService.store[key] ?? null; }
+    async setConfigValue(key: string, value: any) { InMemoryNconfService.store[key] = value; }
+    async deleteConfigValue(key: string) {
+      const existed = Object.prototype.hasOwnProperty.call(InMemoryNconfService.store, key);
+      if (existed) delete InMemoryNconfService.store[key];
+      return existed;
+    }
+  }
+  return { NconfService: InMemoryNconfService };
+});
+
 import { WalletService, WalletType } from '../../../src/application/services/WalletService';
 import { Wallet } from '../../../src/application/types/Wallet';
 import fs from 'fs-extra';
 import path from 'path';
-import { getDataSource } from '../../../src/infrastructure/DatabaseProvider';
+// ...existing code...
 import { Address } from '../../../src/application/entities/Address';
+
+// Targeted mock for getDataSource to always use in-memory SQLite for this suite only
+import { DataSource } from 'typeorm';
+jest.mock('../../../src/infrastructure/DatabaseProvider', () => {
+  let dataSource: DataSource | null = null;
+  return {
+    getDataSource: async () => {
+      if (dataSource && dataSource.isInitialized) return dataSource;
+      dataSource = new DataSource({
+        type: 'sqlite',
+        database: ':memory:',
+        entities: [require('../../../src/application/entities/Address').Address, require('../../../src/application/entities/Block').Block],
+        synchronize: true,
+      });
+      await dataSource.initialize();
+      return dataSource;
+    },
+  };
+});
 
 const ADDRESS_NAMES = ['address1', 'address2', 'address3'];
 
 // Helper to clean up all addresses before each test
 async function cleanupAddresses() {
-  const addresses = await WalletService.getWallets();
-  for (const a of addresses) {
-    if (a.name) await WalletService.deleteWallet(a.name);
-    if (a.address) await WalletService.deleteWallet(a.address);
+  let attempts = 0;
+  while (attempts < 5) {
+    const addresses = await WalletService.getWallets();
+    if (addresses.length === 0) break;
+    for (const a of addresses) {
+      if (a.name) await WalletService.deleteWallet(a.name);
+      if (a.address) await WalletService.deleteWallet(a.address);
+    }
+    await new Promise((res) => setTimeout(res, 100));
+    attempts++;
   }
 }
 
 describe('AddressService Integration', () => {
-  beforeEach(async () => {
-    const ds = await getDataSource();
-    await ds.getRepository(Address).clear();
-    await cleanupAddresses();
+
+  let ds: DataSource;
+
+beforeEach(async () => {
+  require('../../../src/application/entities/Address');
+  const { getDataSource } = await import('../../../src/infrastructure/DatabaseProvider');
+  ds = await getDataSource();
+  await ds.getRepository((await import('../../../src/application/entities/Address')).Address).clear();
+  await cleanupAddresses();
+  const keyringPath = path.resolve('.dig/keyring.json');
+  if (await fs.pathExists(keyringPath)) {
+    await fs.remove(keyringPath);
+  }
+});
+
+  afterEach(async () => {
+    // Ensure Address entity is imported before DataSource is initialized
+    require('../../../src/application/entities/Address');
+    const { getDataSource } = await import('../../../src/infrastructure/DatabaseProvider');
+    ds = await getDataSource();
+    await ds.getRepository((await import('../../../src/application/entities/Address')).Address).clear();
     const keyringPath = path.resolve('.dig/keyring.json');
     if (await fs.pathExists(keyringPath)) {
       await fs.remove(keyringPath);
     }
-  });
-
-  afterEach(async () => {
-    const ds = await getDataSource();
-    await ds.getRepository(Address).clear();
+    await cleanupAddresses();
   });
 
   it('should create, load, and delete an address, and verify Wallet functionality', async () => {
@@ -86,12 +141,17 @@ describe('AddressService Integration', () => {
   it('should list addresses after multiple creates and deletes', async () => {
     const createdAddresses: string[] = [];
     for (const name of ADDRESS_NAMES) {
-    const address = await WalletService.createWallet(name, 'xch_' + name);
+      const address = await WalletService.createWallet(name, 'xch_' + name);
       createdAddresses.push(await (address as Wallet).getOwnerPublicKey());
     }
     let addresses = await WalletService.getWallets();
     let addressList = addresses.map((a: any) => a.address);
     // All created addresses should be present (by count)
+    if (addressList.length !== createdAddresses.length) {
+      // Print debug info if test fails
+      // eslint-disable-next-line no-console
+      console.error('Address list:', addressList, 'Created:', createdAddresses);
+    }
     expect(addressList.length).toBe(createdAddresses.length);
     // Delete one wallet
     await WalletService.deleteWallet(ADDRESS_NAMES[1]);
@@ -108,7 +168,7 @@ describe('AddressService Integration', () => {
     for (let i = 0; i < 5; i++) {
       addresses = await WalletService.getWallets();
       if (addresses.length === 0) break;
-      await new Promise(res => setTimeout(res, 100));
+      await new Promise((res) => setTimeout(res, 100));
     }
     expect(addresses).toEqual([]);
   });
@@ -122,7 +182,9 @@ describe('AddressService Integration', () => {
 
   it('should throw if a wallet with the same name already exists in the keyring', async () => {
     await WalletService.createWallet('duplicate', 'xch_duplicate');
-    await expect(WalletService.createWallet('duplicate')).rejects.toThrow('Address with the same name already exists.');
+    await expect(WalletService.createWallet('duplicate')).rejects.toThrow(
+      'Address with the same name already exists.',
+    );
   });
 
   it('should allow creating different addresses even if keyring file exists', async () => {
@@ -160,7 +222,7 @@ describe('AddressService Integration', () => {
     for (let i = 0; i < 5; i++) {
       addresses = await WalletService.getWallets();
       if (addresses.length === 0) break;
-      await new Promise(res => setTimeout(res, 100));
+      await new Promise((res) => setTimeout(res, 100));
     }
     expect(addresses).toEqual([]);
   });

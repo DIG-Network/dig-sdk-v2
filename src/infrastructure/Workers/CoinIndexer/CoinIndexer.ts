@@ -4,28 +4,22 @@ import { Block } from '../../../application/entities/Block';
 import {
   BlockReceivedEvent,
   ChiaBlockListener,
-  CoinRecord,
-  CoinSpend,
   PeerConnectedEvent,
   PeerDisconnectedEvent,
 } from '@dignetwork/chia-block-listener';
+
 import { L1ChiaPeer } from '../../Peers/L1ChiaPeer';
 import config from '../../../config';
-
 import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
 import { getDataSource } from '../../DatabaseProvider';
 import { BlockRepository } from '../../../application/repositories/BlockRepository';
+import {
+  parseNftsFromSpend,
+  parseCatsFromSpend as parseAssetCatsFromSpend,
+} from './Parsers';
 
-interface ICoinIndexer {
-  onCoinCreated(listener: (event: CoinRecord) => void): void;
-  onSpendCreated(listener: (event: CoinSpend) => void): void;
-  onNewBlockIngested(listener: (event: Block) => void): void;
-}
 
-export class CoinIndexer
-  extends (EventEmitter as { new (): CoinIndexerEvents })
-  implements ICoinIndexer
-{
+export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents }) {
   private started = false;
   private listener: ChiaBlockListener;
 
@@ -44,18 +38,6 @@ export class CoinIndexer
     this.listener = new ChiaBlockListener();
     this.blockRepo = new BlockRepository();
     this.connectedPeers = [];
-  }
-
-  onCoinCreated(listener: (event: CoinRecord) => void): void {
-    this.on(CoinIndexerEventNames.CoinCreated, listener);
-  }
-
-  onSpendCreated(listener: (event: CoinSpend) => void): void {
-    this.on(CoinIndexerEventNames.SpendCreated, listener);
-  }
-
-  onNewBlockIngested(listener: (event: Block) => void): void {
-    this.on(CoinIndexerEventNames.NewBlockIngested, listener);
   }
 
   async start(): Promise<void> {
@@ -139,6 +121,26 @@ export class CoinIndexer
     if (!block.coinSpends) return;
     for (const coinSpend of block.coinSpends) {
       this.emit(CoinIndexerEventNames.SpendCreated, coinSpend);
+
+      // NFT
+      try{
+        const nft = parseNftsFromSpend(coinSpend);
+        if (nft) {
+          this.emit(CoinIndexerEventNames.NftCreated, nft);
+        }
+      } catch{
+      }
+
+      // CAT
+      try {
+        const cats = parseAssetCatsFromSpend(coinSpend);
+        if (cats) {
+          cats.cats.forEach((cat) => {
+            this.emit(CoinIndexerEventNames.CatCreated, cat);
+          });
+        }
+      } catch {
+      }
     }
   }
 
