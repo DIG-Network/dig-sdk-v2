@@ -60,7 +60,6 @@ export function parseCatsFromSpend(coinSpend: ListenerCoinSpend): AssetCats | nu
   return null;
 }
 
-
 export function parseDidFromSpend(coinSpend: ListenerCoinSpend): unknown {
   try {
     const {
@@ -72,12 +71,15 @@ export function parseDidFromSpend(coinSpend: ListenerCoinSpend): unknown {
 
     // Try Did parsing
     try {
-      const didInfo = puzzle.parseChildDid(walletCoinSpend.coin.clone(), solutionProgram.clone(), walletCoinSpend.coin.clone());
+      const didInfo = puzzle.parseChildDid(
+        walletCoinSpend.coin.clone(),
+        solutionProgram.clone(),
+        walletCoinSpend.coin.clone(),
+      );
       if (didInfo) {
         console.log(`Did info found: ${JSON.stringify(didInfo)}`);
       }
-    } catch {
-    }
+    } catch {}
   } catch {}
   return null;
 }
@@ -96,8 +98,7 @@ export function parseClawbackFromSpend(coinSpend: ListenerCoinSpend): unknown {
       if (clawbackInfo && clawbackInfo.length > 0) {
         console.log(`Clawback info found: ${JSON.stringify(clawbackInfo)}`);
       }
-    } catch {
-    }
+    } catch {}
   } catch {}
   return null;
 }
@@ -113,28 +114,33 @@ export function parseStreamedCatFromSpend(coinSpend: ListenerCoinSpend): unknown
 
     // Try StreamedCat parsing
     try {
-      const streamedCatInfo = puzzle.parseChildStreamedCat(walletCoinSpend.coin.clone(), solutionProgram.clone());
+      const streamedCatInfo = puzzle.parseChildStreamedCat(
+        walletCoinSpend.coin.clone(),
+        solutionProgram.clone(),
+      );
       if (streamedCatInfo) {
         console.log(`StreamedCat info found: ${JSON.stringify(streamedCatInfo)}`);
       }
-    } catch {
-    }
+    } catch {}
   } catch {}
   return null;
 }
 
-export function parseWalletNftToNft(nft: WalletNft, toHex: (bytes: Uint8Array) => string): Nft | null {
+export function parseWalletNftToNft(
+  nft: WalletNft,
+  toHex: (bytes: Uint8Array) => string,
+): Nft | null {
   if (!nft) {
     return null;
   }
-  
+
   try {
     const result: Nft = {
       coin: undefined,
       proof: undefined,
       info: undefined,
     };
-    
+
     let metadata: NftMetadata | undefined = undefined;
 
     // Parse coin object
@@ -145,7 +151,7 @@ export function parseWalletNftToNft(nft: WalletNft, toHex: (bytes: Uint8Array) =
         amount: nft.coin.amount ? nft.coin.amount.toString() : undefined,
       };
     }
-    
+
     // Parse proof object
     if (nft.proof) {
       result.proof = {
@@ -164,21 +170,21 @@ export function parseWalletNftToNft(nft: WalletNft, toHex: (bytes: Uint8Array) =
     // Parse info object (NftInfo)
     if (nft.info) {
       const metadataProgram = nft.info.metadata?.clone();
-      
+
       try {
         const nftMetadata = metadataProgram.clone().parseNftMetadata();
         metadata = nftMetadata
-        ? {
-          editionNumber: nftMetadata.editionNumber?.toString(),
-          editionTotal: nftMetadata.editionTotal?.toString(),
-          dataUris: nftMetadata.dataUris || [],
-          dataHash: nftMetadata.dataHash ? toHex(nftMetadata.dataHash) : undefined,
-          metadataUris: nftMetadata.metadataUris || [],
-          metadataHash: nftMetadata.metadataHash ? toHex(nftMetadata.metadataHash) : undefined,
-          licenseUris: nftMetadata.licenseUris || [],
-          licenseHash: nftMetadata.licenseHash ? toHex(nftMetadata.licenseHash) : undefined,
-        }
-        : undefined;
+          ? {
+              editionNumber: nftMetadata.editionNumber?.toString(),
+              editionTotal: nftMetadata.editionTotal?.toString(),
+              dataUris: nftMetadata.dataUris || [],
+              dataHash: nftMetadata.dataHash ? toHex(nftMetadata.dataHash) : undefined,
+              metadataUris: nftMetadata.metadataUris || [],
+              metadataHash: nftMetadata.metadataHash ? toHex(nftMetadata.metadataHash) : undefined,
+              licenseUris: nftMetadata.licenseUris || [],
+              licenseHash: nftMetadata.licenseHash ? toHex(nftMetadata.licenseHash) : undefined,
+            }
+          : undefined;
       } catch {
         metadata = undefined;
       }
@@ -187,37 +193,40 @@ export function parseWalletNftToNft(nft: WalletNft, toHex: (bytes: Uint8Array) =
         launcherId: nft.info.launcherId ? toHex(nft.info.launcherId) : undefined,
         metadata: metadata,
         metadataUpdaterPuzzleHash: nft.info.metadataUpdaterPuzzleHash
-        ? toHex(nft.info.metadataUpdaterPuzzleHash)
-        : undefined,
+          ? toHex(nft.info.metadataUpdaterPuzzleHash)
+          : undefined,
         currentOwner: nft.info.currentOwner ? toHex(nft.info.currentOwner) : undefined,
         royaltyPuzzleHash: nft.info.royaltyPuzzleHash
-        ? toHex(nft.info.royaltyPuzzleHash)
-        : undefined,
+          ? toHex(nft.info.royaltyPuzzleHash)
+          : undefined,
         royaltyBasisPoints: nft.info.royaltyBasisPoints
-        ? nft.info.royaltyBasisPoints.toString()
-        : undefined,
+          ? nft.info.royaltyBasisPoints.toString()
+          : undefined,
         p2PuzzleHash: nft.info.p2PuzzleHash ? toHex(nft.info.p2PuzzleHash) : undefined,
       };
     }
-    
+
     return result;
   } catch {
     return null;
   }
 }
 
-export function parseWalletCatToCat(cat: WalletCat, toHex: (bytes: Uint8Array) => string): Cat | null {
+export function parseWalletCatToCat(
+  cat: WalletCat,
+  toHex: (bytes: Uint8Array) => string,
+): Cat | null {
   if (!cat) {
     return null;
   }
-  
+
   try {
     let result: Cat = {
       coin: undefined,
       lineageProof: undefined,
       info: undefined,
     };
-    
+
     // Parse coin object
     if (cat.coin) {
       result.coin = {
@@ -239,11 +248,11 @@ export function parseWalletCatToCat(cat: WalletCat, toHex: (bytes: Uint8Array) =
           toHex,
         ),
         parent_amount: cat.lineageProof.parentAmount
-        ? Number(cat.lineageProof.parentAmount.toString())
-        : undefined,
+          ? Number(cat.lineageProof.parentAmount.toString())
+          : undefined,
       };
     }
-    
+
     // Parse info object (CatInfo)
     if (cat.info) {
       result.info = {
@@ -265,7 +274,7 @@ export function convertUint8ArrayObjectToHex(
   toHex: (bytes: Uint8Array) => string,
 ): string | undefined {
   if (!obj) return undefined;
-  
+
   if (
     typeof obj === 'object' &&
     obj !== null &&
@@ -286,7 +295,7 @@ export function convertUint8ArrayObjectToHex(
   if (Buffer.isBuffer(obj) || obj instanceof Uint8Array) {
     return toHex(obj);
   }
-  
+
   return undefined;
 }
 

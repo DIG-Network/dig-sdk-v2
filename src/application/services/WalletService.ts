@@ -20,9 +20,9 @@ export class WalletService {
 
   public static async loadWallet(addressName: string = 'default'): Promise<Wallet | ColdWallet> {
     const addresses = await WalletService.addressRepo.getAddresses();
-    const found = addresses.find(a => a.name === addressName);
+    const found = addresses.find((a) => a.name === addressName);
     if (!found) throw new Error('Address Not Found');
-    const type: WalletType = found.type as WalletType || WalletType.Wallet;
+    const type: WalletType = (found.type as WalletType) || WalletType.Wallet;
     if (type === WalletType.ColdWallet) {
       return new ColdWallet(found.address);
     } else {
@@ -65,7 +65,12 @@ export class WalletService {
     if (await this.addressExists(addressName)) {
       throw new Error('Address with the same name already exists.');
     }
-    await WalletService.addressRepo.addAddress(address, addressName, 'default', WalletType.ColdWallet);
+    await WalletService.addressRepo.addAddress(
+      address,
+      addressName,
+      'default',
+      WalletType.ColdWallet,
+    );
     return new ColdWallet(address);
   }
 
@@ -99,7 +104,7 @@ export class WalletService {
     const encryptedData = EncryptionService.encryptData(mnemonic);
     await nconfService.setConfigValue(walletName, encryptedData);
   }
-  
+
   private static async addressExists(addressName: string): Promise<boolean> {
     const nconfService = new NconfService(KEYRING_FILE);
     if (await nconfService.configExists()) {

@@ -1,9 +1,17 @@
 jest.mock('chia-wallet-sdk', () => {
   class MockCoin {
-    constructor(public parentCoinInfo: Uint8Array, public puzzleHash: Uint8Array, public amount: bigint) {}
+    constructor(
+      public parentCoinInfo: Uint8Array,
+      public puzzleHash: Uint8Array,
+      public amount: bigint,
+    ) {}
   }
   class MockCoinSpend {
-    constructor(public coin: any, public puzzleReveal: Uint8Array, public solution: Uint8Array) {}
+    constructor(
+      public coin: any,
+      public puzzleReveal: Uint8Array,
+      public solution: Uint8Array,
+    ) {}
   }
   return {
     Coin: MockCoin,

@@ -13,11 +13,7 @@ import config from '../../../config';
 import { BlockchainNetwork } from '../../../config/types/BlockchainNetwork';
 import { getDataSource } from '../../DatabaseProvider';
 import { BlockRepository } from '../../../application/repositories/BlockRepository';
-import {
-  parseNftsFromSpend,
-  parseCatsFromSpend as parseAssetCatsFromSpend,
-} from './Parsers';
-
+import { parseNftsFromSpend, parseCatsFromSpend as parseAssetCatsFromSpend } from './Parsers';
 
 export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents }) {
   private started = false;
@@ -83,7 +79,7 @@ export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents })
         weight: block.weight.toString(),
         timestamp: new Date(block.timestamp),
       };
-      
+
       await this.blockRepo.addBlock(blockFromQueue);
 
       await this.handleCoinCreations(block);
@@ -123,13 +119,12 @@ export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents })
       this.emit(CoinIndexerEventNames.SpendCreated, coinSpend);
 
       // NFT
-      try{
+      try {
         const nft = parseNftsFromSpend(coinSpend);
         if (nft) {
           this.emit(CoinIndexerEventNames.NftCreated, nft);
         }
-      } catch{
-      }
+      } catch {}
 
       // CAT
       try {
@@ -139,8 +134,7 @@ export class CoinIndexer extends (EventEmitter as { new (): CoinIndexerEvents })
             this.emit(CoinIndexerEventNames.CatCreated, cat);
           });
         }
-      } catch {
-      }
+      } catch {}
     }
   }
 

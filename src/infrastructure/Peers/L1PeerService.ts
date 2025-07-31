@@ -22,7 +22,12 @@ export class L1PeerService {
     return null;
   }
 
-  public static async connect(minPeers: number = 5, retries: number = 5, peerType: PeerType = PeerType.Testnet11, tls: Tls): Promise<void> {
+  public static async connect(
+    minPeers: number = 5,
+    retries: number = 5,
+    peerType: PeerType = PeerType.Testnet11,
+    tls: Tls,
+  ): Promise<void> {
     if (this.connected) return;
     this.peerType = peerType;
     this.tls = tls;
@@ -36,16 +41,21 @@ export class L1PeerService {
     if (!this.connected) throw new Error('Failed to connect to any peers');
   }
 
-  public static async withPeer<T>(fn: (peer: IL1ChiaPeer) => Promise<T>, retries: number = 5): Promise<T> {
+  public static async withPeer<T>(
+    fn: (peer: IL1ChiaPeer) => Promise<T>,
+    retries: number = 5,
+  ): Promise<T> {
     if (!this.connected || this.peers.length === 0) throw new Error('No peers connected');
     // Get heights for all peers
-    const peerHeights = await Promise.all(this.peers.map(async (peer) => {
-      try {
-        return await peer.getPeak() ?? 0;
-      } catch {
-        return 0;
-      }
-    }));
+    const peerHeights = await Promise.all(
+      this.peers.map(async (peer) => {
+        try {
+          return (await peer.getPeak()) ?? 0;
+        } catch {
+          return 0;
+        }
+      }),
+    );
     // Find max height
     const maxHeight = Math.max(...peerHeights);
     // Get peers with max height only for mainnet, otherwise use all peers

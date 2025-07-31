@@ -6,7 +6,7 @@ describe('ChiaColdWallet constructor overloads', () => {
   let walletName: string;
   beforeEach(async () => {
     // Use a unique wallet name for each test
-    walletName = `test_chiacoldwallet_overload_${Date.now()}_${Math.floor(Math.random()*10000)}`;
+    walletName = `test_chiacoldwallet_overload_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
     // Remove keyring file if exists
     const fs = require('fs-extra');
     const path = require('path');
@@ -60,9 +60,11 @@ describe('ChiaColdWallet constructor overloads', () => {
   });
 });
 
-
 import { ChiaColdWallet } from '../../../src/infrastructure/types/ChiaColdWallet';
-import { CoinIndexer, CoinIndexerEventNames } from '../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
+import {
+  CoinIndexer,
+  CoinIndexerEventNames,
+} from '../../../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
 import { CoinRecord, CoinSpend } from '@dignetwork/chia-block-listener';
 import { ChiaBlockchainService } from '../../../src/infrastructure/BlockchainServices/ChiaBlockchainService';
 import { ChiaWalletEventNames } from '../../../src/infrastructure/types/ChiaWalletEvents';
@@ -75,9 +77,11 @@ describe('ChiaColdWallet', () => {
 
   beforeEach(async () => {
     jest.restoreAllMocks();
-    jest.spyOn(ChiaBlockchainService, 'getPuzzleHash').mockReturnValue(Buffer.from('aabbcc', 'hex'));
+    jest
+      .spyOn(ChiaBlockchainService, 'getPuzzleHash')
+      .mockReturnValue(Buffer.from('aabbcc', 'hex'));
     // Use a unique wallet name for each test
-    walletName = `test_chiacoldwallet_${Date.now()}_${Math.floor(Math.random()*10000)}`;
+    walletName = `test_chiacoldwallet_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
     // Remove keyring file if exists
     const fs = require('fs-extra');
     const path = require('path');

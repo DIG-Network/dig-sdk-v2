@@ -28,7 +28,10 @@ describe('EncryptionService', () => {
   it('should throw if data is tampered with', () => {
     const encrypted = EncryptionService.encryptData(testString);
     // Tamper with the data
-    const tampered = { ...encrypted, data: encrypted.data.slice(0, -1) + (encrypted.data.slice(-1) === '0' ? '1' : '0') };
+    const tampered = {
+      ...encrypted,
+      data: encrypted.data.slice(0, -1) + (encrypted.data.slice(-1) === '0' ? '1' : '0'),
+    };
     expect(() => EncryptionService.decryptData(tampered)).toThrow();
   });
 

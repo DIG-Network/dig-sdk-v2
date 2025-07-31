@@ -3,7 +3,8 @@ import config from '../../../src/config';
 import { BlockchainNetwork } from '../../../src/config/types/BlockchainNetwork';
 import { ChiaBlockchainService } from '../../../src/infrastructure/BlockchainServices/ChiaBlockchainService';
 
-const TEST_ADDRESS = 'xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8249j';
+const TEST_ADDRESS =
+  'xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8249j';
 const TEST_puzzleHash = Buffer.from('aabbcc', 'hex');
 
 describe('ColdWallet', () => {
@@ -22,7 +23,9 @@ describe('ColdWallet', () => {
       return TEST_puzzleHash;
     });
     mockPeer = {
-      getAllUnspentCoins: jest.fn().mockResolvedValue({ coins: [1, 2, 3], lastHeight: 1, lastHeaderHash: Buffer.alloc(32) }),
+      getAllUnspentCoins: jest
+        .fn()
+        .mockResolvedValue({ coins: [1, 2, 3], lastHeight: 1, lastHeaderHash: Buffer.alloc(32) }),
       isCoinSpent: jest.fn().mockResolvedValue(false),
     };
   });
@@ -36,7 +39,9 @@ describe('ColdWallet', () => {
   it('masterPublicKeyToWalletSyntheticKey should delegate to blockchain and return a Buffer', () => {
     const testPubKey = Buffer.from('cafebabe', 'hex');
     const expected = Buffer.from('deadbeef', 'hex');
-    jest.spyOn(wallet["blockchain"], 'masterPublicKeyToWalletSyntheticKey').mockReturnValue(expected);
+    jest
+      .spyOn(wallet['blockchain'], 'masterPublicKeyToWalletSyntheticKey')
+      .mockReturnValue(expected);
     const result = wallet.masterPublicKeyToWalletSyntheticKey(testPubKey);
     expect(result).toEqual(expected);
   });
@@ -44,7 +49,7 @@ describe('ColdWallet', () => {
   it('masterPublicKeyToFirstPuzzleHash should delegate to blockchain and return a Buffer', () => {
     const testPubKey = Buffer.from('cafebabe', 'hex');
     const expected = Buffer.from('beadfeed', 'hex');
-    jest.spyOn(wallet["blockchain"], 'masterPublicKeyToFirstPuzzleHash').mockReturnValue(expected);
+    jest.spyOn(wallet['blockchain'], 'masterPublicKeyToFirstPuzzleHash').mockReturnValue(expected);
     const result = wallet.masterPublicKeyToFirstPuzzleHash(testPubKey);
     expect(result).toEqual(expected);
   });

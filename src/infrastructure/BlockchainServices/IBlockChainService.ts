@@ -1,5 +1,5 @@
 import type { Coin, PeerType, Tls, UnspentCoinsResponse } from '@dignetwork/datalayer-driver';
-import { IL1ChiaPeer } from "../Peers/L1ChiaPeer";
+import { IL1ChiaPeer } from '../Peers/L1ChiaPeer';
 
 export interface IBlockchainService {
   // Key and address methods
@@ -15,13 +15,13 @@ export interface IBlockchainService {
     peer: IL1ChiaPeer,
     puzzleHash: Buffer,
     previousHeight: number,
-    previousHeaderHash: Buffer
+    previousHeaderHash: Buffer,
   ): Promise<UnspentCoinsResponse>;
   isCoinSpendable(
     peer: IL1ChiaPeer,
     coinId: Buffer,
     lastHeight: number,
-    headerHash: Buffer
+    headerHash: Buffer,
   ): Promise<boolean>;
-  connectRandom(peerType: PeerType, tls: Tls): Promise<IL1ChiaPeer>
+  connectRandom(peerType: PeerType, tls: Tls): Promise<IL1ChiaPeer>;
 }

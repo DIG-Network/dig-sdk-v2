@@ -8,7 +8,9 @@ describe('ChiaBlockchainService', () => {
       if (now >= cutoff) {
         throw new Error('calculateFeeForCoinSpends must be reviewed and updated after 1 year!');
       }
-      const fee = await ChiaBlockchainService.prototype.calculateFeeForCoinSpends.call(new ChiaBlockchainService());
+      const fee = await ChiaBlockchainService.prototype.calculateFeeForCoinSpends.call(
+        new ChiaBlockchainService(),
+      );
       expect(fee).toBe(BigInt(1000000));
     });
   });

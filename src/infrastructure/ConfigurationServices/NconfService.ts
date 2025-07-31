@@ -32,7 +32,7 @@ export class NconfService implements IConfigurationService {
   public async deleteConfigValue(key: string): Promise<boolean> {
     await this.initializeConfig();
     const value = nconf.get(key);
-    
+
     if (value === undefined) {
       return false;
     }
@@ -54,7 +54,7 @@ export class NconfService implements IConfigurationService {
     await this.initializeConfig();
     return nconf.get() || {};
   }
-  
+
   private async initializeConfig(): Promise<void> {
     const release = await fileMutex.acquire();
     const directory = path.dirname(this.configFilePath);

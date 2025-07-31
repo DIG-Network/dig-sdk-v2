@@ -1,4 +1,7 @@
-import { CoinIndexer, CoinIndexerEventNames } from '../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
+import {
+  CoinIndexer,
+  CoinIndexerEventNames,
+} from '../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
 import { ChiaWallet } from '../src/infrastructure/types/ChiaWallet';
 import { ChiaColdWallet } from '../src/infrastructure/types/ChiaColdWallet';
 import { ChiaWalletEventNames } from '../src/infrastructure/types/ChiaWalletEvents';
@@ -61,14 +64,15 @@ async function main() {
   const chiaWallet = wallet ? new ChiaWallet(wallet, coinIndexer) : undefined;
   const chiaColdWallet = coldWallet ? new ChiaColdWallet(coldWallet, coinIndexer) : undefined;
 
-
   // Subscribe to ChiaWallet events
   if (chiaWallet) {
     chiaWallet.on(ChiaWalletEventNames.CoinCreated, (coin: CoinRecord) => {
       console.log(`[ChiaWallet] Coin created: hash ${coin.puzzleHash}, Amount ${coin.amount}`);
     });
     chiaWallet.on(ChiaWalletEventNames.SpendCreated, (spend: CoinSpend) => {
-      console.log(`[ChiaWallet] Coin spent: hash ${spend.coin.puzzleHash}, Amount ${spend.coin.amount}`);
+      console.log(
+        `[ChiaWallet] Coin spent: hash ${spend.coin.puzzleHash}, Amount ${spend.coin.amount}`,
+      );
     });
     chiaWallet.on(ChiaWalletEventNames.CatCreated, (cat: Cat) => {
       console.log(`[ChiaWallet] CAT created: coin`, cat);
@@ -84,7 +88,9 @@ async function main() {
       console.log(`[ChiaColdWallet] Coin created: hash ${coin.puzzleHash}, Amount ${coin.amount}`);
     });
     chiaColdWallet.on(ChiaWalletEventNames.SpendCreated, (spend: CoinSpend) => {
-      console.log(`[ChiaColdWallet] Coin spent: hash ${spend.coin.puzzleHash}, Amount ${spend.coin.amount}`);
+      console.log(
+        `[ChiaColdWallet] Coin spent: hash ${spend.coin.puzzleHash}, Amount ${spend.coin.amount}`,
+      );
     });
     chiaColdWallet.on(ChiaWalletEventNames.CatCreated, (cat: Cat) => {
       console.log(`[ChiaColdWallet] CAT created: coin`, cat);
@@ -94,9 +100,10 @@ async function main() {
     });
   }
 
-
   coinIndexer.on(CoinIndexerEventNames.NewBlockIngested, (event) => {
-    console.log(`[CoinIndexer] New block ingested: Height ${event.height}, Weight ${event.weight}, HeaderHash ${event.headerHash.toString('hex')}`);
+    console.log(
+      `[CoinIndexer] New block ingested: Height ${event.height}, Weight ${event.weight}, HeaderHash ${event.headerHash.toString('hex')}`,
+    );
     if (event.timestamp) {
       console.log(`[CoinIndexer] Timestamp: ${event.timestamp}`);
     }

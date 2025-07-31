@@ -7,6 +7,7 @@ This project demonstrates how to use the DIG SDK v2 to index, monitor, and inter
 - **Node.js** (v18+ recommended)
 - **npm** (v9+ recommended)
 - Access to the Chia testnet or mainnet (for real blockchain data)
+
 ## Setup for local example
 
 1. **Install dependencies**
@@ -30,6 +31,7 @@ This project demonstrates how to use the DIG SDK v2 to index, monitor, and inter
    ```
 
    The script will:
+
    - Connect to the Chia testnet using the CoinIndexer and peer services.
    - Create or load a hot wallet (mnemonic-based) and a cold wallet (address-based) using `WalletService`.
    - Instantiate `ChiaWallet` and `ChiaColdWallet` wrappers for event-driven coin monitoring.
@@ -48,23 +50,23 @@ This project demonstrates how to use the DIG SDK v2 to index, monitor, and inter
 See `test/L1PeerServiceWithIndexer.example.ts` for a full example. Key steps:
 
 ```typescript
-import { CoinIndexer } from "../src/infrastructure/Workers/CoinIndexer/CoinIndexer";
-import { WalletService } from "../src/application/services/WalletService";
-import { ChiaWallet } from "../src/infrastructure/types/ChiaWallet";
-import { ChiaColdWallet } from "../src/infrastructure/types/ChiaColdWallet";
+import { CoinIndexer } from '../src/infrastructure/Workers/CoinIndexer/CoinIndexer';
+import { WalletService } from '../src/application/services/WalletService';
+import { ChiaWallet } from '../src/infrastructure/types/ChiaWallet';
+import { ChiaColdWallet } from '../src/infrastructure/types/ChiaColdWallet';
 // ...
 
 const coinIndexer = new CoinIndexer();
 await coinIndexer.start();
 
-const wallet = await WalletService.createWallet("dev", testnetMnemonic);
-const coldWallet = await WalletService.createColdWallet("dev-cold", testnetWalletAddress);
+const wallet = await WalletService.createWallet('dev', testnetMnemonic);
+const coldWallet = await WalletService.createColdWallet('dev-cold', testnetWalletAddress);
 
 const chiaWallet = new ChiaWallet(wallet, coinIndexer);
 const chiaColdWallet = new ChiaColdWallet(coldWallet, coinIndexer);
 
-chiaWallet.on("chiaCoinCreated", (coin) => console.log("[ChiaWallet] Coin created", coin));
-chiaColdWallet.on("chiaCoinCreated", (coin) => console.log("[ChiaColdWallet] Coin created", coin));
+chiaWallet.on('chiaCoinCreated', (coin) => console.log('[ChiaWallet] Coin created', coin));
+chiaColdWallet.on('chiaCoinCreated', (coin) => console.log('[ChiaColdWallet] Coin created', coin));
 // ...
 ```
 
@@ -87,4 +89,3 @@ npm test
 - `src/` – SDK source code
 - `test/` – Example and test scripts
 - `ca.crt`, `ca.key` – Chia network certificates (required for peer connections)
-

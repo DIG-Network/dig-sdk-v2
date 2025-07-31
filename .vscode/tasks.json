@@ -1,15 +1,13 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "shell",
-			"label": "Run CoinIndexer tests",
-			"command": "npx jest test/infrastructure/Workers/CoinIndexer/CoinIndexer.test.ts",
-			"group": "test",
-			"isBackground": false,
-			"problemMatcher": [
-				"$tsc"
-			]
-		}
-	]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "label": "Run CoinIndexer tests",
+      "command": "npx jest test/infrastructure/Workers/CoinIndexer/CoinIndexer.test.ts",
+      "group": "test",
+      "isBackground": false,
+      "problemMatcher": ["$tsc"]
+    }
+  ]
 }

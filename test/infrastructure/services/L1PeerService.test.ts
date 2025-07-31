@@ -40,7 +40,9 @@ describe('L1PeerService', () => {
 
   it('throws if not enough peers can be connected', async () => {
     (Peer.connectRandom as jest.Mock).mockRejectedValue(new Error('fail'));
-    await expect(L1PeerService.connect(2, 2, PeerType.Testnet11, tls)).rejects.toThrow('Failed to connect to any peers');
+    await expect(L1PeerService.connect(2, 2, PeerType.Testnet11, tls)).rejects.toThrow(
+      'Failed to connect to any peers',
+    );
   });
 
   it('selects peer(s) with max height and calls fn', async () => {
@@ -58,9 +60,7 @@ describe('L1PeerService', () => {
   it('retries with next peer if fn fails, up to retries', async () => {
     (L1PeerService as any).peers = [mockPeers[1], mockPeers[2]]; // both have height 20
     (L1PeerService as any).connected = true;
-    const fn = jest.fn()
-      .mockRejectedValueOnce(new Error('fail1'))
-      .mockResolvedValueOnce('ok');
+    const fn = jest.fn().mockRejectedValueOnce(new Error('fail1')).mockResolvedValueOnce('ok');
     const result = await L1PeerService.withPeer(fn, 2);
     expect(fn).toHaveBeenCalledTimes(2);
     expect(result).toBe('ok');
@@ -84,11 +84,11 @@ describe('L1PeerService', () => {
     (L1PeerService as any).peers = [mockPeers[1], mockPeers[2]];
     (L1PeerService as any).connected = true;
     // Simulate fn failing for the first peer, succeeding for the new peer
-    const fn = jest.fn()
-      .mockRejectedValueOnce(new Error('fail1'))
-      .mockResolvedValueOnce('ok');
+    const fn = jest.fn().mockRejectedValueOnce(new Error('fail1')).mockResolvedValueOnce('ok');
     // Mock Peer.connectRandom to return a new peer
-    (Peer.connectRandom as jest.Mock).mockResolvedValueOnce({ getPeak: jest.fn().mockResolvedValue(30) });
+    (Peer.connectRandom as jest.Mock).mockResolvedValueOnce({
+      getPeak: jest.fn().mockResolvedValue(30),
+    });
     const result = await L1PeerService.withPeer(fn, 2);
     expect(fn).toHaveBeenCalledTimes(2);
     expect(result).toBe('ok');
