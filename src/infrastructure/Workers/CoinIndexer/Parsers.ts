@@ -123,7 +123,7 @@ export function parseStreamedCatFromSpend(coinSpend: ListenerCoinSpend): unknown
   return null;
 }
 
-function parseWalletNftToNft(nft: WalletNft, toHex: (bytes: Uint8Array) => string): Nft | null {
+export function parseWalletNftToNft(nft: WalletNft, toHex: (bytes: Uint8Array) => string): Nft | null {
   if (!nft) {
     return null;
   }
@@ -206,7 +206,7 @@ function parseWalletNftToNft(nft: WalletNft, toHex: (bytes: Uint8Array) => strin
   }
 }
 
-function parseWalletCatToCat(cat: WalletCat, toHex: (bytes: Uint8Array) => string): Cat | null {
+export function parseWalletCatToCat(cat: WalletCat, toHex: (bytes: Uint8Array) => string): Cat | null {
   if (!cat) {
     return null;
   }
@@ -259,7 +259,7 @@ function parseWalletCatToCat(cat: WalletCat, toHex: (bytes: Uint8Array) => strin
   }
 }
 
-function convertUint8ArrayObjectToHex(
+export function convertUint8ArrayObjectToHex(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   obj: any,
   toHex: (bytes: Uint8Array) => string,
