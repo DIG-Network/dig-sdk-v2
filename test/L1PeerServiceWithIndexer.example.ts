@@ -20,7 +20,7 @@ import { PeerType, Tls } from '@dignetwork/datalayer-driver';
 
 async function main() {
   const testnetWalletAddressName = 'dev'; // Replace with your actual address name
-  const testnetMnemonic = 'supreme huge blossom mimic oval wear walnut toy pulp verify object panther logic wait what express alpha dice auction reduce always stuff garlic insane'; // Replace with your actual mnemonic
+  const testnetMnemonic = ''; // Replace with your actual mnemonic
   const testnetWalletAddress = 'txch1fw0lql9h6n9e23yzq8ewg0hnjw2gcftayzrnj6rxlx0q6w7x6klsfy5z5f'; // Replace with your actual address
 
   config.BLOCKCHAIN_NETWORK = BlockchainNetwork.TESTNET;
