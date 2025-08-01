@@ -1,3 +1,13 @@
+import {
+  writerDelegatedPuzzleFromKey,
+  adminDelegatedPuzzleFromKey,
+  oracleDelegatedPuzzle,
+  mintStore,
+  signCoinSpends,
+  DataStore as DataStoreDriver,
+  syntheticKeyToPuzzleHash,
+} from '@dignetwork/datalayer-driver';
+
 import { IBlockchainService } from './IBlockChainService';
 import {
   masterSecretKeyToWalletSyntheticSecretKey,
@@ -15,8 +25,85 @@ import { PrivateKey } from 'chia-bls';
 import { IL1ChiaPeer, L1ChiaPeer } from '../Peers/L1ChiaPeer';
 import config from '../../config';
 import { BlockchainNetwork } from '../../config/types/BlockchainNetwork';
+import { ChiaWallet } from '../types/ChiaWallet';
 
 export class ChiaBlockchainService implements IBlockchainService {
+  static async mint(
+    peer: IL1ChiaPeer,
+    wallet: ChiaWallet,
+    storeCreationCoin: Coin,
+    label?: string,
+    description?: string,
+    sizeInBytes?: bigint,
+    authorizedWriterPublicSyntheticKey?: string,
+    adminPublicSyntheticKey?: string,
+  ): Promise<DataStoreDriver> {
+    // Get public synthetic key from wallet
+    const publicSyntheticKey = await wallet.getPublicSyntheticKey();
+    const ownerSyntheicPuzzleHash = syntheticKeyToPuzzleHash(publicSyntheticKey);
+
+    // Build delegation layers
+    const delegationLayers = [];
+    if (adminPublicSyntheticKey) {
+      delegationLayers.push(
+        adminDelegatedPuzzleFromKey(Buffer.from(adminPublicSyntheticKey, 'hex')),
+      );
+    }
+    if (authorizedWriterPublicSyntheticKey) {
+      delegationLayers.push(
+        writerDelegatedPuzzleFromKey(Buffer.from(authorizedWriterPublicSyntheticKey, 'hex')),
+      );
+    }
+    delegationLayers.push(oracleDelegatedPuzzle(ownerSyntheicPuzzleHash, BigInt(100000)));
+
+    // Use zero root hash for now
+    const rootHash = Buffer.from(
+      '0000000000000000000000000000000000000000000000000000000000000000',
+      'hex',
+    );
+
+    // Preflight for fee calculation (always provide 9 args, unroll array)
+    await mintStore(
+      publicSyntheticKey,
+      [storeCreationCoin],
+      rootHash,
+      label || undefined,
+      description || undefined,
+      sizeInBytes || BigInt(0),
+      ownerSyntheicPuzzleHash,
+      delegationLayers,
+      BigInt(0),
+    );
+    // Use the instance method for fee calculation
+    const fee = await new ChiaBlockchainService().calculateFeeForCoinSpends();
+
+    // Final mint (always provide 9 args, unroll array)
+    const storeCreationResponse = await mintStore(
+      publicSyntheticKey,
+      [storeCreationCoin],
+      rootHash,
+      label || undefined,
+      description || undefined,
+      sizeInBytes || BigInt(0),
+      ownerSyntheicPuzzleHash,
+      delegationLayers,
+      fee,
+    );
+
+    // Sign and broadcast
+    const sig = signCoinSpends(
+      storeCreationResponse.coinSpends,
+      [await wallet.getPrivateSyntheticKey()],
+      config.BLOCKCHAIN_NETWORK == BlockchainNetwork.TESTNET,
+    );
+    const err = await peer.broadcastSpend(storeCreationResponse.coinSpends, [sig]);
+    if (err) {
+      throw new Error(err);
+    }
+    // Wait for mempool propagation
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    return storeCreationResponse.newStore;
+  }
   masterSecretKeyFromSeed(seed: Buffer): Buffer {
     return Buffer.from(PrivateKey.fromSeed(seed).toHex(), 'hex');
   }
