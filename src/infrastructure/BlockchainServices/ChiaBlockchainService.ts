@@ -38,11 +38,9 @@ export class ChiaBlockchainService implements IBlockchainService {
     authorizedWriterPublicSyntheticKey?: string,
     adminPublicSyntheticKey?: string,
   ): Promise<DataStoreDriver> {
-    // Get public synthetic key from wallet
     const publicSyntheticKey = await wallet.getPublicSyntheticKey();
     const ownerSyntheicPuzzleHash = syntheticKeyToPuzzleHash(publicSyntheticKey);
 
-    // Build delegation layers
     const delegationLayers = [];
     if (adminPublicSyntheticKey) {
       delegationLayers.push(
@@ -62,22 +60,8 @@ export class ChiaBlockchainService implements IBlockchainService {
       'hex',
     );
 
-    // Preflight for fee calculation (always provide 9 args, unroll array)
-    await mintStore(
-      publicSyntheticKey,
-      [storeCreationCoin],
-      rootHash,
-      label || undefined,
-      description || undefined,
-      sizeInBytes || BigInt(0),
-      ownerSyntheicPuzzleHash,
-      delegationLayers,
-      BigInt(0),
-    );
-    // Use the instance method for fee calculation
     const fee = await new ChiaBlockchainService().calculateFeeForCoinSpends();
 
-    // Final mint (always provide 9 args, unroll array)
     const storeCreationResponse = await mintStore(
       publicSyntheticKey,
       [storeCreationCoin],
@@ -94,7 +78,7 @@ export class ChiaBlockchainService implements IBlockchainService {
     const sig = signCoinSpends(
       storeCreationResponse.coinSpends,
       [await wallet.getPrivateSyntheticKey()],
-      config.BLOCKCHAIN_NETWORK == BlockchainNetwork.TESTNET,
+      config.BLOCKCHAIN_NETWORK === BlockchainNetwork.TESTNET,
     );
     const err = await peer.broadcastSpend(storeCreationResponse.coinSpends, [sig]);
     if (err) {
